@@ -1,0 +1,162 @@
+[
+  {
+    "id": "svc_001",
+    "title": "Diseño de Logo Profesional",
+    "category": "Diseño",
+    "description": "Creo logos modernos y memorables para tu marca. Incluye 3 propuestas, revisiones ilimitadas y archivos en todos los formatos.",
+    "price": 80,
+    "priceType": "fijo",
+    "rating": 4.9,
+    "reviewCount": 43,
+    "deliveryDays": 3,
+    "image": "https://images.unsplash.com/photo-1626785774625-ddcddc3445e9?w=400&q=80",
+    "professional": {
+      "id": "pro_001",
+      "name": "Carlos Mendoza",
+      "avatar": "https://api.dicebear.com/9.x/avataaars/svg?seed=Carlos",
+      "location": "Barcelona"
+    },
+    "tags": ["logo", "branding", "ilustración"],
+    "featured": true
+  },
+  {
+    "id": "svc_002",
+    "title": "Clases de Inglés Online",
+    "category": "Educación",
+    "description": "Profesor nativo con 10 años de experiencia. Clases personalizadas para todos los niveles. Preparación para Cambridge y TOEFL.",
+    "price": 25,
+    "priceType": "hora",
+    "rating": 5.0,
+    "reviewCount": 89,
+    "deliveryDays": null,
+    "image": "https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=400&q=80",
+    "professional": {
+      "id": "pro_002",
+      "name": "James Wilson",
+      "avatar": "https://api.dicebear.com/9.x/avataaars/svg?seed=James",
+      "location": "Madrid"
+    },
+    "tags": ["inglés", "idiomas", "online"],
+    "featured": true
+  },
+  {
+    "id": "svc_003",
+    "title": "Instalación y Reparación Eléctrica",
+    "category": "Hogar",
+    "description": "Electricista certificado. Instalaciones, reparaciones, cuadros eléctricos y más. Presupuesto sin compromiso. Disponibilidad inmediata.",
+    "price": 45,
+    "priceType": "hora",
+    "rating": 4.7,
+    "reviewCount": 156,
+    "deliveryDays": null,
+    "image": "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=400&q=80",
+    "professional": {
+      "id": "pro_003",
+      "name": "Antonio Ruiz",
+      "avatar": "https://api.dicebear.com/9.x/avataaars/svg?seed=Antonio",
+      "location": "Valencia"
+    },
+    "tags": ["electricidad", "hogar", "reparación"],
+    "featured": false
+  },
+  {
+    "id": "svc_004",
+    "title": "Desarrollo Web Full Stack",
+    "category": "Tecnología",
+    "description": "Desarrollo aplicaciones web modernas con React, Next.js y Node.js. Desde landing pages hasta plataformas complejas. Portfolio disponible.",
+    "price": 60,
+    "priceType": "hora",
+    "rating": 4.8,
+    "reviewCount": 32,
+    "deliveryDays": null,
+    "image": "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&q=80",
+    "professional": {
+      "id": "pro_004",
+      "name": "Sara López",
+      "avatar": "https://api.dicebear.com/9.x/avataaars/svg?seed=Sara",
+      "location": "Sevilla"
+    },
+    "tags": ["web", "react", "programación"],
+    "featured": true
+  },
+  {
+    "id": "svc_005",
+    "title": "Fotografía de Eventos y Bodas",
+    "category": "Fotografía",
+    "description": "Fotografía profesional para tu evento especial. Reportajes de boda, cumpleaños, empresariales. Entrega de galería digital en 7 días.",
+    "price": 350,
+    "priceType": "evento",
+    "rating": 4.9,
+    "reviewCount": 61,
+    "deliveryDays": 7,
+    "image": "https://images.unsplash.com/photo-1519741497674-611481863552?w=400&q=80",
+    "professional": {
+      "id": "pro_005",
+      "name": "Lucía Fernández",
+      "avatar": "https://api.dicebear.com/9.x/avataaars/svg?seed=Lucia",
+      "location": "Bilbao"
+    },
+    "tags": ["fotografía", "bodas", "eventos"],
+    "featured": false
+  },
+  {
+    "id": "svc_006",
+    "title": "Entrenador Personal a Domicilio",
+    "category": "Deporte",
+    "description": "Planes de entrenamiento personalizados según tus objetivos. Sesiones en tu hogar o al aire libre. Seguimiento nutricional incluido.",
+    "price": 40,
+    "priceType": "sesión",
+    "rating": 4.6,
+    "reviewCount": 48,
+    "deliveryDays": null,
+    "image": "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400&q=80",
+    "professional": {
+      "id": "pro_006",
+      "name": "Pablo Moreno",
+      "avatar": "https://api.dicebear.com/9.x/avataaars/svg?seed=Pablo",
+      "location": "Málaga"
+    },
+    "tags": ["fitness", "entrenamiento", "salud"],
+    "featured": false
+  },
+  {
+    "id": "svc_007",
+    "title": "Traducción Español-Francés",
+    "category": "Traducción",
+    "description": "Traducciones juradas y técnicas. Documentos legales, contratos, textos académicos. Más de 15 años de experiencia en traducción.",
+    "price": 0.08,
+    "priceType": "palabra",
+    "rating": 4.9,
+    "reviewCount": 74,
+    "deliveryDays": 2,
+    "image": "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=400&q=80",
+    "professional": {
+      "id": "pro_007",
+      "name": "Claire Dubois",
+      "avatar": "https://api.dicebear.com/9.x/avataaars/svg?seed=Claire",
+      "location": "Zaragoza"
+    },
+    "tags": ["traducción", "francés", "documentos"],
+    "featured": false
+  },
+  {
+    "id": "svc_008",
+    "title": "Contabilidad y Fiscalidad PYMES",
+    "category": "Finanzas",
+    "description": "Gestión contable y fiscal para autónomos y pequeñas empresas. Declaraciones trimestrales, IVA, IRPF. Asesoramiento fiscal continuo.",
+    "price": 150,
+    "priceType": "mes",
+    "rating": 4.7,
+    "reviewCount": 29,
+    "deliveryDays": null,
+    "image": "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=400&q=80",
+    "professional": {
+      "id": "pro_008",
+      "name": "Elena Castillo",
+      "avatar": "https://api.dicebear.com/9.x/avataaars/svg?seed=Elena",
+      "location": "Alicante"
+    },
+    "tags": ["contabilidad", "fiscalidad", "asesoría"],
+    "featured": true
+  }
+]
