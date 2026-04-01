@@ -1,0 +1,44 @@
+from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import RedirectResponse
+from utils.google_oauth import get_google_oauth_client
+from config import Config
+from utils.jwt_handler import create_access_token
+
+router = APIRouter(prefix="/auth", tags=["auth"])
+
+@router.get("/google/login")
+async def login(request: Request):
+    google = get_google_oauth_client()
+    redirect_uri = Config.BACKEND_URL.rstrip("/") + "/auth/google/callback"
+    return await google.authorize_redirect(request, redirect_uri)
+
+@router.get("/google/callback")
+async def callback(request: Request):
+    try:
+        google = get_google_oauth_client()
+
+        token = await google.authorize_access_token(request)
+
+        user_info = token.get("userinfo")
+        if not user_info:
+            user_info = await google.parse_id_token(request, token)
+
+        if not user_info:
+            raise HTTPException(status_code=400, detail="No se pudo obtener informacion del usuario")
+
+        user_data = {
+            "id": user_info["sub"],
+            "email": user_info["email"],
+            "name": user_info["name"],
+            "picture": user_info.get("picture"),
+            "email_verified": user_info.get("email_verified", False),
+        }
+
+        jwt_token = create_access_token(user_data)
+
+        return RedirectResponse(f"{Config.FRONTEND_URL}?token={jwt_token}")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error en callback de Google: {str(e)}")

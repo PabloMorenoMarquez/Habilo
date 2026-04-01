@@ -1,0 +1,21 @@
+from sqlalchemy import Column, Text, Boolean, DateTime, ForeignKey, Integer, Numeric
+from sqlalchemy.dialects.postgresql import UUID
+import uuid
+from datetime import datetime
+
+from database.base import base
+
+
+class Perfil_Proveedor(base):
+    __tablename__ = "Perfiles_Proveedor"
+
+    id = Column(UUID, primary_key=True, default=uuid.uuid4)
+    id_usuario = Column(UUID, ForeignKey("Usuarios.id"), nullable=False)
+    descripcion = Column(Text, nullable=True)
+    experiencia_años = Column(Integer, nullable=True)
+    radio_km_disponible = Column(Integer, nullable=False)
+    valoracion_media = Column(Numeric(3,2), default=0)
+    num_valoraciones = Column(Integer, default=0)
+    verificado = Column(Boolean, nullable=True, default=False)
+    url_documento = Column(Text, nullable=True)
+    fecha_creacion = Column(DateTime, nullable=True, default=datetime.now)

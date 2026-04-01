@@ -1,14 +1,20 @@
 from fastapi import FastAPI
-from database.engine import engine
+from starlette.middleware.sessions import SessionMiddleware
+import os
+from dotenv import load_dotenv
+
+from routers.auth import router as auth_router
+from utils.google_oauth import configure_oauth
+
+load_dotenv()
 
 app = FastAPI()
 
-try:
-    engine.connect()
-    print("Conexion exitosa")
-except Exception as e:
-    print("Error", e)
-    
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=os.getenv("SESSION_SECRET_KEY", "dev-secret-change-me"),
+)
+
+configure_oauth(app)
+app.include_router(auth_router)
+
