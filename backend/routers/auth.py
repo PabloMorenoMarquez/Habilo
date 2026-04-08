@@ -3,6 +3,7 @@ from fastapi.responses import RedirectResponse
 from utils.google_oauth import get_google_oauth_client
 from config import Config
 from utils.jwt_handler import create_access_token
+from services.user_service import UserService   
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -26,12 +27,13 @@ async def callback(request: Request):
         if not user_info:
             raise HTTPException(status_code=400, detail="No se pudo obtener informacion del usuario")
 
+        user_service = UserService()
+        user = user_service.create_or_update(email=user_info["email"], nombre=user_info["name"], foto_url=user_info["picture"])
+
         user_data = {
-            "id": user_info["sub"],
-            "email": user_info["email"],
-            "name": user_info["name"],
-            "picture": user_info.get("picture"),
-            "email_verified": user_info.get("email_verified", False),
+            "id": str(user.id),
+            "email": user.email,
+            "name": user.nombre
         }
 
         jwt_token = create_access_token(user_data)

@@ -7,7 +7,7 @@ from database.base import base
 
 
 class Usuario(base):
-    __tablename__ = "Usuarios"
+    __tablename__ = "usuarios"
 
     id = Column(UUID, primary_key=True, default=uuid.uuid4)
     email = Column(Text, unique=True, nullable=False)
@@ -16,4 +16,4 @@ class Usuario(base):
     telefono = Column(Text, nullable=True)
     telefono_verificado = Column(Boolean, nullable=True, default=False)
     fecha_registro = Column(DateTime, nullable=True, default=datetime.now)
-    ciudad = Column(Text, nullable=False)
+    ciudad = Column(Text, nullable=True)
