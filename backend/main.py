@@ -4,7 +4,8 @@ import os
 from dotenv import load_dotenv
 
 from routers.auth import router as auth_router
-from utils.google_oauth import configure_oauth
+from utils.google_oauth import google_configure_oauth
+from utils.facebook_oauth import facebook_configure_oauth
 
 load_dotenv()
 
@@ -15,6 +16,7 @@ app.add_middleware(
     secret_key=os.getenv("SESSION_SECRET_KEY", "dev-secret-change-me"),
 )
 
-configure_oauth(app)
+google_configure_oauth(app)
+facebook_configure_oauth(app)
 app.include_router(auth_router)
 

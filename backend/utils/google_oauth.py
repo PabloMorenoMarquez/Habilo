@@ -3,7 +3,7 @@ from authlib.integrations.starlette_client import OAuth
 oauth = OAuth()
 
 
-def configure_oauth(app):
+def google_configure_oauth(app):
     # Configurar el cliente OAuth de Google
     from config import Config
 
@@ -13,8 +13,8 @@ def configure_oauth(app):
         client_secret=Config.GOOGLE_CLIENT_SECRET,
         server_metadata_url=Config.GOOGLE_DISCOVERY_URL,
         client_kwargs={
-            "scope": " ".join(Config.OAUTH_SCOPES),
-        },
+            "scope": " ".join(Config.OAUTH_GOOGLE_SCOPES),
+        }, 
     )
 
     return oauth
