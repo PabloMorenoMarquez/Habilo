@@ -7,12 +7,12 @@ from database.base import base
 
 
 class Valoracion(base):
-    __tablename__ = "Valoraciones"
+    __tablename__ = "valoraciones"
 
     id = Column(UUID, primary_key=True, default=uuid.uuid4)
-    solicitud_id = Column(UUID, ForeignKey("Solicitudes.id"), nullable=False)
-    autor_id = Column(UUID, ForeignKey("Usuarios.id"), nullable=False)
-    destinatario_id = Column(UUID, ForeignKey("Perfiles_Proveedor.id"), nullable=False)
+    solicitud_id = Column(UUID, ForeignKey("solicitudes.id"), nullable=False)
+    autor_id = Column(UUID, ForeignKey("usuarios.id"), nullable=False)
+    destinatario_id = Column(UUID, ForeignKey("usuarios.id"), nullable=False)
     puntuacion = Column(Integer, nullable=False)
     comentario = Column(Text, nullable=True)
     fecha = Column(DateTime, nullable=True, default=datetime.now)

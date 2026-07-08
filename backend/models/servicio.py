@@ -8,14 +8,14 @@ from database.base import base
 
 
 class Servicio(base):
-    __tablename__ = "Servicios"
+    __tablename__ = "servicios"
 
     id = Column(UUID, primary_key=True, default=uuid.uuid4)
-    proveedor_id = Column(UUID, ForeignKey("Perfiles_Proveedor.id"), nullable=False)
-    categoria_id = Column(UUID, ForeignKey("Categoria.id"), nullable=True)
+    proveedor_id = Column(UUID, ForeignKey("perfiles_proveedor.id"), nullable=False)
+    categoria_id = Column(UUID, ForeignKey("categorias.id"), nullable=True)
     titulo = Column(Text, nullable=False)
     descripcion = Column(Text)
-    precio = Column(Numeric, nullable=False)
+    precio = Column(Numeric(10,2), nullable=False)
     tipo_precio = Column(Text, nullable=False)
     ubicacion = Column(Geography(geometry_type='POINT', srid=4326))
     activo = Column(Boolean, default=True)

@@ -7,10 +7,10 @@ from database.base import base
 
 
 class Perfil_Proveedor(base):
-    __tablename__ = "Perfiles_Proveedor"
+    __tablename__ = "perfiles_proveedor"
 
     id = Column(UUID, primary_key=True, default=uuid.uuid4)
-    id_usuario = Column(UUID, ForeignKey("Usuarios.id"), nullable=False)
+    usuario_id = Column(UUID, ForeignKey("usuarios.id"), nullable=False)
     descripcion = Column(Text, nullable=True)
     experiencia_años = Column(Integer, nullable=True)
     radio_km_disponible = Column(Integer, nullable=False)

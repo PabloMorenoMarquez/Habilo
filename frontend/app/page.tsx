@@ -34,36 +34,9 @@ export default function LoginPage() {
     router.push("/select-role")
   }
 
-  const handleGoogleLogin = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      setIsLoading(true)
-      try {
-        const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-          headers: {
-            Authorization: `Bearer ${tokenResponse.access_token}`,
-          },
-        })
-        const decoded = await res.json()
-        const userData = {
-          name: decoded.name,
-          email: decoded.email,
-          avatar: decoded.picture,
-          googleId: decoded.sub,
-        }
-        login(userData)
-        setTimeout(() => {
-          router.push("/select-role")
-        }, 500)
-      } catch (error) {
-        console.error("Google login error:", error)
-        setIsLoading(false)
-      }
-    },
-    onError: (error) => {
-      console.error("Google login failed:", error)
-      setIsLoading(false)
-    },
-  })
+  const handleGoogleLogin = () => {
+    window.location.href = "http://localhost:8000/auth/google/login"
+  }
 
   return (
     <main className="min-h-screen flex flex-col lg:flex-row">

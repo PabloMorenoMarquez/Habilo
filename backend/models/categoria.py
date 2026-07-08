@@ -6,7 +6,7 @@ from database.base import base
 
 
 class Categoria(base):
-    __tablename__ = "Categorias"
+    __tablename__ = "categorias"
 
     id = Column(UUID, primary_key=True, default=uuid.uuid4)
     nombre = Column(Text, nullable=False)

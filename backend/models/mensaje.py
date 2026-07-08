@@ -7,10 +7,10 @@ from database.base import base
 
 
 class Mensaje(base):
-    __tablename__ = "Mensajes"
+    __tablename__ = "mensajes"
 
     id = Column(UUID, primary_key=True, default=uuid.uuid4)
-    solicitud_id = Column(UUID, ForeignKey("Solicitudes.id"), nullable=False)
-    remitente_id = Column(UUID, ForeignKey("Usuarios.id"), nullable=False)
+    solicitud_id = Column(UUID, ForeignKey("solicitudes.id"), nullable=False)
+    remitente_id = Column(UUID, ForeignKey("usuarios.id"), nullable=False)
     contenido = Column(Text, nullable=False)
     fecha = Column(DateTime, nullable=True, default=datetime.now)
