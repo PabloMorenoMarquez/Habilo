@@ -2,57 +2,126 @@
 
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef, useCallback } from "react"
 import Navbar from "@/components/navbar"
-import chatsData from "@/data/chats.json"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Send, Search, ArrowLeft } from "lucide-react"
+import { Send, Search, ArrowLeft, Loader, WifiOff } from "lucide-react"
 import { cn } from "@/lib/utils"
+import {
+  getConversaciones,
+  getHistorialMensajes,
+  marcarMensajesLeidos,
+  getWebSocketUrl,
+  Conversacion,
+  MensajeBackend,
+} from "@/lib/api"
 
-type Message = { id: string; from: string; text: string; time: string }
-type Chat = (typeof chatsData)[number]
+const POLL_INTERVAL = 15000 // refresco de la lista lateral, en ms
+
+function formatHora(fecha: string | null) {
+  if (!fecha) return ""
+  return new Date(fecha).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })
+}
 
 export default function ChatsPage() {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, isLoading, user } = useAuth()
   const router = useRouter()
-  const [chats, setChats] = useState<Chat[]>(chatsData as Chat[])
-  const [activeChat, setActiveChat] = useState<Chat | null>(chatsData[0] as Chat)
+
+  const [conversaciones, setConversaciones] = useState<Conversacion[]>([])
+  const [cargandoLista, setCargandoLista] = useState(true)
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const [mensajes, setMensajes] = useState<MensajeBackend[]>([])
+  const [cargandoMensajes, setCargandoMensajes] = useState(false)
   const [newMessage, setNewMessage] = useState("")
   const [mobileChatOpen, setMobileChatOpen] = useState(false)
+  const [wsConectado, setWsConectado] = useState(false)
+
+  const wsRef = useRef<WebSocket | null>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    if (isLoading) return
     if (!isAuthenticated) router.replace("/")
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, isLoading, router])
+
+  const cargarConversaciones = useCallback(() => {
+    getConversaciones()
+      .then(setConversaciones)
+      .catch((err) => console.error("No se pudieron cargar las conversaciones:", err))
+      .finally(() => setCargandoLista(false))
+  }, [])
+
+  // Carga inicial + refresco periódico de la lista lateral (polling ligero)
+  useEffect(() => {
+    cargarConversaciones()
+    const interval = setInterval(cargarConversaciones, POLL_INTERVAL)
+    return () => clearInterval(interval)
+  }, [cargarConversaciones])
+
+  // Al seleccionar una conversación: cargar historial, marcar como leído, abrir WebSocket
+  useEffect(() => {
+    if (!activeId) return
+
+    setCargandoMensajes(true)
+    getHistorialMensajes(activeId)
+      .then(setMensajes)
+      .catch((err) => console.error(err))
+      .finally(() => setCargandoMensajes(false))
+
+    marcarMensajesLeidos(activeId).catch((err) => console.error(err))
+    // Reflejar en la lista lateral que esta conversación ya no tiene pendientes
+    setConversaciones((prev) => prev.map((c) => (c.id === activeId ? { ...c, no_leidos: 0 } : c)))
+
+    // Cerrar cualquier conexión anterior antes de abrir la nueva
+    wsRef.current?.close()
+
+    const ws = new WebSocket(getWebSocketUrl(activeId))
+    wsRef.current = ws
+
+    ws.onopen = () => setWsConectado(true)
+    ws.onclose = () => setWsConectado(false)
+    ws.onerror = () => setWsConectado(false)
+    ws.onmessage = (event) => {
+      const mensaje: MensajeBackend = JSON.parse(event.data)
+      setMensajes((prev) => [...prev, mensaje])
+      // Si el mensaje que llega no es mío, esta conversación sigue "leída" porque la tengo abierta
+      if (mensaje.remitente_id !== user?.id) {
+        marcarMensajesLeidos(activeId).catch(() => {})
+      }
+      // Actualiza el preview en la lista lateral sin esperar al polling
+      setConversaciones((prev) =>
+        prev.map((c) =>
+          c.id === activeId ? { ...c, ultimo_mensaje: mensaje.contenido, ultimo_mensaje_fecha: mensaje.fecha } : c
+        )
+      )
+    }
+
+    return () => {
+      ws.close()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeId])
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [mensajes])
 
   const sendMessage = () => {
-    if (!newMessage.trim() || !activeChat) return
-    const msg: Message = {
-      id: `msg_${Date.now()}`,
-      from: "me",
-      text: newMessage.trim(),
-      time: new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }),
-    }
-    setChats((prev) =>
-      prev.map((c) =>
-        c.id === activeChat.id
-          ? { ...c, messages: [...c.messages, msg], lastMessage: msg.text, unread: 0 }
-          : c
-      )
-    )
-    setActiveChat((prev) =>
-      prev ? { ...prev, messages: [...prev.messages, msg], lastMessage: msg.text, unread: 0 } : null
-    )
+    const texto = newMessage.trim()
+    if (!texto || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return
+    wsRef.current.send(JSON.stringify({ contenido: texto }))
     setNewMessage("")
   }
 
-  const openChat = (chat: Chat) => {
-    setActiveChat(chat)
-    setChats((prev) => prev.map((c) => (c.id === chat.id ? { ...c, unread: 0 } : c)))
+  const openChat = (conv: Conversacion) => {
+    setActiveId(conv.id)
     setMobileChatOpen(true)
   }
+
+  const activeConv = conversaciones.find((c) => c.id === activeId) || null
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -68,38 +137,50 @@ export default function ChatsPage() {
             <div className="p-4 border-b border-border">
               <div className="relative">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <Input placeholder="Buscar conversación..." className="pl-9 h-9 text-sm" />
+                <Input placeholder="Buscar conversación..." className="pl-9 h-9 text-sm" disabled />
               </div>
             </div>
             <div className="flex-1 overflow-y-auto divide-y divide-border">
-              {chats.map((chat) => (
-                <button
-                  key={chat.id}
-                  onClick={() => openChat(chat)}
-                  className={cn(
-                    "w-full flex items-start gap-3 p-4 text-left hover:bg-secondary/50 transition-colors",
-                    activeChat?.id === chat.id && "bg-primary/5"
-                  )}
-                >
-                  <Avatar className="h-10 w-10 shrink-0">
-                    <AvatarImage src={chat.withUser.avatar} alt={chat.withUser.name} />
-                    <AvatarFallback>{chat.withUser.name.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="font-semibold text-foreground text-sm truncate">{chat.withUser.name}</p>
-                      <span className="text-xs text-muted-foreground shrink-0">{chat.lastMessageTime}</span>
+              {cargandoLista ? (
+                <div className="py-16 flex justify-center">
+                  <Loader className="animate-spin text-muted-foreground" size={20} />
+                </div>
+              ) : conversaciones.length === 0 ? (
+                <div className="py-16 text-center px-4">
+                  <p className="text-sm text-muted-foreground">Aún no tienes conversaciones.</p>
+                </div>
+              ) : (
+                conversaciones.map((conv) => (
+                  <button
+                    key={conv.id}
+                    onClick={() => openChat(conv)}
+                    className={cn(
+                      "w-full flex items-start gap-3 p-4 text-left hover:bg-secondary/50 transition-colors",
+                      activeId === conv.id && "bg-primary/5"
+                    )}
+                  >
+                    <Avatar className="h-10 w-10 shrink-0">
+                      <AvatarImage src={conv.otro_usuario_avatar || undefined} alt={conv.otro_usuario_nombre} />
+                      <AvatarFallback>{conv.otro_usuario_nombre.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-semibold text-foreground text-sm truncate">{conv.otro_usuario_nombre}</p>
+                        <span className="text-xs text-muted-foreground shrink-0">{formatHora(conv.ultimo_mensaje_fecha)}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate">{conv.servicio_titulo}</p>
+                      <p className="text-sm text-muted-foreground truncate mt-0.5">
+                        {conv.ultimo_mensaje || "Sin mensajes todavía"}
+                      </p>
                     </div>
-                    <p className="text-xs text-muted-foreground truncate">{chat.serviceTitle}</p>
-                    <p className="text-sm text-muted-foreground truncate mt-0.5">{chat.lastMessage}</p>
-                  </div>
-                  {chat.unread > 0 && (
-                    <Badge className="h-5 w-5 p-0 flex items-center justify-center text-xs shrink-0 bg-primary text-primary-foreground rounded-full">
-                      {chat.unread}
-                    </Badge>
-                  )}
-                </button>
-              ))}
+                    {conv.no_leidos > 0 && (
+                      <Badge className="h-5 w-5 p-0 flex items-center justify-center text-xs shrink-0 bg-primary text-primary-foreground rounded-full">
+                        {conv.no_leidos}
+                      </Badge>
+                    )}
+                  </button>
+                ))
+              )}
             </div>
           </div>
 
@@ -108,63 +189,65 @@ export default function ChatsPage() {
             "flex-1 border border-border rounded-2xl bg-card overflow-hidden flex-col",
             mobileChatOpen ? "flex" : "hidden md:flex"
           )}>
-            {activeChat ? (
+            {activeConv ? (
               <>
-                {/* Chat header */}
                 <div className="flex items-center gap-3 px-5 py-4 border-b border-border">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="md:hidden"
-                    onClick={() => setMobileChatOpen(false)}
-                  >
+                  <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobileChatOpen(false)}>
                     <ArrowLeft size={18} />
                   </Button>
                   <Avatar className="h-9 w-9">
-                    <AvatarImage src={activeChat.withUser.avatar} alt={activeChat.withUser.name} />
-                    <AvatarFallback>{activeChat.withUser.name.charAt(0)}</AvatarFallback>
+                    <AvatarImage src={activeConv.otro_usuario_avatar || undefined} alt={activeConv.otro_usuario_nombre} />
+                    <AvatarFallback>{activeConv.otro_usuario_nombre.charAt(0)}</AvatarFallback>
                   </Avatar>
-                  <div>
-                    <p className="font-semibold text-foreground text-sm">{activeChat.withUser.name}</p>
-                    <p className="text-xs text-muted-foreground">{activeChat.serviceTitle}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-foreground text-sm">{activeConv.otro_usuario_nombre}</p>
+                    <p className="text-xs text-muted-foreground truncate">{activeConv.servicio_titulo}</p>
                   </div>
-                </div>
-
-                {/* Messages */}
-                <div className="flex-1 overflow-y-auto p-5 space-y-3">
-                  {activeChat.messages.map((msg) => (
-                    <div
-                      key={msg.id}
-                      className={cn(
-                        "flex gap-2",
-                        msg.from === "me" ? "justify-end" : "justify-start"
-                      )}
-                    >
-                      {msg.from === "them" && (
-                        <Avatar className="h-7 w-7 shrink-0 mt-1">
-                          <AvatarImage src={activeChat.withUser.avatar} />
-                          <AvatarFallback>{activeChat.withUser.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                      )}
-                      <div
-                        className={cn(
-                          "max-w-xs md:max-w-md px-4 py-2.5 rounded-2xl text-sm leading-relaxed",
-                          msg.from === "me"
-                            ? "bg-primary text-primary-foreground rounded-br-sm"
-                            : "bg-secondary text-secondary-foreground rounded-bl-sm"
-                        )}
-                      >
-                        <p>{msg.text}</p>
-                        <p className={cn(
-                          "text-xs mt-1",
-                          msg.from === "me" ? "text-primary-foreground/60 text-right" : "text-muted-foreground"
-                        )}>{msg.time}</p>
-                      </div>
+                  {!wsConectado && (
+                    <div className="flex items-center gap-1 text-xs text-destructive shrink-0">
+                      <WifiOff size={13} /> Reconectando...
                     </div>
-                  ))}
+                  )}
                 </div>
 
-                {/* Input */}
+                <div className="flex-1 overflow-y-auto p-5 space-y-3">
+                  {cargandoMensajes ? (
+                    <div className="flex justify-center py-10">
+                      <Loader className="animate-spin text-muted-foreground" size={20} />
+                    </div>
+                  ) : (
+                    <>
+                      {mensajes.map((msg) => {
+                        const esMio = msg.remitente_id === user?.id
+                        return (
+                          <div key={msg.id} className={cn("flex gap-2", esMio ? "justify-end" : "justify-start")}>
+                            {!esMio && (
+                              <Avatar className="h-7 w-7 shrink-0 mt-1">
+                                <AvatarImage src={activeConv.otro_usuario_avatar || undefined} />
+                                <AvatarFallback>{activeConv.otro_usuario_nombre.charAt(0)}</AvatarFallback>
+                              </Avatar>
+                            )}
+                            <div
+                              className={cn(
+                                "max-w-xs md:max-w-md px-4 py-2.5 rounded-2xl text-sm leading-relaxed",
+                                esMio
+                                  ? "bg-primary text-primary-foreground rounded-br-sm"
+                                  : "bg-secondary text-secondary-foreground rounded-bl-sm"
+                              )}
+                            >
+                              <p>{msg.contenido}</p>
+                              <p className={cn("text-xs mt-1", esMio ? "text-primary-foreground/60 text-right" : "text-muted-foreground")}>
+                                {formatHora(msg.fecha)}
+                              </p>
+                            </div>
+                          </div>
+                        )
+                      })}
+                      <div ref={messagesEndRef} />
+                    </>
+                  )}
+                </div>
+
                 <div className="p-4 border-t border-border">
                   <div className="flex gap-3">
                     <Input
@@ -173,8 +256,9 @@ export default function ChatsPage() {
                       onKeyDown={(e) => e.key === "Enter" && sendMessage()}
                       placeholder="Escribe un mensaje..."
                       className="flex-1"
+                      disabled={!wsConectado}
                     />
-                    <Button onClick={sendMessage} disabled={!newMessage.trim()} size="icon" className="shrink-0">
+                    <Button onClick={sendMessage} disabled={!newMessage.trim() || !wsConectado} size="icon" className="shrink-0">
                       <Send size={18} />
                     </Button>
                   </div>

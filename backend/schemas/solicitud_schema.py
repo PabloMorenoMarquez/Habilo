@@ -29,3 +29,16 @@ class SolicitudOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+class ConversacionOut(BaseModel):
+    id: UUID
+    servicio_id: UUID
+    servicio_titulo: str
+    estado: str
+    fecha: Optional[datetime] = None
+    otro_usuario_id: UUID
+    otro_usuario_nombre: str
+    otro_usuario_avatar: Optional[str] = None
+    ultimo_mensaje: Optional[str] = None
+    ultimo_mensaje_fecha: Optional[datetime] = None
+    no_leidos: int = 0

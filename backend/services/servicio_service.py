@@ -32,3 +32,6 @@ class ServicioService:
 
     def buscar(self, lat:float, lng:float, radio_km:float, categoria_id:UUID=None, texto:str=None):
         return self.servicio_repository.buscar_por_proximidad(lat, lng, radio_km, categoria_id, texto)
+    
+    def obtener_detalle_publico(self, servicio_id):
+        return self.servicio_repository.obtener_detalle_publico(servicio_id)

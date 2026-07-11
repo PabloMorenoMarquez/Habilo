@@ -10,6 +10,7 @@ class MensajeOut(BaseModel):
     remitente_id: UUID
     contenido: str
     fecha: Optional[datetime] = None
+    leido: bool = False
 
     class Config:
         from_attributes = True

@@ -1,7 +1,9 @@
 from fastapi import FastAPI
 from starlette.middleware.sessions import SessionMiddleware
+from fastapi.middleware.cors import CORSMiddleware
 import os
 from dotenv import load_dotenv
+from config import Config
 
 from routers.auth import router as auth_router
 from routers.usuarios import router as usuarios_router
@@ -21,6 +23,13 @@ app = FastAPI()
 app.add_middleware(
     SessionMiddleware,
     secret_key=os.getenv("SESSION_SECRET_KEY", "dev-secret-change-me"),
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=Config.FRONTEND_URL,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
 )
 
 google_configure_oauth(app)

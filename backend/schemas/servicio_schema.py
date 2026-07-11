@@ -23,6 +23,8 @@ class ActualizarServicio(BaseModel):
     tipo_precio: Optional[str] = None
     latitud: Optional[float] = None
     longitud: Optional[float] = None
+    activo: Optional[bool] = None
+    imagen_url: Optional[str] = None
 
 
 class ServicioOut(BaseModel):
@@ -35,6 +37,7 @@ class ServicioOut(BaseModel):
     tipo_precio: Optional[str] = None
     activo: bool
     fecha_creacion: Optional[datetime] = None
+    imagen_url: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -42,3 +45,8 @@ class ServicioOut(BaseModel):
 
 class ServicioBusquedaOut(ServicioOut):
     distancia_km: Optional[float] = None
+    proveedor_nombre: Optional[str] = None
+    proveedor_avatar: Optional[str] = None
+    proveedor_valoracion_media: Optional[float] = None
+    proveedor_num_valoraciones: Optional[int] = None
+    categoria_nombre: Optional[str] = None

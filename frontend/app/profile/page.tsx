@@ -2,31 +2,80 @@
 
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import Navbar from "@/components/navbar"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { MapPin, Calendar, Star, Edit, Mail, Briefcase, UserCheck } from "lucide-react"
-import servicesData from "@/data/services.json"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { MapPin, Calendar, Star, Edit, Mail, Briefcase, UserCheck, Loader, Phone } from "lucide-react"
+import { getMiPerfilProveedor, getMisServicios, actualizarMe, ApiError, ServicioDetalle } from "@/lib/api"
+
+function formatFecha(fecha: string | null | undefined) {
+  if (!fecha) return "—"
+  return new Date(fecha).toLocaleDateString("es-ES", { year: "numeric", month: "long" })
+}
 
 export default function ProfilePage() {
-  const { isAuthenticated, user, role } = useAuth()
+  const { isAuthenticated, isLoading, user, role, refreshUser } = useAuth()
   const router = useRouter()
 
-  useEffect(() => {
-    if (!isAuthenticated) router.replace("/")
-  }, [isAuthenticated, router])
+  const [misServicios, setMisServicios] = useState<ServicioDetalle[]>([])
+  const [valoracion, setValoracion] = useState<{ media: number; num: number } | null>(null)
 
-  const myServices = servicesData.filter((s) => s.professional.id === "pro_001" || s.professional.id === "pro_004").slice(0, 3)
+  const [editOpen, setEditOpen] = useState(false)
+  const [form, setForm] = useState({ nombre: "", telefono: "", ciudad: "" })
+  const [guardando, setGuardando] = useState(false)
+  const [editError, setEditError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (isLoading) return
+    if (!isAuthenticated) router.replace("/")
+  }, [isAuthenticated, isLoading, router])
+
+  useEffect(() => {
+    if (user) {
+      setForm({ nombre: user.name || "", telefono: user.telefono || "", ciudad: user.location || "" })
+    }
+  }, [user])
+
+  useEffect(() => {
+    if (role !== "profesional") return
+    getMisServicios()
+      .then(setMisServicios)
+      .catch((err) => console.error(err))
+    getMiPerfilProveedor()
+      .then((p: any) => setValoracion({ media: parseFloat(p.valoracion_media), num: p.num_valoraciones }))
+      .catch(() => {})
+  }, [role])
+
+  const handleGuardar = async () => {
+    setGuardando(true)
+    setEditError(null)
+    try {
+      await actualizarMe({
+        nombre: form.nombre,
+        telefono: form.telefono || undefined,
+        ciudad: form.ciudad || undefined,
+      })
+      await refreshUser()
+      setEditOpen(false)
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "No se pudo guardar el perfil."
+      setEditError(message)
+    } finally {
+      setGuardando(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
 
-        {/* Profile header card */}
         <Card>
           <CardContent className="p-6 md:p-8">
             <div className="flex flex-col sm:flex-row gap-6">
@@ -56,53 +105,93 @@ export default function ProfilePage() {
                       </Badge>
                     </div>
                   </div>
-                  <Button variant="outline" size="sm" className="gap-2 self-start">
-                    <Edit size={14} /> Editar perfil
-                  </Button>
+                  <Dialog open={editOpen} onOpenChange={setEditOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="gap-2 self-start">
+                        <Edit size={14} /> Editar perfil
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>Editar perfil</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4 pt-2">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="nombre">Nombre</Label>
+                          <Input
+                            id="nombre"
+                            value={form.nombre}
+                            onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))}
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="telefono">Teléfono</Label>
+                          <Input
+                            id="telefono"
+                            value={form.telefono}
+                            onChange={(e) => setForm((f) => ({ ...f, telefono: e.target.value }))}
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="ciudad">Ciudad</Label>
+                          <Input
+                            id="ciudad"
+                            value={form.ciudad}
+                            onChange={(e) => setForm((f) => ({ ...f, ciudad: e.target.value }))}
+                          />
+                        </div>
+                        {editError && <p className="text-sm text-destructive">{editError}</p>}
+                        <div className="flex gap-3 pt-2">
+                          <Button onClick={handleGuardar} disabled={guardando || !form.nombre} className="flex-1 gap-2">
+                            {guardando && <Loader size={16} className="animate-spin" />}
+                            Guardar cambios
+                          </Button>
+                          <Button variant="outline" onClick={() => setEditOpen(false)} className="flex-1" disabled={guardando}>
+                            Cancelar
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </div>
 
-                {/* Info pills */}
                 <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                   <div className="flex items-center gap-1.5">
                     <Mail size={14} />
                     <span>{user?.email}</span>
                   </div>
+                  {user?.telefono && (
+                    <div className="flex items-center gap-1.5">
+                      <Phone size={14} />
+                      <span>{user.telefono}</span>
+                    </div>
+                  )}
                   <div className="flex items-center gap-1.5">
                     <MapPin size={14} />
-                    <span>{user?.location ?? "Madrid, España"}</span>
+                    <span>{user?.location || "Sin ubicación"}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <Calendar size={14} />
-                    <span>Miembro desde {user?.joinedAt}</span>
+                    <span>Miembro desde {formatFecha(user?.fechaRegistro)}</span>
                   </div>
                 </div>
 
-                {/* Bio */}
-                <p className="text-muted-foreground leading-relaxed text-sm">
-                  {user?.bio ?? "Profesional versátil con experiencia en múltiples sectores."}
-                </p>
-
-                {/* Stats */}
-                {role === "profesional" && (
+                {role === "profesional" && valoracion && (
                   <div className="flex flex-wrap gap-6 pt-2">
                     <div className="text-center">
-                      <p className="text-xl font-bold text-foreground">4.9</p>
+                      <p className="text-xl font-bold text-foreground">{valoracion.media.toFixed(1)}</p>
                       <div className="flex items-center gap-1 justify-center">
                         <Star size={12} className="fill-amber-400 text-amber-400" />
                         <p className="text-xs text-muted-foreground">Valoración</p>
                       </div>
                     </div>
                     <div className="text-center">
-                      <p className="text-xl font-bold text-foreground">27</p>
+                      <p className="text-xl font-bold text-foreground">{valoracion.num}</p>
                       <p className="text-xs text-muted-foreground">Opiniones</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-xl font-bold text-foreground">2</p>
+                      <p className="text-xl font-bold text-foreground">{misServicios.length}</p>
                       <p className="text-xs text-muted-foreground">Servicios</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xl font-bold text-foreground">98%</p>
-                      <p className="text-xs text-muted-foreground">Respuesta</p>
                     </div>
                   </div>
                 )}
@@ -111,35 +200,33 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
-        {/* Services section (professional only) */}
         {role === "profesional" && (
           <Card>
             <CardHeader className="pb-4">
               <CardTitle className="text-lg">Mis servicios publicados</CardTitle>
             </CardHeader>
             <CardContent className="divide-y divide-border p-0">
-              {myServices.map((service) => (
-                <div key={service.id} className="flex items-center gap-4 px-6 py-4">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-foreground truncate">{service.title}</p>
-                    <div className="flex items-center gap-2 mt-0.5 text-sm text-muted-foreground">
-                      <span>{service.category}</span>
-                      <span>·</span>
-                      <span className="text-primary font-medium">{service.price}€/{service.priceType}</span>
+              {misServicios.length === 0 ? (
+                <p className="px-6 py-8 text-sm text-muted-foreground text-center">Aún no has publicado ningún servicio.</p>
+              ) : (
+                misServicios.map((service) => (
+                  <div key={service.id} className="flex items-center gap-4 px-6 py-4">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-foreground truncate">{service.titulo}</p>
+                      <div className="flex items-center gap-2 mt-0.5 text-sm text-muted-foreground">
+                        <Badge variant={service.activo ? "default" : "secondary"} className="text-xs">
+                          {service.activo ? "Activo" : "Pausado"}
+                        </Badge>
+                        <span className="text-primary font-medium">{service.precio}€/{service.tipo_precio}</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 text-sm">
-                    <Star size={13} className="fill-amber-400 text-amber-400" />
-                    <span className="font-medium text-foreground">{service.rating}</span>
-                    <span className="text-muted-foreground">({service.reviewCount})</span>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </CardContent>
           </Card>
         )}
 
-        {/* Settings card */}
         <Card>
           <CardHeader className="pb-4">
             <CardTitle className="text-lg">Configuración de cuenta</CardTitle>
@@ -155,8 +242,8 @@ export default function ProfilePage() {
                   <p className="text-sm font-medium text-foreground">{label}</p>
                   <p className="text-xs text-muted-foreground">{desc}</p>
                 </div>
-                <Button variant="ghost" size="sm" className="text-primary text-xs">
-                  Gestionar
+                <Button variant="ghost" size="sm" className="text-muted-foreground text-xs" disabled>
+                  Próximamente
                 </Button>
               </div>
             ))}

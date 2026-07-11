@@ -27,9 +27,16 @@ async def chat_websocket(
         return
 
     usuario_id = payload["user_id"]
-    sala = str(solicitud_id)
     service = MensajeService()
 
+    #comprobar acceso antes de aceptar la conexión / unirse a la sala
+    try:
+        service.verificar_acceso(solicitud_id, usuario_id)
+    except HTTPException:
+        await websocket.close(code=4003)
+        return
+
+    sala = str(solicitud_id)
     await manager.connect(sala, websocket)
     try:
         while True:
@@ -47,6 +54,9 @@ async def chat_websocket(
             })
     except WebSocketDisconnect:
         manager.disconnect(sala, websocket)
-    except HTTPException:
-        await websocket.close(code=4003)
-        manager.disconnect(sala, websocket)
+        
+@router.patch("/solicitudes/{solicitud_id}/mensajes/leer")
+async def marcar_mensajes_leidos(solicitud_id: UUID, current_user=Depends(get_current_user)):
+    service = MensajeService()
+    service.marcar_leidos(solicitud_id, current_user["user_id"])
+    return {"ok": True}

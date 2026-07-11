@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Text, DateTime,ForeignKey
+from sqlalchemy import Column, Text, DateTime,ForeignKey, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from datetime import datetime
@@ -14,3 +14,4 @@ class Mensaje(base):
     remitente_id = Column(UUID, ForeignKey("usuarios.id"), nullable=False)
     contenido = Column(Text, nullable=False)
     fecha = Column(DateTime, nullable=True, default=datetime.now)
+    leido = Column(Boolean, default=False)

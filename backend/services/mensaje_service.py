@@ -33,3 +33,10 @@ class MensajeService:
     def historial(self, solicitud_id:UUID, usuario_id:UUID):
         self._verificar_acceso(solicitud_id, usuario_id)
         return self.mensaje_repository.listar_por_solicitud(solicitud_id)
+    
+    def verificar_acceso(self, solicitud_id: UUID, usuario_id: UUID):
+        return self._verificar_acceso(solicitud_id, usuario_id)
+    
+    def marcar_leidos(self, solicitud_id: UUID, usuario_id: UUID):
+        self._verificar_acceso(solicitud_id, usuario_id)
+        self.mensaje_repository.marcar_leidos(solicitud_id, usuario_id)

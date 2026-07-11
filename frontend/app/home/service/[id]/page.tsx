@@ -4,36 +4,80 @@ import { useParams, useRouter } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
 import { useEffect, useState } from "react"
 import Navbar from "@/components/navbar"
-import servicesData from "@/data/services.json"
 import Image from "next/image"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Star, Clock, MapPin, CheckCircle, MessageCircle, Share2, Heart, ArrowLeft } from "lucide-react"
+import { Star, Clock, MapPin, CheckCircle, MessageCircle, Share2, Heart, ArrowLeft, Loader } from "lucide-react"
 import Link from "next/link"
+import { getServicioDetalle, crearSolicitud, ServicioBackend, ApiError } from "@/lib/api"
 
 function formatPrice(price: number, type: string) {
-  if (type === "palabra") return `${(price * 100).toFixed(0)}€/100 palabras`
   if (type === "hora") return `${price}€/hora`
-  if (type === "mes") return `${price}€/mes`
-  if (type === "sesión") return `${price}€/sesión`
-  if (type === "evento") return `desde ${price}€`
   return `${price}€`
 }
 
 export default function ServiceDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, isLoading } = useAuth()
   const [liked, setLiked] = useState(false)
 
+  const [servicio, setServicio] = useState<ServicioBackend | null>(null)
+  const [cargando, setCargando] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const [contactando, setContactando] = useState(false)
+  const [contactoError, setContactoError] = useState<string | null>(null)
+
   useEffect(() => {
+    if (isLoading) return
     if (!isAuthenticated) router.replace("/")
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, isLoading, router])
 
-  const service = servicesData.find((s) => s.id === params.id)
+  useEffect(() => {
+    const id = params.id as string
+    if (!id) return
+    setCargando(true)
+    getServicioDetalle(id)
+      .then(setServicio)
+      .catch((err) => {
+        console.error(err)
+        setError("No se pudo cargar el servicio.")
+      })
+      .finally(() => setCargando(false))
+  }, [params.id])
 
-  if (!service) {
+  const handleContactar = async () => {
+    if (!servicio) return
+    setContactando(true)
+    setContactoError(null)
+    try {
+      await crearSolicitud(servicio.id)
+      router.push("/chats")
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 409) {
+        setContactoError("Ya tienes una solicitud activa con este profesional para este servicio.")
+      } else {
+        setContactoError("No se pudo enviar la solicitud. Inténtalo de nuevo.")
+      }
+    } finally {
+      setContactando(false)
+    }
+  }
+
+  if (cargando) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="max-w-4xl mx-auto px-4 py-20 flex justify-center">
+          <Loader className="animate-spin text-muted-foreground" size={28} />
+        </main>
+      </div>
+    )
+  }
+
+  if (error || !servicio) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
@@ -45,29 +89,29 @@ export default function ServiceDetailPage() {
     )
   }
 
+  const rating = servicio.proveedor_valoracion_media ?? 0
+  const reviewCount = servicio.proveedor_num_valoraciones ?? 0
+  const precio = parseFloat(servicio.precio)
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="max-w-6xl mx-auto px-4 py-8">
-        {/* Back */}
         <Link href="/home" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 text-sm">
           <ArrowLeft size={16} /> Volver a servicios
         </Link>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left: main content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Image */}
             <div className="relative aspect-video rounded-2xl overflow-hidden bg-muted">
-              <Image src={service.image} alt={service.title} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 66vw" />
+              <Image src={servicio.imagen_url || "/placeholder.jpg"} alt={servicio.titulo} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 66vw" />
             </div>
 
-            {/* Header */}
             <div className="space-y-3">
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
-                  <Badge variant="secondary" className="text-xs">{service.category}</Badge>
-                  <h1 className="text-2xl md:text-3xl font-bold text-foreground leading-tight">{service.title}</h1>
+                  <Badge variant="secondary" className="text-xs capitalize">{servicio.categoria_nombre || "General"}</Badge>
+                  <h1 className="text-2xl md:text-3xl font-bold text-foreground leading-tight">{servicio.titulo}</h1>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <Button
@@ -84,83 +128,68 @@ export default function ServiceDetailPage() {
                 </div>
               </div>
 
-              {/* Stats row */}
               <div className="flex flex-wrap items-center gap-4 text-sm">
                 <div className="flex items-center gap-1">
                   <Star size={16} className="fill-amber-400 text-amber-400" />
-                  <span className="font-semibold">{service.rating}</span>
-                  <span className="text-muted-foreground">({service.reviewCount} valoraciones)</span>
+                  <span className="font-semibold">{rating.toFixed(1)}</span>
+                  <span className="text-muted-foreground">({reviewCount} valoraciones)</span>
                 </div>
-                {service.deliveryDays && (
-                  <div className="flex items-center gap-1 text-muted-foreground">
-                    <Clock size={14} />
-                    <span>Entrega en {service.deliveryDays} días</span>
-                  </div>
-                )}
               </div>
             </div>
 
-            {/* Description */}
             <div className="space-y-3">
               <h2 className="text-lg font-semibold text-foreground">Descripción del servicio</h2>
-              <p className="text-muted-foreground leading-relaxed">{service.description}</p>
+              <p className="text-muted-foreground leading-relaxed">
+                {servicio.descripcion || "Sin descripción."}
+              </p>
             </div>
 
-            {/* Tags */}
-            <div className="flex flex-wrap gap-2">
-              {service.tags.map((tag) => (
-                <Badge key={tag} variant="outline" className="text-xs">#{tag}</Badge>
-              ))}
-            </div>
-
-            {/* About professional */}
             <div className="p-5 rounded-2xl border border-border bg-card space-y-4">
               <h2 className="text-lg font-semibold text-foreground">Sobre el profesional</h2>
               <div className="flex items-center gap-4">
                 <Avatar className="h-14 w-14">
-                  <AvatarImage src={service.professional.avatar} alt={service.professional.name} />
-                  <AvatarFallback>{service.professional.name.charAt(0)}</AvatarFallback>
+                  <AvatarImage src={servicio.proveedor_avatar || undefined} alt={servicio.proveedor_nombre || ""} />
+                  <AvatarFallback>{(servicio.proveedor_nombre || "?").charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="font-semibold text-foreground">{service.professional.name}</p>
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <MapPin size={12} />
-                    <span>{service.professional.location}</span>
-                  </div>
+                  <p className="font-semibold text-foreground">{servicio.proveedor_nombre}</p>
+                  {servicio.distancia_km != null && (
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <MapPin size={12} />
+                      <span>a {servicio.distancia_km.toFixed(1)} km</span>
+                    </div>
+                  )}
                 </div>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <CheckCircle size={14} className="text-primary" />
-                Identidad verificada
               </div>
             </div>
           </div>
 
-          {/* Right: sticky booking card */}
           <div className="lg:col-span-1">
             <div className="sticky top-24 p-6 rounded-2xl border border-border bg-card shadow-sm space-y-5">
               <div className="space-y-1">
                 <span className="text-sm text-muted-foreground">Precio</span>
-                <p className="text-3xl font-bold text-primary">{formatPrice(service.price, service.priceType)}</p>
+                <p className="text-3xl font-bold text-primary">{formatPrice(precio, servicio.tipo_precio)}</p>
               </div>
-              {service.deliveryDays && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Clock size={14} />
-                  <span>Entrega en {service.deliveryDays} días</span>
-                </div>
-              )}
               <div className="space-y-3">
-                <Button className="w-full h-12 text-base" asChild>
-                  <Link href="/chats">Contratar ahora</Link>
+                <Button
+                  className="w-full h-12 text-base gap-2"
+                  onClick={handleContactar}
+                  disabled={contactando}
+                >
+                  {contactando ? (
+                    <Loader size={18} className="animate-spin" />
+                  ) : (
+                    <>
+                      <MessageCircle size={18} /> Contactar profesional
+                    </>
+                  )}
                 </Button>
-                <Button variant="outline" className="w-full h-12 text-base gap-2" asChild>
-                  <Link href="/chats">
-                    <MessageCircle size={18} /> Contactar profesional
-                  </Link>
-                </Button>
+                {contactoError && (
+                  <p className="text-center text-sm text-destructive">{contactoError}</p>
+                )}
               </div>
               <p className="text-center text-xs text-muted-foreground">
-                Sin compromiso · Cancela en cualquier momento
+                Se enviará una solicitud al profesional
               </p>
             </div>
           </div>

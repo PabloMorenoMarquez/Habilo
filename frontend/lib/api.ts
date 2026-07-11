@@ -1,0 +1,249 @@
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+
+const TOKEN_KEY = "token"
+
+/** Guarda el token JWT en el navegador. */
+export function setToken(token: string) {
+  if (typeof window === "undefined") return
+  localStorage.setItem(TOKEN_KEY, token)
+}
+
+/** Lee el token JWT guardado, o null si no hay sesión. */
+export function getToken(): string | null {
+  if (typeof window === "undefined") return null
+  return localStorage.getItem(TOKEN_KEY)
+}
+
+/** Borra el token (logout). */
+export function clearToken() {
+  if (typeof window === "undefined") return
+  localStorage.removeItem(TOKEN_KEY)
+}
+
+export class ApiError extends Error {
+  status: number
+  constructor(message: string, status: number) {
+    super(message)
+    this.status = status
+  }
+}
+
+
+export async function apiFetch<T = any>(
+  path: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const token = getToken()
+
+  const isFormData = options.body instanceof FormData
+
+  const headers: HeadersInit = {
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...options.headers,
+  }
+
+  const response = await fetch(`${API_URL}${path}`, {
+    ...options,
+    headers,
+  })
+
+  const contentType = response.headers.get("content-type")
+  const hasJson = contentType?.includes("application/json")
+  const data = hasJson ? await response.json() : null
+
+  if (!response.ok) {
+    const message = data?.detail || `Error ${response.status}`
+    throw new ApiError(message, response.status)
+  }
+
+  return data as T
+}
+
+// --- Funciones específicas por recurso ---
+
+export function getMe() {
+  return apiFetch("/usuarios/me")
+}
+
+export function actualizarMe(datos: { ciudad?: string; telefono?: string; nombre?: string }) {
+  return apiFetch("/usuarios/me", {
+    method: "PATCH",
+    body: JSON.stringify(datos),
+  })
+}
+
+export function getMiPerfilProveedor() {
+  return apiFetch("/proveedor/me")
+}
+
+export function crearPerfilProveedor(datos: {
+  descripcion: string
+  radio_km_disponible: number
+  experiencia_años?: number
+}) {
+  return apiFetch("/proveedor/", {
+    method: "POST",
+    body: JSON.stringify(datos),
+  })
+}
+
+export interface ServicioBackend {
+  id: string
+  proveedor_id: string
+  categoria_id: string | null
+  titulo: string
+  descripcion: string | null
+  precio: string
+  tipo_precio: string
+  activo: boolean
+  fecha_creacion: string
+  imagen_url: string | null
+  distancia_km: number | null
+  proveedor_nombre: string | null
+  proveedor_avatar: string | null
+  proveedor_valoracion_media: number | null
+  proveedor_num_valoraciones: number | null
+  categoria_nombre: string | null
+}
+
+export function buscarServicios(params: {
+  lat: number
+  lng: number
+  radio_km: number
+  categoria_id?: string
+  texto?: string
+}) {
+  const query = new URLSearchParams({
+    lat: String(params.lat),
+    lng: String(params.lng),
+    radio_km: String(params.radio_km),
+  })
+  if (params.categoria_id) query.set("categoria_id", params.categoria_id)
+  if (params.texto) query.set("texto", params.texto)
+  return apiFetch<ServicioBackend[]>(`/servicio/?${query.toString()}`)
+}
+
+export interface Categoria {
+  id: string
+  nombre: string
+  icono: string
+  descripcion: string
+}
+
+export function getCategorias() {
+  return apiFetch<Categoria[]>("/categorias/")
+}
+
+export interface CrearServicioInput {
+  categoria_id: string
+  titulo: string
+  descripcion?: string
+  precio: number
+  tipo_precio: "fijo" | "hora"
+  latitud?: number
+  longitud?: number
+}
+
+export function getServicioDetalle(id: string) {
+  return apiFetch<ServicioBackend>(`/servicio/${id}`)
+}
+
+export function crearSolicitud(servicio_id: string) {
+  return apiFetch("/solicitudes/", {
+    method: "POST",
+    body: JSON.stringify({ servicio_id }),
+  })
+}
+
+export interface ServicioDetalle extends ServicioBackend {
+  imagen_url: string | null
+}
+
+export function crearServicio(datos: {
+  categoria_id: string
+  titulo: string
+  descripcion?: string
+  precio: number
+  tipo_precio: string
+  latitud?: number
+  longitud?: number
+}) {
+  return apiFetch<ServicioDetalle>("/servicio/", {
+    method: "POST",
+    body: JSON.stringify(datos),
+  })
+}
+
+export function getMisServicios() {
+  return apiFetch<ServicioDetalle[]>("/servicio/mios")
+}
+
+export function actualizarServicio(
+  id: string,
+  datos: Partial<{
+    categoria_id: string
+    titulo: string
+    descripcion: string
+    precio: number
+    tipo_precio: string
+    activo: boolean
+    imagen_url: string
+  }>
+) {
+  return apiFetch<ServicioDetalle>(`/servicio/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(datos),
+  })
+}
+
+export function eliminarServicio(id: string) {
+  return apiFetch(`/servicio/${id}`, { method: "DELETE" })
+}
+
+export function getSignedUploadUrl(servicioId: string) {
+  return apiFetch<{ signed_url: string; path: string; token: string }>(
+    `/servicio/${servicioId}/imagen/signed-url`,
+    { method: "POST" }
+  )
+}
+
+export interface Conversacion {
+  id: string
+  servicio_id: string
+  servicio_titulo: string
+  estado: string
+  fecha: string | null
+  otro_usuario_id: string
+  otro_usuario_nombre: string
+  otro_usuario_avatar: string | null
+  ultimo_mensaje: string | null
+  ultimo_mensaje_fecha: string | null
+  no_leidos: number
+}
+
+export function getConversaciones() {
+  return apiFetch<Conversacion[]>("/solicitudes/conversaciones")
+}
+
+export interface MensajeBackend {
+  id: string
+  solicitud_id: string
+  remitente_id: string
+  contenido: string
+  fecha: string | null
+  leido: boolean
+}
+
+export function getHistorialMensajes(solicitudId: string) {
+  return apiFetch<MensajeBackend[]>(`/solicitudes/${solicitudId}/mensajes`)
+}
+
+export function marcarMensajesLeidos(solicitudId: string) {
+  return apiFetch(`/solicitudes/${solicitudId}/mensajes/leer`, { method: "PATCH" })
+}
+
+export function getWebSocketUrl(solicitudId: string): string {
+  const wsBase = API_URL.replace("http://", "ws://").replace("https://", "wss://")
+  return `${wsBase}/ws/solicitudes/${solicitudId}?token=${getToken()}`
+}

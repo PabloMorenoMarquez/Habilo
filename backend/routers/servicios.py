@@ -25,10 +25,10 @@ async def buscar_servicios(
     lng: float = Query(..., description="Longitud del usuario"),
     radio_km: float = Query(10.0, description="Radio de búsqueda en km"),
     categoria_id: Optional[UUID] = Query(None),
-    q: Optional[str] = Query(None, description="Texto a buscar en el título")
+    texto: Optional[str] = Query(None, description="Texto a buscar en el título")
 ):
     service = ServicioService()
-    servicios = service.buscar(lat, lng, radio_km, categoria_id, q)
+    servicios = service.buscar(lat, lng, radio_km, categoria_id, texto)
     return [ServicioBusquedaOut.model_validate(s) for s in servicios]
 
 
@@ -55,10 +55,10 @@ async def listar_mis_servicios(current_user=Depends(get_current_user)):
     return service.listar_por_proveedor(perfil.id)
 
 
-@router.get("/{servicio_id}", response_model=ServicioOut)
+@router.get("/{servicio_id}", response_model=ServicioBusquedaOut)
 async def obtener_servicio(servicio_id: UUID):
     service = ServicioService()
-    servicio = service.obtener(servicio_id)
+    servicio = service.obtener_detalle_publico(servicio_id)
     if not servicio:
         raise HTTPException(status_code=404, detail="Servicio no encontrado")
     return servicio

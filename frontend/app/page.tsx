@@ -1,11 +1,10 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { Button } from "@/components/ui/button"
-import { Briefcase, Search, Star, Shield, ArrowRight, Loader } from "lucide-react"
-import { useGoogleLogin } from "@react-oauth/google"
+import { Search, Star, Shield, Loader } from "lucide-react"
 
 const GoogleIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -16,31 +15,47 @@ const GoogleIcon = () => (
   </svg>
 )
 
-export default function LoginPage() {
-  const { login, isAuthenticated, role } = useAuth()
+function LoginPageInner() {
+  const { isAuthenticated, isLoading, role, loginWithToken } = useAuth()
   const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
+  const searchParams = useSearchParams()
+  const [isProcessingToken, setIsProcessingToken] = useState(false)
+  const [loginError, setLoginError] = useState<string | null>(null)
 
   useEffect(() => {
+    const token = searchParams.get("token")
+    if (!token) return
+
+    setIsProcessingToken(true)
+    loginWithToken(token)
+      .then(() => {
+        router.replace("/")
+      })
+      .catch((err) => {
+        console.error("Error al iniciar sesión:", err)
+        setLoginError("No se pudo iniciar sesión. Inténtalo de nuevo.")
+      })
+      .finally(() => setIsProcessingToken(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
+
+  useEffect(() => {
+    if (isLoading || isProcessingToken) return
     if (isAuthenticated && role) {
       router.replace(role === "cliente" ? "/home" : "/dashboard")
     } else if (isAuthenticated && !role) {
       router.replace("/select-role")
     }
-  }, [isAuthenticated, role, router])
-
-  const handleLogin = () => {
-    login()
-    router.push("/select-role")
-  }
+  }, [isAuthenticated, role, isLoading, isProcessingToken, router])
 
   const handleGoogleLogin = () => {
     window.location.href = "http://localhost:8000/auth/google/login"
   }
 
+  const showSpinner = isLoading || isProcessingToken
+
   return (
     <main className="min-h-screen flex flex-col lg:flex-row">
-      {/* Left panel - Brand */}
       <div className="hidden lg:flex lg:w-1/2 bg-primary flex-col justify-between p-12 text-primary-foreground">
         <div>
           <span className="text-2xl font-bold font-sans tracking-tight">ServiMarket</span>
@@ -70,10 +85,8 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right panel - Login form */}
       <div className="flex-1 flex items-center justify-center p-8 bg-background">
         <div className="w-full max-w-md space-y-8">
-          {/* Mobile logo */}
           <div className="lg:hidden text-center">
             <span className="text-3xl font-bold text-primary font-sans tracking-tight">ServiMarket</span>
             <p className="text-muted-foreground mt-2">El marketplace de servicios</p>
@@ -88,9 +101,9 @@ export default function LoginPage() {
 
           <div className="space-y-4">
             <Button
-              onClick={() => handleGoogleLogin()}
+              onClick={handleGoogleLogin}
               variant="outline"
-              disabled={isLoading}
+              disabled={showSpinner}
               className="w-full h-12 text-base gap-3 border-border rounded-full flex items-center justify-center bg-background hover:bg-white hover:border-[#4285F4] hover:shadow-[0_8px_30px_rgb(66,133,244,0.12)] hover:-translate-y-1 hover:scale-[1.01] transition-all duration-300 active:scale-95 shadow-sm group cursor-pointer"
             >
               <div className="group-hover:scale-110 transition-transform duration-300">
@@ -99,28 +112,16 @@ export default function LoginPage() {
               <span className="font-medium group-hover:text-[#4285F4] transition-colors duration-300">Continuar con Google</span>
             </Button>
 
-            {isLoading && (
+            {showSpinner && (
               <div className="flex items-center justify-center py-2">
                 <Loader size={18} className="animate-spin text-primary" />
                 <span className="ml-2 text-sm text-muted-foreground">Iniciando sesión...</span>
               </div>
             )}
 
-            <div className="relative flex items-center gap-3">
-              <div className="flex-1 h-px bg-border" />
-              <span className="text-xs text-muted-foreground uppercase tracking-wider">o</span>
-              <div className="flex-1 h-px bg-border" />
-            </div>
-
-            <Button
-              onClick={handleLogin}
-              variant="outline"
-              className="w-full h-12 text-base gap-3 border-border rounded-full justify-center hover:bg-accent hover:text-accent-foreground hover:border-accent hover:shadow-[0_4px_12px_rgba(101,133,185,0.15)] hover:-translate-y-0.5 transition-all duration-300 active:scale-95 bg-background cursor-pointer"
-            >
-              <Briefcase size={18} />
-              Acceso de demostración
-              <ArrowRight size={16} />
-            </Button>
+            {loginError && (
+              <p className="text-center text-sm text-destructive">{loginError}</p>
+            )}
           </div>
 
           <p className="text-center text-sm text-muted-foreground">
@@ -129,20 +130,16 @@ export default function LoginPage() {
             y{" "}
             <span className="text-primary cursor-pointer hover:underline">Política de privacidad</span>.
           </p>
-
-          <div className="pt-4 border-t border-border">
-            <p className="text-center text-sm text-muted-foreground">
-              ¿Nuevo en ServiMarket?{" "}
-              <span
-                onClick={handleLogin}
-                className="text-primary font-medium cursor-pointer hover:underline"
-              >
-                Crear cuenta gratis
-              </span>
-            </p>
-          </div>
         </div>
       </div>
     </main>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageInner />
+    </Suspense>
   )
 }

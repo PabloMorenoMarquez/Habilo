@@ -16,7 +16,7 @@ def generar_signed_upload_url(bucket: str, path: str, expires_in: int = 300) -> 
     client = get_supabase()
     result = client.storage.from_(bucket).create_signed_upload_url(path)
     return {
-        "signed_url": result["signedURL"],
+        "signed_url": result["signed_url"],
         "path": path,
         "token": result.get("token")
     }

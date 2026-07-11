@@ -20,3 +20,4 @@ class Servicio(base):
     ubicacion = Column(Geography(geometry_type='POINT', srid=4326))
     activo = Column(Boolean, default=True)
     fecha_creacion = Column(DateTime, nullable=True, default=datetime.now)
+    imagen_url = Column(Text, nullable=True)

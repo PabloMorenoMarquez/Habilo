@@ -95,20 +95,106 @@ class ServicioRepository:
         from geoalchemy2.functions import ST_DWithin, ST_Distance, ST_SetSRID, ST_MakePoint
         from sqlalchemy import cast
         from geoalchemy2 import Geography
+        from models.usuario import Usuario
+        from models.categoria import Categoria
+        from models.perfil_proveedor import Perfil_Proveedor
         session = SessionLocal()
         try:
             punto = ST_SetSRID(ST_MakePoint(lng, lat), 4326)
             radio_m = radio_km * 1000
-            stmt = select(Servicio).where(
-                Servicio.activo == True,
-                Servicio.ubicacion != None,
-                ST_DWithin(Servicio.ubicacion, punto, radio_m)
-            )
+            stmt = (select(Servicio, 
+                          Usuario.nombre.label("proveedor_nombre"),
+                          Usuario.foto_url.label("proveedor_avatar"),
+                          Perfil_Proveedor.valoracion_media.label("proveedor_valoracion_media"),
+                          Perfil_Proveedor.num_valoraciones.label("proveedor_num_valoraciones"),
+                          Categoria.nombre.label("categoria_nombre"),
+                          (ST_Distance(Servicio.ubicacion, punto) / 1000).label("distancia_km"))
+                    .join(Perfil_Proveedor, Servicio.proveedor_id == Perfil_Proveedor.id)
+                    .join(Usuario, Perfil_Proveedor.usuario_id == Usuario.id).
+                    outerjoin(Categoria, Servicio.categoria_id == Categoria.id)
+                    .where(
+                        Servicio.activo == True,
+                        Servicio.ubicacion != None,
+                        ST_DWithin(Servicio.ubicacion, punto, radio_m)
+                    )   
+                )
             if categoria_id:
                 stmt = stmt.where(Servicio.categoria_id == categoria_id)
             if texto:
                 stmt = stmt.where(Servicio.titulo.ilike(f"%{texto}%"))
             stmt = stmt.order_by(ST_Distance(Servicio.ubicacion, punto))
-            return list(session.scalars(stmt))
+            
+            rows = session.execute(stmt).all()
+            
+            resultado = []
+            for row in rows:
+                servicio = row[0]
+                resultado.append({
+                    "id": servicio.id,
+                    "proveedor_id": servicio.proveedor_id,
+                    "categoria_id": servicio.categoria_id,
+                    "titulo": servicio.titulo,
+                    "descripcion": servicio.descripcion,
+                    "precio": servicio.precio,
+                    "tipo_precio": servicio.tipo_precio,
+                    "activo": servicio.activo,
+                    "fecha_creacion": servicio.fecha_creacion,
+                    "imagen_url": servicio.imagen_url,
+                    "distancia_km": row.distancia_km,
+                    "proveedor_nombre": row.proveedor_nombre,
+                    "proveedor_avatar": row.proveedor_avatar,
+                    "proveedor_valoracion_media": row.proveedor_valoracion_media,
+                    "proveedor_num_valoraciones": row.proveedor_num_valoraciones,
+                    "categoria_nombre": row.categoria_nombre
+                })
+                
+            return resultado
+        finally:
+            session.close()
+    
+    def obtener_detalle_publico(self, servicio_id: UUID):
+        from models.perfil_proveedor import Perfil_Proveedor
+        from models.usuario import Usuario
+        from models.categoria import Categoria
+
+        session = SessionLocal()
+        try:
+            stmt = (
+                select(
+                    Servicio,
+                    Usuario.nombre.label("proveedor_nombre"),
+                    Usuario.foto_url.label("proveedor_avatar"),
+                    Perfil_Proveedor.valoracion_media.label("proveedor_valoracion_media"),
+                    Perfil_Proveedor.num_valoraciones.label("proveedor_num_valoraciones"),
+                    Categoria.nombre.label("categoria_nombre"),
+                )
+                .join(Perfil_Proveedor, Servicio.proveedor_id == Perfil_Proveedor.id)
+                .join(Usuario, Perfil_Proveedor.usuario_id == Usuario.id)
+                .outerjoin(Categoria, Servicio.categoria_id == Categoria.id)
+                .where(Servicio.id == servicio_id)
+            )
+            row = session.execute(stmt).first()
+            if not row:
+                return None
+
+            servicio = row[0]
+            return {
+                "id": servicio.id,
+                "proveedor_id": servicio.proveedor_id,
+                "categoria_id": servicio.categoria_id,
+                "titulo": servicio.titulo,
+                "descripcion": servicio.descripcion,
+                "precio": servicio.precio,
+                "tipo_precio": servicio.tipo_precio,
+                "activo": servicio.activo,
+                "fecha_creacion": servicio.fecha_creacion,
+                "imagen_url": servicio.imagen_url,
+                "distancia_km": None,
+                "proveedor_nombre": row.proveedor_nombre,
+                "proveedor_avatar": row.proveedor_avatar,
+                "proveedor_valoracion_media": row.proveedor_valoracion_media,
+                "proveedor_num_valoraciones": row.proveedor_num_valoraciones,
+                "categoria_nombre": row.categoria_nombre,
+            }
         finally:
             session.close()

@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { useAuth, type Service } from "@/context/auth-context"
+import { useAuth } from "@/context/auth-context"
 import { useEffect, useState } from "react"
 import Navbar from "@/components/navbar"
 import { Button } from "@/components/ui/button"
@@ -18,109 +18,260 @@ import {
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { TrendingUp, MessageCircle, Star, Eye, Plus, Pencil, Trash2, AlertCircle, Upload, X, Image as ImageIcon, MapPin } from "lucide-react"
+import { TrendingUp, Pencil, MessageCircle, Star, Eye, Plus, Trash2, AlertCircle, Upload, X, Image as ImageIcon, MapPin, Loader, Navigation } from "lucide-react"
+import {
+  getCategorias,
+  Categoria,
+  crearServicio,
+  getMisServicios,
+  actualizarServicio,
+  eliminarServicio,
+  getSignedUploadUrl,
+  getMiPerfilProveedor,
+  ServicioDetalle,
+  ApiError,
+} from "@/lib/api"
+import { subirImagenServicio } from "@/lib/storage"
+import { geocodeCiudad, getBrowserLocation } from "@/lib/geocode"
 
-const CATEGORIES = ["Diseño", "Educación", "Tecnología", "Hogar", "Fotografía", "Deporte", "Traducción", "Finanzas"]
-const PRICE_TYPES = ["fijo", "hora", "mes", "sesión", "evento", "palabra"]
+const PRICE_TYPES = ["fijo", "hora"]
 
 export default function DashboardPage() {
-  const { isAuthenticated, role, user, services, addService, toggleService, deleteService } = useAuth()
+  const { isAuthenticated, isLoading, role } = useAuth()
   const router = useRouter()
+
+  const [categorias, setCategorias] = useState<Categoria[]>([])
+  const [misServicios, setMisServicios] = useState<ServicioDetalle[]>([])
+  const [cargandoServicios, setCargandoServicios] = useState(true)
+  const [valoracionMedia, setValoracionMedia] = useState<number | null>(null)
+
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [creando, setCreando] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
+  const [editingService, setEditingService] = useState<ServicioDetalle | null>(null)
+  const [editForm, setEditForm] = useState({ title: "", categoriaId: "", description: "", price: "", priceType: "hora" })
+  const [editImageFile, setEditImageFile] = useState<File | null>(null)
+  const [editImagePreview, setEditImagePreview] = useState<string | null>(null)
+  const [guardandoEdicion, setGuardandoEdicion] = useState(false)
+  const [editError, setEditError] = useState<string | null>(null)
+
   const [form, setForm] = useState({
     title: "",
-    category: CATEGORIES[0],
+    categoriaId: "",
     description: "",
     price: "",
     priceType: "hora",
-    image: "",
     location: "",
   })
 
   useEffect(() => {
+    if (isLoading) return
     if (!isAuthenticated) router.replace("/")
     else if (role === "cliente") router.replace("/home")
-  }, [isAuthenticated, role, router])
+  }, [isAuthenticated, isLoading, role, router])
 
-  const myServices = services.filter(
-    (s) => s.professional.id === user?.id || s.professional.name === user?.name
-  )
+  useEffect(() => {
+    getCategorias()
+      .then((cats) => {
+        setCategorias(cats)
+        setForm((f) => ({ ...f, categoriaId: f.categoriaId || cats[0]?.id || "" }))
+      })
+      .catch((err) => console.error("No se pudieron cargar las categorías:", err))
+
+    getMiPerfilProveedor()
+      .then((p: any) => setValoracionMedia(parseFloat(p.valoracion_media)))
+      .catch(() => {})
+
+    cargarMisServicios()
+  }, [])
+
+  const cargarMisServicios = () => {
+    setCargandoServicios(true)
+    getMisServicios()
+      .then(setMisServicios)
+      .catch((err) => console.error("No se pudieron cargar tus servicios:", err))
+      .finally(() => setCargandoServicios(false))
+  }
 
   const stats = [
-    { label: "Servicios activos", value: myServices.filter((s) => s.active).length, icon: <Eye size={20} />, color: "text-primary" },
-    { label: "Valoración media", value: "4.9", icon: <Star size={20} />, color: "text-amber-500" },
-    { label: "Mensajes nuevos", value: "3", icon: <MessageCircle size={20} />, color: "text-accent" },
-    { label: "Ingresos este mes", value: "480€", icon: <TrendingUp size={20} />, color: "text-emerald-500" },
+    { label: "Servicios activos", value: misServicios.filter((s) => s.activo).length, icon: <Eye size={20} />, color: "text-primary" },
+    { label: "Valoración media", value: valoracionMedia != null ? valoracionMedia.toFixed(1) : "—", icon: <Star size={20} />, color: "text-amber-500" },
+    { label: "Mensajes nuevos", value: "Próximamente", icon: <MessageCircle size={20} />, color: "text-accent" },
+    { label: "Ingresos este mes", value: "Próximamente", icon: <TrendingUp size={20} />, color: "text-emerald-500" },
   ]
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    setImageFile(file)
     const reader = new FileReader()
-    reader.onloadend = () => {
-      const result = reader.result as string
-      setImagePreview(result)
-      setForm((f) => ({ ...f, image: result }))
-    }
+    reader.onloadend = () => setImagePreview(reader.result as string)
     reader.readAsDataURL(file)
   }
 
   const clearImage = () => {
+    setImageFile(null)
     setImagePreview(null)
-    setForm((f) => ({ ...f, image: "" }))
   }
 
-  const handleCreate = () => {
-    if (!form.title || !form.description || !form.price || !user) return
+  const resetForm = () => {
+    setForm({ title: "", categoriaId: categorias[0]?.id || "", description: "", price: "", priceType: "hora", location: "" })
+    clearImage()
+    setCreateError(null)
+  }
 
-    const newService: Service = {
-      id: `svc_${Date.now()}`,
-      title: form.title,
-      category: form.category,
-      description: form.description,
-      price: parseFloat(form.price),
-      priceType: form.priceType,
-      rating: 0,
-      reviewCount: 0,
-      active: true,
-      image: form.image || "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=400&q=80",
-      deliveryDays: null,
-      professional: {
-        id: user.id,
-        name: user.name,
-        avatar: user.avatar,
-        location: form.location || user.location || "España",
-      },
-      tags: [],
-      featured: false,
+  const useMyLocationForForm = async () => {
+    const loc = await getBrowserLocation()
+    if (loc) {
+      setForm((f) => ({ ...f, location: "Ubicación actual" }))
+      ;(window as any).__pendingCoords = loc // ver nota debajo
+    } else {
+      setCreateError("No se pudo acceder a tu ubicación.")
     }
-
-    addService(newService)
-    setForm({ title: "", category: CATEGORIES[0], description: "", price: "", priceType: "hora", image: "", location: "" })
-    setImagePreview(null)
-    setDialogOpen(false)
   }
 
-  const handleDelete = (id: string) => {
-    deleteService(id)
+  const handleCreate = async () => {
+    if (!form.title || !form.description || !form.price || !form.categoriaId) return
+
+    setCreando(true)
+    setCreateError(null)
+    try {
+      // 1. Resolver coordenadas: ubicación del navegador ya guardada, o geocodificar el texto
+      let coords = (window as any).__pendingCoords as { lat: number; lng: number } | null
+      if (!coords && form.location.trim()) {
+        coords = await geocodeCiudad(form.location.trim())
+      }
+      if (!coords) {
+        setCreateError("Indica una ubicación válida (ciudad) o usa tu ubicación actual.")
+        setCreando(false)
+        return
+      }
+
+      // 2. Crear el servicio
+      const nuevo = await crearServicio({
+        categoria_id: form.categoriaId,
+        titulo: form.title,
+        descripcion: form.description,
+        precio: parseFloat(form.price),
+        tipo_precio: form.priceType,
+        latitud: coords.lat,
+        longitud: coords.lng,
+      })
+
+      // 3. Si hay imagen, subirla y enlazarla
+      if (imageFile) {
+        const { signed_url, path, token } = await getSignedUploadUrl(nuevo.id)
+        const publicUrl = await subirImagenServicio(path, token, imageFile)
+        if (publicUrl) {
+          await actualizarServicio(nuevo.id, { imagen_url: publicUrl })
+        }
+      }
+
+      ;(window as any).__pendingCoords = null
+      resetForm()
+      setDialogOpen(false)
+      cargarMisServicios()
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "No se pudo publicar el servicio."
+      setCreateError(message)
+    } finally {
+      setCreando(false)
+    }
   }
 
-  const handleToggle = (id: string) => {
-    toggleService(id)
+  const openEdit = (servicio: ServicioDetalle) => {
+    setEditingService(servicio)
+    setEditForm({
+      title: servicio.titulo,
+      categoriaId: servicio.categoria_id || "",
+      description: servicio.descripcion || "",
+      price: servicio.precio,
+      priceType: servicio.tipo_precio,
+    })
+    setEditImagePreview(servicio.imagen_url || null)
+    setEditImageFile(null)
+    setEditError(null)
   }
+
+  const closeEdit = () => {
+    setEditingService(null)
+    setEditImageFile(null)
+    setEditImagePreview(null)
+    setEditError(null)
+  }
+
+  const handleEditImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setEditImageFile(file)
+    const reader = new FileReader()
+    reader.onloadend = () => setEditImagePreview(reader.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  const handleGuardarEdicion = async () => {
+    if (!editingService) return
+    setGuardandoEdicion(true)
+    setEditError(null)
+    try {
+      await actualizarServicio(editingService.id, {
+        categoria_id: editForm.categoriaId,
+        titulo: editForm.title,
+        descripcion: editForm.description,
+        precio: parseFloat(editForm.price),
+        tipo_precio: editForm.priceType,
+      })
+
+      if (editImageFile) {
+        const { path, token } = await getSignedUploadUrl(editingService.id)
+        const publicUrl = await subirImagenServicio(path, token, editImageFile)
+        if (publicUrl) {
+          await actualizarServicio(editingService.id, { imagen_url: publicUrl })
+        }
+      }
+
+      closeEdit()
+      cargarMisServicios()
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "No se pudo guardar el servicio."
+      setEditError(message)
+    } finally {
+      setGuardandoEdicion(false)
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    try {
+      await eliminarServicio(id)
+      setMisServicios((prev) => prev.filter((s) => s.id !== id))
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const handleToggle = async (servicio: ServicioDetalle) => {
+    try {
+      const actualizado = await actualizarServicio(servicio.id, { activo: !servicio.activo })
+      setMisServicios((prev) => prev.map((s) => (s.id === servicio.id ? actualizado : s)))
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const nombreCategoria = (id: string | null) => categorias.find((c) => c.id === id)?.nombre || "General"
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="max-w-7xl mx-auto px-4 py-8 space-y-8">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Panel Profesional</h1>
             <p className="text-muted-foreground text-sm mt-1">Gestiona tus servicios y pedidos</p>
           </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm() }}>
             <DialogTrigger asChild>
               <Button className="gap-2">
                 <Plus size={18} /> Nuevo servicio
@@ -131,9 +282,8 @@ export default function DashboardPage() {
                 <DialogTitle>Crear nuevo servicio</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 pt-2">
-                {/* Image upload */}
                 <div className="space-y-2">
-                  <Label>Imagen del servicio</Label>
+                  <Label>Imagen del servicio (opcional)</Label>
                   {imagePreview ? (
                     <div className="relative aspect-video rounded-xl overflow-hidden border border-border bg-muted group">
                       <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
@@ -152,12 +302,7 @@ export default function DashboardPage() {
                         <p className="text-sm font-medium">Sube una imagen</p>
                         <p className="text-xs">JPG, PNG o WEBP (máx. 5MB)</p>
                       </div>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        className="hidden"
-                      />
+                      <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
                     </label>
                   )}
                 </div>
@@ -166,7 +311,7 @@ export default function DashboardPage() {
                   <Label htmlFor="title">Título del servicio</Label>
                   <Input
                     id="title"
-                    placeholder="Ej. Diseño de logo profesional"
+                    placeholder="Ej. Reparación de fugas de agua"
                     value={form.title}
                     onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
                   />
@@ -174,10 +319,10 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label>Categoría</Label>
-                    <Select value={form.category} onValueChange={(v) => setForm((f) => ({ ...f, category: v }))}>
+                    <Select value={form.categoriaId} onValueChange={(v) => setForm((f) => ({ ...f, categoriaId: v }))}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        {categorias.map((c) => <SelectItem key={c.id} value={c.id} className="capitalize">{c.nombre}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -202,18 +347,23 @@ export default function DashboardPage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="location">Ubicación / Sede</Label>
-                  <div className="relative">
-                    <MapPin size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      id="location"
-                      placeholder="Ej. Madrid, Barcelona, Valencia..."
-                      value={form.location}
-                      onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
-                      className="pl-8"
-                    />
+                  <Label htmlFor="location">Ubicación del servicio</Label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <MapPin size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        id="location"
+                        placeholder="Ej. Madrid, Barcelona..."
+                        value={form.location}
+                        onChange={(e) => { setForm((f) => ({ ...f, location: e.target.value })); (window as any).__pendingCoords = null }}
+                        className="pl-8"
+                      />
+                    </div>
+                    <Button type="button" variant="outline" size="icon" onClick={useMyLocationForForm} title="Usar mi ubicación actual">
+                      <Navigation size={15} />
+                    </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground">Ciudad o zona donde prestas el servicio</p>
+                  <p className="text-xs text-muted-foreground">Dónde prestas este servicio</p>
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="desc">Descripción</Label>
@@ -230,11 +380,102 @@ export default function DashboardPage() {
                     <AlertCircle size={14} /> Completa todos los campos para continuar
                   </div>
                 )}
+                {createError && <p className="text-sm text-destructive">{createError}</p>}
                 <div className="flex gap-3 pt-2">
-                  <Button onClick={handleCreate} disabled={!form.title || !form.description || !form.price} className="flex-1">
+                  <Button onClick={handleCreate} disabled={!form.title || !form.description || !form.price || creando} className="flex-1 gap-2">
+                    {creando && <Loader size={16} className="animate-spin" />}
                     Publicar servicio
                   </Button>
-                  <Button variant="outline" onClick={() => setDialogOpen(false)} className="flex-1">
+                  <Button variant="outline" onClick={() => setDialogOpen(false)} className="flex-1" disabled={creando}>
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+          <Dialog open={!!editingService} onOpenChange={(o) => !o && closeEdit()}>
+            <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Editar servicio</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-2">
+                <div className="space-y-2">
+                  <Label>Imagen del servicio</Label>
+                  {editImagePreview ? (
+                    <div className="relative aspect-video rounded-xl overflow-hidden border border-border bg-muted group">
+                      <img src={editImagePreview} alt="Preview" className="w-full h-full object-cover" />
+                      <button
+                        onClick={() => { setEditImageFile(null); setEditImagePreview(null) }}
+                        className="absolute top-2 right-2 p-1.5 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                        type="button"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center aspect-video rounded-xl border-2 border-dashed border-border bg-muted/20 hover:bg-muted/40 cursor-pointer transition-colors group">
+                      <div className="flex flex-col items-center gap-2 text-muted-foreground group-hover:text-foreground transition-colors">
+                        <Upload size={32} />
+                        <p className="text-sm font-medium">Sube una imagen</p>
+                      </div>
+                      <input type="file" accept="image/*" onChange={handleEditImageUpload} className="hidden" />
+                    </label>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-title">Título del servicio</Label>
+                  <Input
+                    id="edit-title"
+                    value={editForm.title}
+                    onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Categoría</Label>
+                    <Select value={editForm.categoriaId} onValueChange={(v) => setEditForm((f) => ({ ...f, categoriaId: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {categorias.map((c) => <SelectItem key={c.id} value={c.id} className="capitalize">{c.nombre}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Tipo de precio</Label>
+                    <Select value={editForm.priceType} onValueChange={(v) => setEditForm((f) => ({ ...f, priceType: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {PRICE_TYPES.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-price">Precio (€)</Label>
+                  <Input
+                    id="edit-price"
+                    type="number"
+                    value={editForm.price}
+                    onChange={(e) => setEditForm((f) => ({ ...f, price: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-desc">Descripción</Label>
+                  <Textarea
+                    id="edit-desc"
+                    rows={4}
+                    value={editForm.description}
+                    onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
+                  />
+                </div>
+                {editError && <p className="text-sm text-destructive">{editError}</p>}
+                <div className="flex gap-3 pt-2">
+                  <Button onClick={handleGuardarEdicion} disabled={guardandoEdicion || !editForm.title} className="flex-1 gap-2">
+                    {guardandoEdicion && <Loader size={16} className="animate-spin" />}
+                    Guardar cambios
+                  </Button>
+                  <Button variant="outline" onClick={closeEdit} className="flex-1" disabled={guardandoEdicion}>
                     Cancelar
                   </Button>
                 </div>
@@ -243,7 +484,6 @@ export default function DashboardPage() {
           </Dialog>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map(({ label, value, icon, color }) => (
             <Card key={label}>
@@ -258,13 +498,16 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* Services table */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-lg">Mis servicios</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            {myServices.length === 0 ? (
+            {cargandoServicios ? (
+              <div className="py-16 flex justify-center">
+                <Loader className="animate-spin text-muted-foreground" size={24} />
+              </div>
+            ) : misServicios.length === 0 ? (
               <div className="py-16 text-center space-y-3">
                 <ImageIcon size={40} className="mx-auto text-muted-foreground/40" />
                 <p className="text-muted-foreground">Aún no tienes servicios publicados.</p>
@@ -274,50 +517,29 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="divide-y divide-border">
-                {myServices.map((service) => (
+                {misServicios.map((service) => (
                   <div key={service.id} className="flex items-center gap-4 px-6 py-4 hover:bg-secondary/30 transition-colors">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="font-medium text-foreground truncate">{service.title}</p>
-                        <Badge variant={service.active ? "default" : "secondary"} className="shrink-0 text-xs">
-                          {service.active ? "Activo" : "Pausado"}
+                        <p className="font-medium text-foreground truncate">{service.titulo}</p>
+                        <Badge variant={service.activo ? "default" : "secondary"} className="shrink-0 text-xs">
+                          {service.activo ? "Activo" : "Pausado"}
                         </Badge>
                       </div>
                       <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-                        <span>{service.category}</span>
+                        <span className="capitalize">{nombreCategoria(service.categoria_id)}</span>
                         <span>·</span>
-                        <span className="font-medium text-primary">{service.price}€/{service.priceType}</span>
-                        {service.professional.location && (
-                          <>
-                            <span>·</span>
-                            <span className="flex items-center gap-1">
-                              <MapPin size={11} />
-                              {service.professional.location}
-                            </span>
-                          </>
-                        )}
-                        {service.reviewCount > 0 && (
-                          <>
-                            <span>·</span>
-                            <span className="flex items-center gap-1">
-                              <Star size={12} className="fill-amber-400 text-amber-400" />
-                              {service.rating} ({service.reviewCount})
-                            </span>
-                          </>
-                        )}
+                        <span className="font-medium text-primary">{service.precio}€/{service.tipo_precio}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleToggle(service.id)}
+                        onClick={() => handleToggle(service)}
                         className="text-muted-foreground hover:text-foreground text-xs"
                       >
-                        {service.active ? "Pausar" : "Activar"}
-                      </Button>
-                      <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-                        <Pencil size={15} />
+                        {service.activo ? "Pausar" : "Activar"}
                       </Button>
                       <Button
                         variant="ghost"
@@ -326,6 +548,14 @@ export default function DashboardPage() {
                         className="text-muted-foreground hover:text-destructive"
                       >
                         <Trash2 size={15} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openEdit(service)}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        <Pencil size={15} />
                       </Button>
                     </div>
                   </div>
