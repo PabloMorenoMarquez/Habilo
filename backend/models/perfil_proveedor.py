@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Text, Boolean, DateTime, ForeignKey, Integer, Numeric
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from database.base import base
 
@@ -18,4 +18,4 @@ class Perfil_Proveedor(base):
     num_valoraciones = Column(Integer, default=0)
     verificado = Column(Boolean, nullable=True, default=False)
     url_documento = Column(Text, nullable=True)
-    fecha_creacion = Column(DateTime, nullable=True, default=datetime.now)
+    fecha_creacion = Column(DateTime, nullable=True, default=lambda: datetime.now(timezone.utc))

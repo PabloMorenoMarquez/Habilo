@@ -50,6 +50,13 @@ async def signed_url_documento(current_user=Depends(get_current_user)):
 @router.patch("/documento/confirmar")
 async def confirmar_documento(url_documento: str, current_user=Depends(get_current_user)):
     usuario_id = current_user["user_id"]
+
+    # Validar que la URL pertenece de verdad a vuestro bucket de Supabase,
+    # no a cualquier dominio que el cliente decida mandar
+    prefijo_esperado = f"{Config.SUPABASE_URL}/storage/v1/object/public/{Config.STORAGE_BUCKET_DOCUMENTOS}/"
+    if not url_documento.startswith(prefijo_esperado):
+        raise HTTPException(status_code=400, detail="URL de documento no válida")
+
     service = ProveedorService()
     perfil = service.obtener_por_usuario(usuario_id)
     if not perfil:

@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Text, Boolean, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from database.base import base
 
@@ -15,5 +15,5 @@ class Usuario(base):
     foto_url = Column(Text, nullable=True)
     telefono = Column(Text, nullable=True)
     telefono_verificado = Column(Boolean, nullable=True, default=False)
-    fecha_registro = Column(DateTime, nullable=True, default=datetime.now)
+    fecha_registro = Column(DateTime, nullable=True, default=lambda: datetime.now(timezone.utc))
     ciudad = Column(Text, nullable=True)

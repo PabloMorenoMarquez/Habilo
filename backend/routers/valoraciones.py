@@ -14,7 +14,6 @@ async def crear_valoracion(datos: CrearValoracion, current_user=Depends(get_curr
     return service.crear(
         solicitud_id=datos.solicitud_id,
         autor_id=current_user["user_id"],
-        destinatario_id=datos.destinatario_id,
         puntuacion=datos.puntuacion,
         comentario=datos.comentario
     )

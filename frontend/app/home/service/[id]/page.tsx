@@ -53,8 +53,8 @@ export default function ServiceDetailPage() {
     setContactando(true)
     setContactoError(null)
     try {
-      await crearSolicitud(servicio.id)
-      router.push("/chats")
+      const solicitud = await crearSolicitud(servicio.id) 
+      router.push(`/chats?solicitud=${solicitud.id}`)
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
         setContactoError("Ya tienes una solicitud activa con este profesional para este servicio.")

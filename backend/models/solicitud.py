@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Text, DateTime,ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from database.base import base
 
@@ -13,4 +13,4 @@ class Solicitud(base):
     servicio_id = Column(UUID, ForeignKey("servicios.id"), nullable=False)
     cliente_id = Column(UUID, ForeignKey("usuarios.id"), nullable=False)
     estado = Column(Text, default="pendiente")
-    fecha = Column(DateTime, nullable=True, default=datetime.now)
+    fecha = Column(DateTime, nullable=True, default=lambda: datetime.now(timezone.utc))

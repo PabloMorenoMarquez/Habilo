@@ -47,6 +47,7 @@ export default function DashboardPage() {
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [imageFile, setImageFile] = useState<File | null>(null)
+  const [formCoords, setFormCoords] = useState<{ lat: number; lng: number } | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [creando, setCreando] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
@@ -118,6 +119,7 @@ export default function DashboardPage() {
 
   const resetForm = () => {
     setForm({ title: "", categoriaId: categorias[0]?.id || "", description: "", price: "", priceType: "hora", location: "" })
+    setFormCoords(null)
     clearImage()
     setCreateError(null)
   }
@@ -126,7 +128,7 @@ export default function DashboardPage() {
     const loc = await getBrowserLocation()
     if (loc) {
       setForm((f) => ({ ...f, location: "Ubicación actual" }))
-      ;(window as any).__pendingCoords = loc // ver nota debajo
+      setFormCoords(loc)  
     } else {
       setCreateError("No se pudo acceder a tu ubicación.")
     }
@@ -139,7 +141,7 @@ export default function DashboardPage() {
     setCreateError(null)
     try {
       // 1. Resolver coordenadas: ubicación del navegador ya guardada, o geocodificar el texto
-      let coords = (window as any).__pendingCoords as { lat: number; lng: number } | null
+      let coords = formCoords
       if (!coords && form.location.trim()) {
         coords = await geocodeCiudad(form.location.trim())
       }
@@ -169,7 +171,6 @@ export default function DashboardPage() {
         }
       }
 
-      ;(window as any).__pendingCoords = null
       resetForm()
       setDialogOpen(false)
       cargarMisServicios()
@@ -355,7 +356,7 @@ export default function DashboardPage() {
                         id="location"
                         placeholder="Ej. Madrid, Barcelona..."
                         value={form.location}
-                        onChange={(e) => { setForm((f) => ({ ...f, location: e.target.value })); (window as any).__pendingCoords = null }}
+                        onChange={(e) => { setForm((f) => ({ ...f, location: e.target.value })); setFormCoords(null) }}
                         className="pl-8"
                       />
                     </div>

@@ -214,6 +214,7 @@ export interface Conversacion {
   servicio_titulo: string
   estado: string
   fecha: string | null
+  cliente_id: string
   otro_usuario_id: string
   otro_usuario_nombre: string
   otro_usuario_avatar: string | null
@@ -246,4 +247,22 @@ export function marcarMensajesLeidos(solicitudId: string) {
 export function getWebSocketUrl(solicitudId: string): string {
   const wsBase = API_URL.replace("http://", "ws://").replace("https://", "wss://")
   return `${wsBase}/ws/solicitudes/${solicitudId}?token=${getToken()}`
+}
+
+export function cambiarEstadoSolicitud(id: string, estado: "aceptada" | "rechazada" | "completada") {
+  return apiFetch(`/solicitudes/${id}/estado`, {
+    method: "PATCH",
+    body: JSON.stringify({ estado }),
+  })
+}
+
+export function crearValoracion(datos: {
+  solicitud_id: string
+  puntuacion: number
+  comentario?: string
+}) {
+  return apiFetch("/valoraciones/", {
+    method: "POST",
+    body: JSON.stringify(datos),
+  })
 }

@@ -8,8 +8,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Send, Search, ArrowLeft, Loader, WifiOff } from "lucide-react"
+import { Send, Search, ArrowLeft, Loader, WifiOff, Star, CheckCircle2, XCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
+import { useSearchParams } from "next/navigation"
+import { Suspense } from "react"
 import {
   getConversaciones,
   getHistorialMensajes,
@@ -17,6 +21,9 @@ import {
   getWebSocketUrl,
   Conversacion,
   MensajeBackend,
+  cambiarEstadoSolicitud,
+  crearValoracion,
+  ApiError
 } from "@/lib/api"
 
 const POLL_INTERVAL = 15000 // refresco de la lista lateral, en ms
@@ -26,9 +33,11 @@ function formatHora(fecha: string | null) {
   return new Date(fecha).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })
 }
 
-export default function ChatsPage() {
+function ChatsPageInner() {
   const { isAuthenticated, isLoading, user } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const [searchConv, setSearchConv] = useState("")
 
   const [conversaciones, setConversaciones] = useState<Conversacion[]>([])
   const [cargandoLista, setCargandoLista] = useState(true)
@@ -38,6 +47,14 @@ export default function ChatsPage() {
   const [newMessage, setNewMessage] = useState("")
   const [mobileChatOpen, setMobileChatOpen] = useState(false)
   const [wsConectado, setWsConectado] = useState(false)
+  const [wsConectadoAlgunaVez, setWsConectadoAlgunaVez] = useState(false)
+
+  const [procesandoEstado, setProcesandoEstado] = useState(false)
+  const [valorarOpen, setValorarOpen] = useState(false)
+  const [puntuacion, setPuntuacion] = useState(0)
+  const [comentario, setComentario] = useState("")
+  const [enviandoValoracion, setEnviandoValoracion] = useState(false)
+  const [valoradas, setValoradas] = useState<Set<string>>(new Set())
 
   const wsRef = useRef<WebSocket | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -64,6 +81,7 @@ export default function ChatsPage() {
   // Al seleccionar una conversación: cargar historial, marcar como leído, abrir WebSocket
   useEffect(() => {
     if (!activeId) return
+    setWsConectadoAlgunaVez(false)
 
     setCargandoMensajes(true)
     getHistorialMensajes(activeId)
@@ -81,7 +99,10 @@ export default function ChatsPage() {
     const ws = new WebSocket(getWebSocketUrl(activeId))
     wsRef.current = ws
 
-    ws.onopen = () => setWsConectado(true)
+    ws.onopen = () => {
+      setWsConectado(true)
+      setWsConectadoAlgunaVez(true)
+    }
     ws.onclose = () => setWsConectado(false)
     ws.onerror = () => setWsConectado(false)
     ws.onmessage = (event) => {
@@ -109,6 +130,16 @@ export default function ChatsPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [mensajes])
 
+  useEffect(() => {
+    const solicitudId = searchParams.get("solicitud")
+    if (!solicitudId || conversaciones.length === 0) return
+    const existe = conversaciones.some((c) => c.id === solicitudId)
+    if (existe) {
+      setActiveId(solicitudId)
+      setMobileChatOpen(true)
+    }
+  }, [searchParams, conversaciones])
+
   const sendMessage = () => {
     const texto = newMessage.trim()
     if (!texto || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return
@@ -116,12 +147,57 @@ export default function ChatsPage() {
     setNewMessage("")
   }
 
+  const activeConv = conversaciones.find((c) => c.id === activeId) || null
+  const esCliente = activeConv?.cliente_id === user?.id
+
+  const handleCambiarEstado = async (estado: "aceptada" | "rechazada" | "completada") => {
+    if (!activeId) return
+    setProcesandoEstado(true)
+    try {
+      await cambiarEstadoSolicitud(activeId, estado)
+      setConversaciones((prev) => prev.map((c) => (c.id === activeId ? { ...c, estado } : c)))
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setProcesandoEstado(false)
+    }
+  }
+
+  const handleEnviarValoracion = async () => {
+    if (!activeConv || puntuacion === 0) return
+    setEnviandoValoracion(true)
+    try {
+      await crearValoracion({
+        solicitud_id: activeConv.id,
+        puntuacion,
+        comentario: comentario.trim() || undefined,
+      })
+      setValoradas((prev) => new Set(prev).add(activeConv.id))
+      setValorarOpen(false)
+      setPuntuacion(0)
+      setComentario("")
+    } catch (err) {
+      console.error(err instanceof ApiError ? err.message : err)
+    } finally {
+      setEnviandoValoracion(false)
+    }
+  }
+
   const openChat = (conv: Conversacion) => {
     setActiveId(conv.id)
     setMobileChatOpen(true)
   }
 
-  const activeConv = conversaciones.find((c) => c.id === activeId) || null
+  const conversacionesFiltradas = conversaciones.filter((c) => {
+    if (!searchConv.trim()) return true
+    const q = searchConv.toLowerCase()
+    return (
+      c.otro_usuario_nombre.toLowerCase().includes(q) ||
+      c.servicio_titulo.toLowerCase().includes(q)
+    )
+  })
+
+  
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -137,7 +213,7 @@ export default function ChatsPage() {
             <div className="p-4 border-b border-border">
               <div className="relative">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <Input placeholder="Buscar conversación..." className="pl-9 h-9 text-sm" disabled />
+                <Input placeholder="Buscar conversación..." className="pl-9 h-9 text-sm" value={searchConv} onChange={(e) => setSearchConv(e.target.value)} />
               </div>
             </div>
             <div className="flex-1 overflow-y-auto divide-y divide-border">
@@ -147,10 +223,10 @@ export default function ChatsPage() {
                 </div>
               ) : conversaciones.length === 0 ? (
                 <div className="py-16 text-center px-4">
-                  <p className="text-sm text-muted-foreground">Aún no tienes conversaciones.</p>
+                  <p className="text-sm text-muted-foreground">{searchConv ? "No hay conversaciones que coincidan." : "Aún no tienes conversaciones."}</p>
                 </div>
               ) : (
-                conversaciones.map((conv) => (
+                conversacionesFiltradas.map((conv) => (
                   <button
                     key={conv.id}
                     onClick={() => openChat(conv)}
@@ -203,7 +279,12 @@ export default function ChatsPage() {
                     <p className="font-semibold text-foreground text-sm">{activeConv.otro_usuario_nombre}</p>
                     <p className="text-xs text-muted-foreground truncate">{activeConv.servicio_titulo}</p>
                   </div>
-                  {!wsConectado && (
+                  {!esCliente && activeConv.estado === "aceptada" && (
+                    <Button size="sm" variant="outline" disabled={procesandoEstado} onClick={() => handleCambiarEstado("completada")}>
+                      Marcar como completado
+                    </Button>
+                  )}
+                  {wsConectadoAlgunaVez && !wsConectado && (
                     <div className="flex items-center gap-1 text-xs text-destructive shrink-0">
                       <WifiOff size={13} /> Reconectando...
                     </div>
@@ -227,6 +308,7 @@ export default function ChatsPage() {
                                 <AvatarFallback>{activeConv.otro_usuario_nombre.charAt(0)}</AvatarFallback>
                               </Avatar>
                             )}
+                            
                             <div
                               className={cn(
                                 "max-w-xs md:max-w-md px-4 py-2.5 rounded-2xl text-sm leading-relaxed",
@@ -240,9 +322,44 @@ export default function ChatsPage() {
                                 {formatHora(msg.fecha)}
                               </p>
                             </div>
+                            
                           </div>
+                          
                         )
                       })}
+                      {activeConv.estado === "pendiente" && !esCliente && (
+                        <div className="flex justify-center py-2">
+                          <div className="bg-secondary rounded-2xl px-5 py-4 text-center space-y-3 max-w-xs">
+                            <p className="text-sm text-foreground">Tienes una nueva solicitud para este servicio</p>
+                            <div className="flex gap-2 justify-center">
+                              <Button size="sm" disabled={procesandoEstado} onClick={() => handleCambiarEstado("aceptada")}>
+                                Aceptar
+                              </Button>
+                              <Button size="sm" variant="outline" disabled={procesandoEstado} onClick={() => handleCambiarEstado("rechazada")}>
+                                Rechazar
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+
+                      {activeConv.estado === "completada" && esCliente && !valoradas.has(activeConv.id) && (
+                        <div className="flex justify-center py-2">
+                          <div className="bg-secondary rounded-2xl px-5 py-4 text-center space-y-3 max-w-xs">
+                            <p className="text-sm text-foreground">Este servicio ha finalizado. ¿Qué tal tu experiencia con {activeConv.otro_usuario_nombre}?</p>
+                            <Button size="sm" onClick={() => setValorarOpen(true)}>
+                              Valorar ahora
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+
+                      {activeConv.estado === "rechazada" && (
+                        <div className="flex justify-center py-2">
+                          <p className="text-xs text-muted-foreground bg-secondary rounded-full px-4 py-1.5">Esta solicitud fue rechazada</p>
+                        </div>
+                      )}
                       <div ref={messagesEndRef} />
                     </>
                   )}
@@ -272,6 +389,39 @@ export default function ChatsPage() {
           </div>
         </div>
       </main>
+      <Dialog open={valorarOpen} onOpenChange={setValorarOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Valora a {activeConv?.otro_usuario_nombre}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="flex justify-center gap-1">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button key={n} onClick={() => setPuntuacion(n)} type="button">
+                  <Star size={28} className={n <= puntuacion ? "fill-amber-400 text-amber-400" : "text-muted-foreground"} />
+                </button>
+              ))}
+            </div>
+            <Textarea
+              placeholder="Cuéntanos tu experiencia (opcional)"
+              value={comentario}
+              onChange={(e) => setComentario(e.target.value)}
+              rows={3}
+            />
+            <Button className="w-full" disabled={puntuacion === 0 || enviandoValoracion} onClick={handleEnviarValoracion}>
+              {enviandoValoracion ? <Loader size={16} className="animate-spin" /> : "Enviar valoración"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
+  )
+}
+
+export default function ChatsPage() {
+  return (
+    <Suspense fallback={null}>
+      <ChatsPageInner />
+    </Suspense>
   )
 }

@@ -1,7 +1,6 @@
 "use client"
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react"
-import servicesData from "@/data/services.json"
 import { getToken, setToken, clearToken, getMe } from "@/lib/api"
 
 export type UserRole = "cliente" | "profesional" | null
@@ -76,20 +75,14 @@ interface AuthContextType {
   selectRole: (role: "cliente" | "profesional") => void
   refreshUser: () => Promise<void>
   updateLocation: (location: string) => void
-  services: Service[]
-  addService: (service: Service) => void
-  toggleService: (id: string) => void
-  deleteService: (id: string) => void
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
-const INITIAL_SERVICES: Service[] = servicesData.map((s) => ({ ...s, active: true }))
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [services, setServices] = useState<Service[]>(INITIAL_SERVICES)
 
   const getStoredRole = (): UserRole => {
     if (typeof window === "undefined") return null
@@ -141,18 +134,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser((prev) => (prev ? { ...prev, location } : null))
   }, [])
 
-  const addService = useCallback((service: Service) => {
-    setServices((prev) => [service, ...prev])
-  }, [])
-
-  const toggleService = useCallback((id: string) => {
-    setServices((prev) => prev.map((s) => (s.id === id ? { ...s, active: !s.active } : s)))
-  }, [])
-
-  const deleteService = useCallback((id: string) => {
-    setServices((prev) => prev.filter((s) => s.id !== id))
-  }, [])
-
   return (
     <AuthContext.Provider
       value={{
@@ -164,11 +145,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         logout,
         selectRole,
         refreshUser,
-        updateLocation,
-        services,
-        addService,
-        toggleService,
-        deleteService,
+        updateLocation
       }}
     >
       {children}

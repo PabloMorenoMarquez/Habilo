@@ -36,6 +36,7 @@ class ConversacionOut(BaseModel):
     servicio_titulo: str
     estado: str
     fecha: Optional[datetime] = None
+    cliente_id: UUID
     otro_usuario_id: UUID
     otro_usuario_nombre: str
     otro_usuario_avatar: Optional[str] = None

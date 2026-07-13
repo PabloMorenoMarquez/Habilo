@@ -6,7 +6,6 @@ from datetime import datetime
 
 class CrearValoracion(BaseModel):
     solicitud_id: UUID
-    destinatario_id: UUID
     puntuacion: int
     comentario: Optional[str] = None
 

@@ -123,6 +123,7 @@ class SolicitudRepository:
                     "servicio_titulo": row.servicio_titulo,
                     "estado": solicitud.estado,
                     "fecha": solicitud.fecha,
+                    "cliente_id": solicitud.cliente_id,
                     "otro_usuario_id": row.proveedor_usuario_id if soy_cliente else row.cliente_id,
                     "otro_usuario_nombre": row.proveedor_nombre if soy_cliente else row.cliente_nombre,
                     "otro_usuario_avatar": row.proveedor_avatar if soy_cliente else row.cliente_avatar,

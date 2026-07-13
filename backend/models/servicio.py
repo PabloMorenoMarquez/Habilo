@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Text, Boolean, DateTime,ForeignKey, Numeric
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from geoalchemy2 import Geography
 
 from database.base import base
@@ -19,5 +19,5 @@ class Servicio(base):
     tipo_precio = Column(Text, nullable=False)
     ubicacion = Column(Geography(geometry_type='POINT', srid=4326))
     activo = Column(Boolean, default=True)
-    fecha_creacion = Column(DateTime, nullable=True, default=datetime.now)
+    fecha_creacion = Column(DateTime, nullable=True, default=lambda: datetime.now(timezone.utc))
     imagen_url = Column(Text, nullable=True)
