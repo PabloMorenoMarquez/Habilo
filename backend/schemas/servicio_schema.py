@@ -38,6 +38,8 @@ class ServicioOut(BaseModel):
     activo: bool
     fecha_creacion: Optional[datetime] = None
     imagen_url: Optional[str] = None
+    latitud: Optional[float] = None
+    longitud: Optional[float] = None
 
     class Config:
         from_attributes = True

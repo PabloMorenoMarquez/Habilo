@@ -54,7 +54,6 @@ function ChatsPageInner() {
   const [puntuacion, setPuntuacion] = useState(0)
   const [comentario, setComentario] = useState("")
   const [enviandoValoracion, setEnviandoValoracion] = useState(false)
-  const [valoradas, setValoradas] = useState<Set<string>>(new Set())
 
   const wsRef = useRef<WebSocket | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -172,7 +171,7 @@ function ChatsPageInner() {
         puntuacion,
         comentario: comentario.trim() || undefined,
       })
-      setValoradas((prev) => new Set(prev).add(activeConv.id))
+      setConversaciones((prev) => prev.map((c) => (c.id === activeConv.id ? { ...c, ya_valorada: true } : c)))
       setValorarOpen(false)
       setPuntuacion(0)
       setComentario("")
@@ -344,7 +343,7 @@ function ChatsPageInner() {
                       )}
 
 
-                      {activeConv.estado === "completada" && esCliente && !valoradas.has(activeConv.id) && (
+                      {activeConv.estado === "completada" && esCliente && !activeConv.ya_valorada && (
                         <div className="flex justify-center py-2">
                           <div className="bg-secondary rounded-2xl px-5 py-4 text-center space-y-3 max-w-xs">
                             <p className="text-sm text-foreground">Este servicio ha finalizado. ¿Qué tal tu experiencia con {activeConv.otro_usuario_nombre}?</p>

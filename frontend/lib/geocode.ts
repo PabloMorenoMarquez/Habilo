@@ -35,3 +35,16 @@ export function getBrowserLocation(): Promise<{ lat: number; lng: number } | nul
     )
   })
 }
+
+// Convierte coordenadas en un nombre de lugar legible
+export async function reverseGeocode(lat: number, lng: number): Promise<string | null> {
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
+    const res = await fetch(url, { headers: { "Accept-Language": "es" } })
+    if (!res.ok) return null
+    const data = await res.json()
+    return data.address?.city || data.address?.town || data.address?.village || data.display_name || null
+  } catch {
+    return null
+  }
+}

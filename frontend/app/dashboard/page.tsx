@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { reverseGeocode } from "@/lib/geocode"
 import {
   Dialog,
   DialogContent,
@@ -51,12 +52,16 @@ export default function DashboardPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [creando, setCreando] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
+
+
   const [editingService, setEditingService] = useState<ServicioDetalle | null>(null)
   const [editForm, setEditForm] = useState({ title: "", categoriaId: "", description: "", price: "", priceType: "hora" })
   const [editImageFile, setEditImageFile] = useState<File | null>(null)
   const [editImagePreview, setEditImagePreview] = useState<string | null>(null)
   const [guardandoEdicion, setGuardandoEdicion] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
+  const [editLocation, setEditLocation] = useState("")
+  const [editFormCoords, setEditFormCoords] = useState<{ lat: number; lng: number } | null>(null)
 
   const [form, setForm] = useState({
     title: "",
@@ -194,6 +199,17 @@ export default function DashboardPage() {
     setEditImagePreview(servicio.imagen_url || null)
     setEditImageFile(null)
     setEditError(null)
+
+     // Precargar ubicación actual (si el servicio tiene coordenadas guardadas)
+    setEditFormCoords(null)
+    if (servicio.latitud != null && servicio.longitud != null) {
+      setEditLocation("Cargando ubicación...")
+      reverseGeocode(servicio.latitud, servicio.longitud).then((label) => {
+        setEditLocation(label || "Ubicación guardada")
+      })
+    } else {
+      setEditLocation("")
+    }
   }
 
   const closeEdit = () => {
@@ -201,6 +217,8 @@ export default function DashboardPage() {
     setEditImageFile(null)
     setEditImagePreview(null)
     setEditError(null)
+    setEditLocation("")      
+    setEditFormCoords(null) 
   }
 
   const handleEditImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -212,17 +230,33 @@ export default function DashboardPage() {
     reader.readAsDataURL(file)
   }
 
+  const useMyLocationForEdit = async () => {
+    const loc = await getBrowserLocation()
+    if (loc) {
+      setEditFormCoords(loc)
+      setEditLocation("Ubicación actual")
+    } else {
+      setEditError("No se pudo acceder a tu ubicación.")
+    }
+  }
+
   const handleGuardarEdicion = async () => {
     if (!editingService) return
     setGuardandoEdicion(true)
     setEditError(null)
     try {
+      let coords = editFormCoords
+      if (!coords && editLocation.trim() && editLocation !== "Ubicación guardada") {
+        coords = await geocodeCiudad(editLocation.trim())
+      }
+
       await actualizarServicio(editingService.id, {
         categoria_id: editForm.categoriaId,
         titulo: editForm.title,
         descripcion: editForm.description,
         precio: parseFloat(editForm.price),
         tipo_precio: editForm.priceType,
+        ...(coords ? { latitud: coords.lat, longitud: coords.lng } : {}),
       })
 
       if (editImageFile) {
@@ -460,6 +494,24 @@ export default function DashboardPage() {
                     value={editForm.price}
                     onChange={(e) => setEditForm((f) => ({ ...f, price: e.target.value }))}
                   />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-location">Ubicación del servicio</Label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <MapPin size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        id="edit-location"
+                        placeholder="Ej. Madrid, Barcelona..."
+                        value={editLocation}
+                        onChange={(e) => { setEditLocation(e.target.value); setEditFormCoords(null) }}
+                        className="pl-8"
+                      />
+                    </div>
+                    <Button type="button" variant="outline" size="icon" onClick={useMyLocationForEdit} title="Usar mi ubicación actual">
+                      <Navigation size={15} />
+                    </Button>
+                  </div>
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="edit-desc">Descripción</Label>

@@ -61,12 +61,16 @@ class SolicitudService:
     
     def listar_conversaciones(self, usuario_id: UUID):
         from repositories.mensaje_repository import MensajeRepository
+        from repositories.valoracion_repository import ValoracionRepository
+        
         base = self.solicitud_repository.listar_conversaciones_base(usuario_id)
         ids = [c["id"] for c in base]
         resumen = MensajeRepository().resumen_por_solicitudes(ids, usuario_id) if ids else {}
+        valoradas = ValoracionRepository().obtener_solicitudes_valoradas(ids) if ids else set()
         for c in base:
             info = resumen.get(str(c["id"]), {})
             c["ultimo_mensaje"] = info.get("ultimo_mensaje")
             c["ultimo_mensaje_fecha"] = info.get("ultimo_mensaje_fecha")
             c["no_leidos"] = info.get("no_leidos", 0)
+            c["ya_valorada"] = str(c["id"]) in valoradas
         return base

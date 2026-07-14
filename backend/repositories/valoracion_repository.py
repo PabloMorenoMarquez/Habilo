@@ -45,3 +45,12 @@ class ValoracionRepository:
             return list(session.scalars(stmt))
         finally:
             session.close()
+
+    def obtener_solicitudes_valoradas(self, solicitud_ids: list) -> set:
+        session = SessionLocal()
+        try:
+            stmt = select(Valoracion.solicitud_id).where(Valoracion.solicitud_id.in_(solicitud_ids))
+            resultado = session.scalars(stmt).all()
+            return {str(sid) for sid in resultado}
+        finally:
+            session.close()

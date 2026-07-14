@@ -43,3 +43,4 @@ class ConversacionOut(BaseModel):
     ultimo_mensaje: Optional[str] = None
     ultimo_mensaje_fecha: Optional[datetime] = None
     no_leidos: int = 0
+    ya_valorada: bool = False

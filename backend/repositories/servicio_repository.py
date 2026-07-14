@@ -4,6 +4,7 @@ from models.servicio import Servicio
 from database.session import SessionLocal
 from uuid import UUID
 from decimal import Decimal
+from geoalchemy2.shape import to_shape
 
 
 class ServicioRepository:
@@ -62,6 +63,14 @@ class ServicioRepository:
             servicio = session.scalar(stmt)
             if not servicio:
                 return None
+
+            # latitud/longitud no son columnas reales — son propiedades calculadas
+            # a partir de 'ubicacion', así que no se puede hacer setattr directo
+            latitud = campos.pop("latitud", None)
+            longitud = campos.pop("longitud", None)
+            if latitud is not None and longitud is not None:
+                servicio.ubicacion = ST_SetSRID(ST_MakePoint(longitud, latitud), 4326)
+
             for campo, valor in campos.items():
                 if valor is not None:
                     setattr(servicio, campo, valor)
@@ -189,6 +198,8 @@ class ServicioRepository:
                 "activo": servicio.activo,
                 "fecha_creacion": servicio.fecha_creacion,
                 "imagen_url": servicio.imagen_url,
+                "latitud": to_shape(servicio.ubicacion).y if servicio.ubicacion is not None else None,
+                "longitud": to_shape(servicio.ubicacion).x if servicio.ubicacion is not None else None,
                 "distancia_km": None,
                 "proveedor_nombre": row.proveedor_nombre,
                 "proveedor_avatar": row.proveedor_avatar,

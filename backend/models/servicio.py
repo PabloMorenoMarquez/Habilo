@@ -6,6 +6,8 @@ from geoalchemy2 import Geography
 
 from database.base import base
 
+from geoalchemy2.shape import to_shape
+
 
 class Servicio(base):
     __tablename__ = "servicios"
@@ -21,3 +23,15 @@ class Servicio(base):
     activo = Column(Boolean, default=True)
     fecha_creacion = Column(DateTime, nullable=True, default=lambda: datetime.now(timezone.utc))
     imagen_url = Column(Text, nullable=True)
+    
+    @property
+    def latitud(self):
+        if self.ubicacion is None:
+            return None
+        return to_shape(self.ubicacion).y
+    
+    @property
+    def longitud(self):
+        if self.ubicacion is None:
+            return None
+        return to_shape(self.ubicacion).x

@@ -99,6 +99,8 @@ export interface ServicioBackend {
   activo: boolean
   fecha_creacion: string
   imagen_url: string | null
+  latitud: number | null
+  longitud: number | null
   distancia_km: number | null
   proveedor_nombre: string | null
   proveedor_avatar: string | null
@@ -189,6 +191,8 @@ export function actualizarServicio(
     tipo_precio: string
     activo: boolean
     imagen_url: string
+    latitud: number
+    longitud: number
   }>
 ) {
   return apiFetch<ServicioDetalle>(`/servicio/${id}`, {
@@ -221,6 +225,7 @@ export interface Conversacion {
   ultimo_mensaje: string | null
   ultimo_mensaje_fecha: string | null
   no_leidos: number
+  ya_valorada: boolean
 }
 
 export function getConversaciones() {
