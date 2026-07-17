@@ -8,12 +8,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Send, Search, ArrowLeft, Loader, WifiOff, Star, CheckCircle2, XCircle } from "lucide-react"
+import { Send, Search, ArrowLeft, Loader, WifiOff, Star} from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { useSearchParams } from "next/navigation"
 import { Suspense } from "react"
+import { MoreVertical, Flag, Ban } from "lucide-react"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
   getConversaciones,
   getHistorialMensajes,
@@ -23,7 +25,9 @@ import {
   MensajeBackend,
   cambiarEstadoSolicitud,
   crearValoracion,
-  ApiError
+  ApiError,
+  bloquearUsuario, 
+  crearReporte
 } from "@/lib/api"
 
 const POLL_INTERVAL = 15000 // refresco de la lista lateral, en ms
@@ -55,8 +59,18 @@ function ChatsPageInner() {
   const [comentario, setComentario] = useState("")
   const [enviandoValoracion, setEnviandoValoracion] = useState(false)
 
+  const [cancelarOpen, setCancelarOpen] = useState(false)
+  const [motivoCancelacion, setMotivoCancelacion] = useState("")
+
   const wsRef = useRef<WebSocket | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  const [reportarOpen, setReportarOpen] = useState(false)
+  const [motivoReporte, setMotivoReporte] = useState("")
+  const [descripcionReporte, setDescripcionReporte] = useState("")
+  const [enviandoReporte, setEnviandoReporte] = useState(false)
+  const [bloqueando, setBloqueando] = useState(false)
+  const [confirmarBloqueoOpen, setConfirmarBloqueoOpen] = useState(false)
 
   useEffect(() => {
     if (isLoading) return
@@ -148,6 +162,33 @@ function ChatsPageInner() {
 
   const activeConv = conversaciones.find((c) => c.id === activeId) || null
   const esCliente = activeConv?.cliente_id === user?.id
+  const conversacionActiva = activeConv?.estado === "pendiente" || activeConv?.estado === "aceptada"
+
+  const MOTIVOS_CLIENTE = [
+    { value: "cliente_desistio", label: "He cambiado de opinión" },
+    { value: "no_show_proveedor", label: "El proveedor no se presentó" },
+    { value: "otro", label: "Otro motivo" },
+  ]
+  const MOTIVOS_PROVEEDOR = [
+    { value: "proveedor_no_disponible", label: "Ya no puedo ofrecer el servicio" },
+    { value: "no_show_cliente", label: "El cliente no se presentó" },
+    { value: "otro", label: "Otro motivo" },
+  ]
+
+  const handleCancelar = async () => {
+    if (!activeId || !motivoCancelacion) return
+    setProcesandoEstado(true)
+    try {
+      await cambiarEstadoSolicitud(activeId, "cancelada", motivoCancelacion)
+      setConversaciones((prev) => prev.map((c) => (c.id === activeId ? { ...c, estado: "cancelada" } : c)))
+      setCancelarOpen(false)
+      setMotivoCancelacion("")
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setProcesandoEstado(false)
+    }
+  }
 
   const handleCambiarEstado = async (estado: "aceptada" | "rechazada" | "completada") => {
     if (!activeId) return
@@ -196,6 +237,48 @@ function ChatsPageInner() {
     )
   })
 
+  const MOTIVOS_REPORTE = [
+    { value: "contenido_inapropiado", label: "Contenido inapropiado" },
+    { value: "spam", label: "Spam o publicidad" },
+    { value: "comportamiento_sospechoso", label: "Comportamiento sospechoso" },
+    { value: "no_se_presento", label: "No se presentó al servicio" },
+    { value: "otro", label: "Otro motivo" },
+  ]
+
+  const handleEnviarReporte = async () => {
+    if (!activeConv || !motivoReporte) return
+    setEnviandoReporte(true)
+    try {
+      await crearReporte({
+        usuario_reportado_id: activeConv.otro_usuario_id,
+        motivo: motivoReporte,
+        descripcion: descripcionReporte.trim() || undefined,
+        solicitud_id: activeConv.id,
+      })
+      setReportarOpen(false)
+      setMotivoReporte("")
+      setDescripcionReporte("")
+    } catch (err) {
+      console.error(err instanceof ApiError ? err.message : err)
+    } finally {
+      setEnviandoReporte(false)
+    }
+  }
+
+  const handleBloquear = async () => {
+    if (!activeConv) return
+    setBloqueando(true)
+    try {
+      await bloquearUsuario(activeConv.otro_usuario_id)
+      setConfirmarBloqueoOpen(false)
+      cargarConversaciones()
+    } catch (err) {
+      console.error(err instanceof ApiError ? err.message : err)
+    } finally {
+      setBloqueando(false)
+    }
+  }
+
   
 
   return (
@@ -220,7 +303,7 @@ function ChatsPageInner() {
                 <div className="py-16 flex justify-center">
                   <Loader className="animate-spin text-muted-foreground" size={20} />
                 </div>
-              ) : conversaciones.length === 0 ? (
+              ) : conversacionesFiltradas.length === 0 ? (
                 <div className="py-16 text-center px-4">
                   <p className="text-sm text-muted-foreground">{searchConv ? "No hay conversaciones que coincidan." : "Aún no tienes conversaciones."}</p>
                 </div>
@@ -283,11 +366,31 @@ function ChatsPageInner() {
                       Marcar como completado
                     </Button>
                   )}
+                  {activeConv.estado === "aceptada" && (
+                    <Button size="sm" variant="ghost" className="text-destructive" disabled={procesandoEstado} onClick={() => setCancelarOpen(true)}>
+                      Cancelar
+                    </Button>
+                  )}
                   {wsConectadoAlgunaVez && !wsConectado && (
                     <div className="flex items-center gap-1 text-xs text-destructive shrink-0">
                       <WifiOff size={13} /> Reconectando...
                     </div>
                   )}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="text-muted-foreground">
+                        <MoreVertical size={16} />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setReportarOpen(true)} className="gap-2">
+                        <Flag size={14} /> Reportar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setConfirmarBloqueoOpen(true)} className="gap-2 text-destructive">
+                        <Ban size={14} /> Bloquear usuario
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-5 space-y-3">
@@ -342,6 +445,17 @@ function ChatsPageInner() {
                         </div>
                       )}
 
+                      {activeConv.estado === "pendiente" && esCliente && (
+                        <div className="flex justify-center py-2">
+                          <div className="bg-secondary rounded-2xl px-5 py-4 text-center space-y-3 max-w-xs">
+                            <p className="text-sm text-foreground">Esperando respuesta del profesional</p>
+                            <Button size="sm" variant="ghost" className="text-destructive" onClick={() => setCancelarOpen(true)}>
+                              Cancelar solicitud
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+
 
                       {activeConv.estado === "completada" && esCliente && !activeConv.ya_valorada && (
                         <div className="flex justify-center py-2">
@@ -359,6 +473,11 @@ function ChatsPageInner() {
                           <p className="text-xs text-muted-foreground bg-secondary rounded-full px-4 py-1.5">Esta solicitud fue rechazada</p>
                         </div>
                       )}
+                      {activeConv.estado === "cancelada" && (
+                        <div className="flex justify-center py-2">
+                          <p className="text-xs text-muted-foreground bg-secondary rounded-full px-4 py-1.5">Esta solicitud fue cancelada</p>
+                        </div>
+                      )}
                       <div ref={messagesEndRef} />
                     </>
                   )}
@@ -370,11 +489,11 @@ function ChatsPageInner() {
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-                      placeholder="Escribe un mensaje..."
+                      placeholder={conversacionActiva ? "Escribe un mensaje..." : "Esta conversación ya no admite mensajes"}
                       className="flex-1"
-                      disabled={!wsConectado}
+                      disabled={!wsConectado || !conversacionActiva}
                     />
-                    <Button onClick={sendMessage} disabled={!newMessage.trim() || !wsConectado} size="icon" className="shrink-0">
+                    <Button onClick={sendMessage} disabled={!newMessage.trim() || !wsConectado || !conversacionActiva} size="icon" className="shrink-0">
                       <Send size={18} />
                     </Button>
                   </div>
@@ -410,6 +529,80 @@ function ChatsPageInner() {
             <Button className="w-full" disabled={puntuacion === 0 || enviandoValoracion} onClick={handleEnviarValoracion}>
               {enviandoValoracion ? <Loader size={16} className="animate-spin" /> : "Enviar valoración"}
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={cancelarOpen} onOpenChange={setCancelarOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>¿Por qué cancelas?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 pt-2">
+            {(esCliente ? MOTIVOS_CLIENTE : MOTIVOS_PROVEEDOR).map((m) => (
+              <button
+                key={m.value}
+                onClick={() => setMotivoCancelacion(m.value)}
+                className={cn(
+                  "w-full text-left px-4 py-3 rounded-xl border text-sm transition-colors",
+                  motivoCancelacion === m.value ? "border-primary bg-primary/5" : "border-border hover:bg-secondary/50"
+                )}
+              >
+                {m.label}
+              </button>
+            ))}
+            <Button className="w-full mt-2" disabled={!motivoCancelacion || procesandoEstado} onClick={handleCancelar}>
+              Confirmar cancelación
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={reportarOpen} onOpenChange={setReportarOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Reportar a {activeConv?.otro_usuario_nombre}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 pt-2">
+            {MOTIVOS_REPORTE.map((m) => (
+              <button
+                key={m.value}
+                onClick={() => setMotivoReporte(m.value)}
+                className={cn(
+                  "w-full text-left px-4 py-3 rounded-xl border text-sm transition-colors",
+                  motivoReporte === m.value ? "border-primary bg-primary/5" : "border-border hover:bg-secondary/50"
+                )}
+              >
+                {m.label}
+              </button>
+            ))}
+            <Textarea
+              placeholder="Añade más detalles (opcional)"
+              value={descripcionReporte}
+              onChange={(e) => setDescripcionReporte(e.target.value)}
+              rows={3}
+            />
+            <Button className="w-full" disabled={!motivoReporte || enviandoReporte} onClick={handleEnviarReporte}>
+              {enviandoReporte ? <Loader size={16} className="animate-spin" /> : "Enviar reporte"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={confirmarBloqueoOpen} onOpenChange={setConfirmarBloqueoOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>¿Bloquear a {activeConv?.otro_usuario_nombre}?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <p className="text-sm text-muted-foreground">
+              No podréis volver a contactar entre vosotros. Si tenéis una solicitud activa, se cancelará automáticamente.
+            </p>
+            <div className="flex gap-3">
+              <Button variant="destructive" className="flex-1" disabled={bloqueando} onClick={handleBloquear}>
+                {bloqueando ? <Loader size={16} className="animate-spin" /> : "Bloquear"}
+              </Button>
+              <Button variant="outline" className="flex-1" onClick={() => setConfirmarBloqueoOpen(false)} disabled={bloqueando}>
+                Cancelar
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

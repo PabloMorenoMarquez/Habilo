@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { MapPin, Calendar, Star, Edit, Mail, Briefcase, UserCheck, Loader, Phone } from "lucide-react"
-import { getMiPerfilProveedor, getMisServicios, actualizarMe, ApiError, ServicioDetalle } from "@/lib/api"
+import { getMiPerfilProveedor, getMisServicios, actualizarMe, ApiError, ServicioDetalle, getBloqueados, desbloquearUsuario, UsuarioBloqueado } from "@/lib/api"
 
 function formatFecha(fecha: string | null | undefined) {
   if (!fecha) return "—"
@@ -30,6 +30,8 @@ export default function ProfilePage() {
   const [form, setForm] = useState({ nombre: "", telefono: "", ciudad: "" })
   const [guardando, setGuardando] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
+
+  const [bloqueados, setBloqueados] = useState<UsuarioBloqueado[]>([])
 
   useEffect(() => {
     if (isLoading) return
@@ -68,6 +70,19 @@ export default function ProfilePage() {
       setEditError(message)
     } finally {
       setGuardando(false)
+    }
+  }
+
+  useEffect(() => {
+    getBloqueados().then(setBloqueados).catch((err) => console.error(err))
+  }, [])
+
+  const handleDesbloquear = async (usuarioId: string) => {
+    try {
+      await desbloquearUsuario(usuarioId)
+      setBloqueados((prev) => prev.filter((b) => b.usuario_id !== usuarioId))
+    } catch (err) {
+      console.error(err)
     }
   }
 
@@ -223,6 +238,28 @@ export default function ProfilePage() {
                   </div>
                 ))
               )}
+            </CardContent>
+          </Card>
+        )}
+
+        {bloqueados.length > 0 && (
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg">Usuarios bloqueados</CardTitle>
+            </CardHeader>
+            <CardContent className="divide-y divide-border p-0">
+              {bloqueados.map((b) => (
+                <div key={b.id} className="flex items-center gap-4 px-6 py-4">
+                  <Avatar className="h-9 w-9">
+                    <AvatarImage src={b.avatar || undefined} alt={b.nombre} />
+                    <AvatarFallback>{b.nombre.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <p className="flex-1 text-sm font-medium text-foreground">{b.nombre}</p>
+                  <Button variant="outline" size="sm" onClick={() => handleDesbloquear(b.usuario_id)}>
+                    Desbloquear
+                  </Button>
+                </div>
+              ))}
             </CardContent>
           </Card>
         )}

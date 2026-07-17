@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, and_
 from models.solicitud import Solicitud
 from models.servicio import Servicio
 from database.session import SessionLocal
@@ -51,7 +51,7 @@ class SolicitudRepository:
         finally:
             session.close()
 
-    def actualizar_estado(self, solicitud_id:UUID, estado:str):
+    def actualizar_estado(self, solicitud_id:UUID, estado:str, motivo:str = None):
         session = SessionLocal()
         try:
             stmt = select(Solicitud).where(Solicitud.id == solicitud_id)
@@ -59,6 +59,7 @@ class SolicitudRepository:
             if not solicitud:
                 return None
             solicitud.estado = estado
+            solicitud.motivo_cancelacion = motivo
             session.commit()
             session.refresh(solicitud)
             return solicitud
@@ -124,10 +125,31 @@ class SolicitudRepository:
                     "estado": solicitud.estado,
                     "fecha": solicitud.fecha,
                     "cliente_id": solicitud.cliente_id,
+                    "motivo_cancelacion": solicitud.motivo_cancelacion,
                     "otro_usuario_id": row.proveedor_usuario_id if soy_cliente else row.cliente_id,
                     "otro_usuario_nombre": row.proveedor_nombre if soy_cliente else row.cliente_nombre,
                     "otro_usuario_avatar": row.proveedor_avatar if soy_cliente else row.cliente_avatar,
                 })
             return resultado
+        finally:
+            session.close()
+        
+    
+    def buscar_activas_entre_usuarios(self, usuario_a: UUID, usuario_b: UUID):
+        from models.servicio import Servicio
+        from models.perfil_proveedor import Perfil_Proveedor
+
+        session = SessionLocal()
+        try:
+            stmt = (
+                select(Solicitud)
+                .join(Servicio, Solicitud.servicio_id == Servicio.id)
+                .join(Perfil_Proveedor, Servicio.proveedor_id == Perfil_Proveedor.id)
+                .where(
+                    and_(Solicitud.cliente_id == usuario_a, Perfil_Proveedor.usuario_id == usuario_b) | and_(Solicitud.cliente_id == usuario_b, Perfil_Proveedor.usuario_id == usuario_a),
+                    Solicitud.estado.in_(["pendiente", "aceptada"])
+                )
+            )
+            return list(session.scalars(stmt))
         finally:
             session.close()

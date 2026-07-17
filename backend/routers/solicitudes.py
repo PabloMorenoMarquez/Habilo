@@ -43,7 +43,5 @@ async def cambiar_estado(solicitud_id: UUID, datos: CambiarEstadoSolicitud, curr
     usuario_id = current_user["user_id"]
     proveedor_service = ProveedorService()
     perfil = proveedor_service.obtener_por_usuario(usuario_id)
-    if not perfil:
-        raise HTTPException(status_code=403, detail="Solo proveedores pueden cambiar el estado")
     service = SolicitudService()
-    return service.cambiar_estado(solicitud_id, datos.estado.value, perfil.id)
+    return service.cambiar_estado(solicitud_id, datos.estado.value, usuario_id, perfil.id if perfil else None, datos.motivo)

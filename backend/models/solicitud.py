@@ -14,3 +14,4 @@ class Solicitud(base):
     cliente_id = Column(UUID, ForeignKey("usuarios.id"), nullable=False)
     estado = Column(Text, default="pendiente")
     fecha = Column(DateTime, nullable=True, default=lambda: datetime.now(timezone.utc))
+    motivo_cancelacion = Column(Text, nullable=True)

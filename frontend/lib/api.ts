@@ -226,6 +226,7 @@ export interface Conversacion {
   ultimo_mensaje_fecha: string | null
   no_leidos: number
   ya_valorada: boolean
+  motivo_cancelacion: string | null
 }
 
 export function getConversaciones() {
@@ -254,12 +255,16 @@ export function getWebSocketUrl(solicitudId: string): string {
   return `${wsBase}/ws/solicitudes/${solicitudId}?token=${getToken()}`
 }
 
-export function cambiarEstadoSolicitud(id: string, estado: "aceptada" | "rechazada" | "completada") {
-  return apiFetch(`/solicitudes/${id}/estado`, {
-    method: "PATCH",
-    body: JSON.stringify({ estado }),
-  })
-}
+export function cambiarEstadoSolicitud(
+    id: string,
+    estado: "aceptada" | "rechazada" | "completada" | "cancelada",
+    motivo?: string
+  ) {
+    return apiFetch(`/solicitudes/${id}/estado`, {
+      method: "PATCH",
+      body: JSON.stringify(motivo ? { estado, motivo } : { estado }),
+    })
+  }
 
 export function crearValoracion(datos: {
   solicitud_id: string
@@ -267,6 +272,41 @@ export function crearValoracion(datos: {
   comentario?: string
 }) {
   return apiFetch("/valoraciones/", {
+    method: "POST",
+    body: JSON.stringify(datos),
+  })
+}
+
+export function bloquearUsuario(usuario_id: string) {
+  return apiFetch("/usuarios/bloquear", {
+    method: "POST",
+    body: JSON.stringify({ usuario_id }),
+  })
+}
+
+export function desbloquearUsuario(usuario_id: string) {
+  return apiFetch(`/usuarios/bloquear/${usuario_id}`, { method: "DELETE" })
+}
+
+export interface UsuarioBloqueado {
+  id: string
+  usuario_id: string
+  nombre: string
+  avatar: string | null
+  fecha: string | null
+}
+
+export function getBloqueados() {
+  return apiFetch<UsuarioBloqueado[]>("/usuarios/bloqueados")
+}
+
+export function crearReporte(datos: {
+  usuario_reportado_id: string
+  motivo: string
+  descripcion?: string
+  solicitud_id?: string
+}) {
+  return apiFetch("/reportes/", {
     method: "POST",
     body: JSON.stringify(datos),
   })

@@ -44,7 +44,12 @@ async def chat_websocket(
             contenido = data.get("contenido", "").strip()
             if not contenido:
                 continue
-            mensaje = service.enviar(solicitud_id, usuario_id, contenido)
+            
+            try:
+                mensaje = service.enviar(solicitud_id, usuario_id, contenido)
+            except HTTPException as e:
+                await websocket.send_json({"error": e.detail})
+                continue
             await manager.broadcast(sala, {
                 "id": str(mensaje.id),
                 "solicitud_id": str(mensaje.solicitud_id),
