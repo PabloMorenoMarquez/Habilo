@@ -19,3 +19,6 @@ class Perfil_Proveedor(base):
     verificado = Column(Boolean, nullable=True, default=False)
     url_documento = Column(Text, nullable=True)
     fecha_creacion = Column(DateTime, nullable=True, default=lambda: datetime.now(timezone.utc))
+    motivo_rechazo = Column(Text, nullable=True)
+    stripe_account_id = Column(Text, nullable=True)
+    stripe_onboarding_completado = Column(Boolean, nullable=False, default=False)

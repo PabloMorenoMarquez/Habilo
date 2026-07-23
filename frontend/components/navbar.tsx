@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Bell, MessageCircle, LogOut, User, ChevronDown, Briefcase } from "lucide-react"
+import { Bell, MessageCircle, LogOut, User, ChevronDown, Briefcase, Shield } from "lucide-react"
 
 export default function Navbar() {
   const { user, role, logout, selectRole } = useAuth()
@@ -79,6 +79,13 @@ export default function Navbar() {
                   <User size={15} /> Mi perfil
                 </Link>
               </DropdownMenuItem>
+              {user?.es_admin && (
+                <DropdownMenuItem asChild>
+                  <Link href="/admin/reportes" className="flex items-center gap-2 cursor-pointer">
+                    <Shield size={15} /> Panel de administración
+                  </Link>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={handleRoleSwitch} className="flex items-center gap-2 cursor-pointer">
                 <Briefcase size={15} />
                 Cambiar a {role === "cliente" ? "Profesional" : "Cliente"}

@@ -29,3 +29,29 @@ class ReporteOut(BaseModel):
 
     class Config:
         from_attributes = True
+        
+class EstadoReporte(str, Enum):
+    resuelto = "resuelto"
+    descartado = "descartado"
+
+
+class CambiarEstadoReporte(BaseModel):
+    estado: EstadoReporte
+
+
+class ReporteAdminOut(BaseModel):
+    id: UUID
+    autor_id: UUID
+    autor_nombre: str
+    autor_email: str
+    usuario_reportado_id: UUID
+    reportado_nombre: str
+    reportado_email: str
+    motivo: str
+    descripcion: Optional[str] = None
+    solicitud_id: Optional[UUID] = None
+    estado: str
+    fecha: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True

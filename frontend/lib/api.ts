@@ -311,3 +311,100 @@ export function crearReporte(datos: {
     body: JSON.stringify(datos),
   })
 }
+
+// --- Admin: Reportes ---
+
+export interface ReporteAdmin {
+  id: string
+  autor_id: string
+  autor_nombre: string
+  autor_email: string
+  usuario_reportado_id: string
+  reportado_nombre: string
+  reportado_email: string
+  motivo: string
+  descripcion: string | null
+  solicitud_id: string | null
+  estado: string
+  fecha: string | null
+}
+
+export function getReportesAdmin(estado?: string) {
+  const query = estado ? `?estado=${estado}` : ""
+  return apiFetch<ReporteAdmin[]>(`/admin/reportes${query}`)
+}
+
+export function cambiarEstadoReporte(id: string, estado: "resuelto" | "descartado") {
+  return apiFetch<ReporteAdmin>(`/admin/reportes/${id}/estado`, {
+    method: "PATCH",
+    body: JSON.stringify({ estado }),
+  })
+}
+
+// --- Admin: Verificación de proveedores ---
+
+export interface PerfilProveedorAdmin {
+  id: string
+  usuario_id: string
+  descripcion: string | null
+  experiencia_años: number | null
+  radio_km_disponible: number
+  valoracion_media: string | null
+  num_valoraciones: number
+  verificado: boolean | null
+  url_documento: string | null
+  fecha_creacion: string | null
+  motivo_rechazo: string | null
+  usuario_nombre: string
+  usuario_email: string
+}
+
+export function getProveedoresPendientes() {
+  return apiFetch<PerfilProveedorAdmin[]>("/admin/proveedores/pendientes")
+}
+
+export function verificarProveedor(perfilId: string) {
+  return apiFetch(`/admin/proveedores/${perfilId}/verificar`, { method: "PATCH" })
+}
+
+export function rechazarProveedor(perfilId: string, motivo: string) {
+  return apiFetch(`/admin/proveedores/${perfilId}/rechazar`, {
+    method: "PATCH",
+    body: JSON.stringify({ motivo }),
+  })
+}
+
+// --- Admin: Usuarios (baneos) ---
+
+export interface UsuarioAdmin {
+  id: string
+  email: string
+  nombre: string
+  foto_url: string | null
+  telefono: string | null
+  telefono_verificado: boolean | null
+  fecha_registro: string | null
+  ciudad: string | null
+  baneado: boolean
+  motivo_baneo: string | null
+  es_admin: boolean
+}
+
+export function buscarUsuariosAdmin(email: string) {
+  return apiFetch<UsuarioAdmin[]>(`/admin/usuarios/buscar?email=${encodeURIComponent(email)}`)
+}
+
+export function getUsuariosBaneados() {
+  return apiFetch<UsuarioAdmin[]>("/admin/usuarios/baneados")
+}
+
+export function banearUsuario(usuarioId: string, motivo: string) {
+  return apiFetch<UsuarioAdmin>(`/admin/usuarios/${usuarioId}/banear`, {
+    method: "PATCH",
+    body: JSON.stringify({ motivo }),
+  })
+}
+
+export function desbanearUsuario(usuarioId: string) {
+  return apiFetch<UsuarioAdmin>(`/admin/usuarios/${usuarioId}/desbanear`, { method: "PATCH" })
+}

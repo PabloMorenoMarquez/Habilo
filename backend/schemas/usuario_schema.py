@@ -20,6 +20,23 @@ class UsuarioOut(BaseModel):
     telefono_verificado: Optional[bool] = None
     fecha_registro: Optional[datetime] = None
     ciudad: Optional[str] = None
+    es_admin: bool = False
 
     class Config:
         from_attributes = True
+        
+class BanearUsuario(BaseModel):
+    motivo: str
+    
+class UsuarioAdminOut(BaseModel):
+    id: UUID
+    email: str
+    nombre: str
+    foto_url: Optional[str] = None
+    telefono: Optional[str] = None
+    telefono_verificado: Optional[bool] = None
+    fecha_registro: Optional[datetime] = None
+    ciudad: Optional[str] = None
+    baneado: bool
+    motivo_baneo: Optional[str] = None
+    es_admin: bool

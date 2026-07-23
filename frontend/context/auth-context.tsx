@@ -16,6 +16,7 @@ interface UsuarioBackend {
   telefono_verificado: boolean | null
   ciudad: string | null
   fecha_registro: string | null
+  es_admin?: boolean
 }
 
 // Forma que usa el resto del frontend
@@ -28,6 +29,7 @@ export interface User {
   location?: string
   telefono?: string | null
   fechaRegistro?: string | null
+  es_admin?: boolean
 }
 
 export interface Service {
@@ -61,6 +63,7 @@ function mapUsuarioBackend(u: UsuarioBackend, role: UserRole): User {
     location: u.ciudad ?? "",
     telefono: u.telefono,
     fechaRegistro: u.fecha_registro,
+    es_admin: u.es_admin ?? false,
     role,
   }
 }

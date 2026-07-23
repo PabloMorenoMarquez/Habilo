@@ -63,3 +63,19 @@ async def confirmar_documento(url_documento: str, current_user=Depends(get_curre
         raise HTTPException(status_code=404, detail="No tienes perfil de proveedor")
     actualizado = service.actualizar_documento(perfil.id, url_documento)
     return {"url_documento": actualizado.url_documento}
+
+@router.post("/stripe/onboarding-link")
+async def crear_link_onboarding(current_user=Depends(get_current_user)):
+    from repositories.user_repository import UserRepository
+
+    usuario_id = current_user["user_id"]
+    usuario = UserRepository().get_by_id(usuario_id)
+
+    service = ProveedorService()
+    url = service.iniciar_onboarding_stripe(
+        usuario_id,
+        usuario.email,
+        frontend_return_url=f"{Config.FRONTEND_URL}/dashboard?onboarding=completado",
+        frontend_refresh_url=f"{Config.FRONTEND_URL}/dashboard?onboarding=refrescar",
+    )
+    return {"url": url}
