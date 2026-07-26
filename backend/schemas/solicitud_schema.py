@@ -4,9 +4,10 @@ from typing import Optional
 from datetime import datetime
 from enum import Enum
 from typing_extensions import Self
-
+from decimal import Decimal
 
 class EstadoSolicitud(str, Enum):
+    negociando = "negociando"
     pendiente = "pendiente"
     aceptada = "aceptada"
     rechazada = "rechazada"
@@ -62,3 +63,6 @@ class ConversacionOut(BaseModel):
     no_leidos: int = 0
     ya_valorada: bool = False
     motivo_cancelacion: Optional[str] = None
+    servicio_tipo_precio: str
+    servicio_precio: Decimal
+    pago_estado: Optional[str] = None

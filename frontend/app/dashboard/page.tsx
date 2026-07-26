@@ -63,6 +63,8 @@ export default function DashboardPage() {
   const [editLocation, setEditLocation] = useState("")
   const [editFormCoords, setEditFormCoords] = useState<{ lat: number; lng: number } | null>(null)
 
+  const [errorAcciones, setErrorAcciones] = useState<string | null>(null)
+
   const [form, setForm] = useState({
     title: "",
     categoriaId: "",
@@ -278,20 +280,22 @@ export default function DashboardPage() {
   }
 
   const handleDelete = async (id: string) => {
+    setErrorAcciones(null)
     try {
       await eliminarServicio(id)
       setMisServicios((prev) => prev.filter((s) => s.id !== id))
     } catch (err) {
-      console.error(err)
+      setErrorAcciones(err instanceof ApiError ? err.message : "No se pudo eliminar el servicio")
     }
   }
 
   const handleToggle = async (servicio: ServicioDetalle) => {
+    setErrorAcciones(null)
     try {
       const actualizado = await actualizarServicio(servicio.id, { activo: !servicio.activo })
       setMisServicios((prev) => prev.map((s) => (s.id === servicio.id ? actualizado : s)))
     } catch (err) {
-      console.error(err)
+      setErrorAcciones(err instanceof ApiError ? err.message : "No se pudo actualizar el servicio")
     }
   }
 
@@ -556,6 +560,7 @@ export default function DashboardPage() {
             <CardTitle className="text-lg">Mis servicios</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
+            {errorAcciones && <p className="text-sm text-destructive">{errorAcciones}</p>}
             {cargandoServicios ? (
               <div className="py-16 flex justify-center">
                 <Loader className="animate-spin text-muted-foreground" size={24} />

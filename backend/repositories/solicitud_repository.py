@@ -86,6 +86,7 @@ class SolicitudRepository:
         from models.servicio import Servicio
         from models.perfil_proveedor import Perfil_Proveedor
         from models.usuario import Usuario
+        from models.pago import Pago
 
         UsuarioCliente = aliased(Usuario)
         UsuarioProveedor = aliased(Usuario)
@@ -96,17 +97,21 @@ class SolicitudRepository:
                 select(
                     Solicitud,
                     Servicio.titulo.label("servicio_titulo"),
+                    Servicio.tipo_precio.label("servicio_tipo_precio"),
+                    Servicio.precio.label("servicio_precio"),
                     Solicitud.cliente_id.label("cliente_id"),
                     UsuarioCliente.nombre.label("cliente_nombre"),
                     UsuarioCliente.foto_url.label("cliente_avatar"),
                     Perfil_Proveedor.usuario_id.label("proveedor_usuario_id"),
                     UsuarioProveedor.nombre.label("proveedor_nombre"),
                     UsuarioProveedor.foto_url.label("proveedor_avatar"),
+                    Pago.estado.label("pago_estado")
                 )
                 .join(Servicio, Solicitud.servicio_id == Servicio.id)
                 .join(Perfil_Proveedor, Servicio.proveedor_id == Perfil_Proveedor.id)
                 .join(UsuarioCliente, Solicitud.cliente_id == UsuarioCliente.id)
                 .join(UsuarioProveedor, Perfil_Proveedor.usuario_id == UsuarioProveedor.id)
+                .outerjoin(Pago, Solicitud.id == Pago.solicitud_id)
                 .where(
                     (Solicitud.cliente_id == usuario_id) | (Perfil_Proveedor.usuario_id == usuario_id)
                 )
@@ -122,6 +127,8 @@ class SolicitudRepository:
                     "id": solicitud.id,
                     "servicio_id": solicitud.servicio_id,
                     "servicio_titulo": row.servicio_titulo,
+                    "servicio_tipo_precio": row.servicio_tipo_precio,
+                    "servicio_precio": row.servicio_precio,
                     "estado": solicitud.estado,
                     "fecha": solicitud.fecha,
                     "cliente_id": solicitud.cliente_id,
@@ -129,6 +136,7 @@ class SolicitudRepository:
                     "otro_usuario_id": row.proveedor_usuario_id if soy_cliente else row.cliente_id,
                     "otro_usuario_nombre": row.proveedor_nombre if soy_cliente else row.cliente_nombre,
                     "otro_usuario_avatar": row.proveedor_avatar if soy_cliente else row.cliente_avatar,
+                    "pago_estado": row.pago_estado
                 })
             return resultado
         finally:

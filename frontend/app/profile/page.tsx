@@ -33,6 +33,8 @@ export default function ProfilePage() {
 
   const [bloqueados, setBloqueados] = useState<UsuarioBloqueado[]>([])
 
+  const [errorBloqueados, setErrorBloqueados] = useState<string | null>(null)
+
   useEffect(() => {
     if (isLoading) return
     if (!isAuthenticated) router.replace("/")
@@ -78,11 +80,12 @@ export default function ProfilePage() {
   }, [])
 
   const handleDesbloquear = async (usuarioId: string) => {
+    setErrorBloqueados(null)
     try {
       await desbloquearUsuario(usuarioId)
       setBloqueados((prev) => prev.filter((b) => b.usuario_id !== usuarioId))
     } catch (err) {
-      console.error(err)
+      setErrorBloqueados(err instanceof ApiError ? err.message : "No se pudo desbloquear al usuario")
     }
   }
 
@@ -248,6 +251,7 @@ export default function ProfilePage() {
               <CardTitle className="text-lg">Usuarios bloqueados</CardTitle>
             </CardHeader>
             <CardContent className="divide-y divide-border p-0">
+              {errorBloqueados && <p className="text-sm text-destructive">{errorBloqueados}</p>}
               {bloqueados.map((b) => (
                 <div key={b.id} className="flex items-center gap-4 px-6 py-4">
                   <Avatar className="h-9 w-9">

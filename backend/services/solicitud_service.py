@@ -99,6 +99,18 @@ class SolicitudService:
         if nuevo_estado == "cancelada" and motivo is None:
             raise HTTPException(status_code=400, detail="No ha especificado el motivo de la cancelación")
         
+        if solicitud.estado == "pendiente" and nuevo_estado == "aceptada":
+            from services.pago_service import PagoService
+            PagoService().capturar_pago_de_solicitud(solicitud_id)
+
+        if solicitud.estado == "pendiente" and nuevo_estado in ("rechazada", "cancelada"):
+            from services.pago_service import PagoService
+            PagoService().cancelar_pago_de_solicitud(solicitud_id)
+            
+        if solicitud.estado == "aceptada" and nuevo_estado == "cancelada":
+            from services.pago_service import PagoService
+            PagoService().reembolsar_pago_de_solicitud(solicitud_id)     
+        
         
         return self.solicitud_repository.actualizar_estado(solicitud_id, nuevo_estado, motivo)
     
@@ -124,4 +136,19 @@ class SolicitudService:
             return None
         if "cancelada" not in TRANSICIONES_VALIDAS.get(solicitud.estado, set()):
             return None  # ya está en un estado terminal, no hay nada que cancelar
+        
+        from services.pago_service import PagoService
+        if solicitud.estado == "pendiente":
+            PagoService().cancelar_pago_de_solicitud(solicitud_id)
+        elif solicitud.estado == "aceptada":
+            PagoService().reembolsar_pago_de_solicitud(solicitud_id)
+            
         return self.solicitud_repository.actualizar_estado(solicitud_id, "cancelada", motivo)
+    
+    def marcar_pendiente_por_pago(self, solicitud_id: UUID):
+        solicitud = self.solicitud_repository.get_by_id(solicitud_id)
+        if not solicitud:
+            raise HTTPException(status_code=404, detail="No existe la solicitud")
+        if solicitud.estado != "negociando":
+            return solicitud
+        return self.solicitud_repository.actualizar_estado(solicitud_id, "pendiente")

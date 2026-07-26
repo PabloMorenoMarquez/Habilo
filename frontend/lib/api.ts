@@ -216,6 +216,8 @@ export interface Conversacion {
   id: string
   servicio_id: string
   servicio_titulo: string
+  servicio_tipo_precio: "fijo" | "hora"
+  servicio_precio: string
   estado: string
   fecha: string | null
   cliente_id: string
@@ -227,6 +229,7 @@ export interface Conversacion {
   no_leidos: number
   ya_valorada: boolean
   motivo_cancelacion: string | null
+  pago_estado: string | null
 }
 
 export function getConversaciones() {
@@ -407,4 +410,77 @@ export function banearUsuario(usuarioId: string, motivo: string) {
 
 export function desbanearUsuario(usuarioId: string) {
   return apiFetch<UsuarioAdmin>(`/admin/usuarios/${usuarioId}/desbanear`, { method: "PATCH" })
+}
+
+// --- Ofertas ---
+
+export interface Oferta {
+  id: string
+  solicitud_id: string
+  autor_id: string
+  precio: string
+  horas: string | null
+  descripcion: string | null
+  estado: "pendiente" | "aceptada" | "rechazada" | "reemplazada"
+  fecha_creacion: string | null
+}
+
+export function crearOferta(solicitudId: string, precio: number, descripcion?: string) {
+  return apiFetch<Oferta>(`/solicitudes/${solicitudId}/ofertas`, {
+    method: "POST",
+    body: JSON.stringify({ precio, descripcion: descripcion || null }),
+  })
+}
+
+export function confirmarPrecioPublicado(solicitudId: string) {
+  return apiFetch<Oferta>(`/solicitudes/${solicitudId}/ofertas/confirmar-precio-publicado`, {
+    method: "POST",
+  })
+}
+
+export function listarOfertas(solicitudId: string) {
+  return apiFetch<Oferta[]>(`/solicitudes/${solicitudId}/ofertas`)
+}
+
+export function aceptarOferta(ofertaId: string) {
+  return apiFetch<Oferta>(`/ofertas/${ofertaId}/aceptar`, { method: "PATCH" })
+}
+
+export function rechazarOferta(ofertaId: string) {
+  return apiFetch<Oferta>(`/ofertas/${ofertaId}/rechazar`, { method: "PATCH" })
+}
+
+// --- Pagos ---
+
+export interface Pago {
+  id: string
+  solicitud_id: string
+  cliente_id: string
+  proveedor_id: string
+  monto_total: string
+  comision_plataforma: string
+  monto_proveedor: string
+  moneda: string
+  estado: string
+  stripe_payment_intent_id: string
+}
+
+export interface PagoConClientSecret {
+  pago: Pago
+  client_secret: string
+}
+
+export function crearPago(ofertaId: string) {
+  return apiFetch<PagoConClientSecret>(`/ofertas/${ofertaId}/pago`, { method: "POST" })
+}
+
+export function crearOfertaPorHoras(solicitudId: string, horas: number, descripcion?: string) {
+  return apiFetch<Oferta>(`/solicitudes/${solicitudId}/ofertas/por-horas`, {
+    method: "POST",
+    body: JSON.stringify({ horas, descripcion: descripcion || null }),
+  })
+}
+
+export function confirmarEntrega(solicitudId: string) {
+  return apiFetch(`/solicitudes/${solicitudId}/confirmar-entrega`, { method: "POST" })
 }

@@ -43,7 +43,7 @@ class MensajeService:
         if BloqueoRepository().existe_bloqueo_entre(remitente_id, otro_usuario_id):
             raise HTTPException(status_code=403, detail="No puedes enviar mensajes en esta conversación")
 
-        if solicitud.estado not in ("pendiente", "aceptada"):
+        if solicitud.estado not in ("negociando", "pendiente", "aceptada"):
             raise HTTPException(status_code=400, detail="No puedes hablar con una solicitud cancelada, rechazada o bloqueada")
 
         return self.mensaje_repository.crear(solicitud_id, remitente_id, contenido)

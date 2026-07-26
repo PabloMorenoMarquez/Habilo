@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Textarea } from "@/components/ui/textarea"
 import { useSearchParams } from "next/navigation"
 import { Suspense } from "react"
+import OfertaPanel from "@/components/oferta-panel"
 import { MoreVertical, Flag, Ban } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
@@ -27,7 +28,8 @@ import {
   crearValoracion,
   ApiError,
   bloquearUsuario, 
-  crearReporte
+  crearReporte,
+  confirmarEntrega
 } from "@/lib/api"
 
 const POLL_INTERVAL = 15000 // refresco de la lista lateral, en ms
@@ -71,6 +73,14 @@ function ChatsPageInner() {
   const [enviandoReporte, setEnviandoReporte] = useState(false)
   const [bloqueando, setBloqueando] = useState(false)
   const [confirmarBloqueoOpen, setConfirmarBloqueoOpen] = useState(false)
+
+  const [ofertasVersion, setOfertasVersion] = useState(0)
+
+  const [errorEstado, setErrorEstado] = useState<string | null>(null)
+  const [errorCancelar, setErrorCancelar] = useState<string | null>(null)
+  const [errorValoracion, setErrorValoracion] = useState<string | null>(null)
+  const [errorReporte, setErrorReporte] = useState<string | null>(null)
+  const [errorBloqueo, setErrorBloqueo] = useState<string | null>(null)
 
   useEffect(() => {
     if (isLoading) return
@@ -119,7 +129,13 @@ function ChatsPageInner() {
     ws.onclose = () => setWsConectado(false)
     ws.onerror = () => setWsConectado(false)
     ws.onmessage = (event) => {
-      const mensaje: MensajeBackend = JSON.parse(event.data)
+      const data = JSON.parse(event.data)
+
+      if (data.tipo === "oferta_actualizada") {
+        setOfertasVersion((v) => v + 1)
+        return
+      }
+      const mensaje: MensajeBackend = data
       setMensajes((prev) => [...prev, mensaje])
       // Si el mensaje que llega no es mío, esta conversación sigue "leída" porque la tengo abierta
       if (mensaje.remitente_id !== user?.id) {
@@ -162,7 +178,7 @@ function ChatsPageInner() {
 
   const activeConv = conversaciones.find((c) => c.id === activeId) || null
   const esCliente = activeConv?.cliente_id === user?.id
-  const conversacionActiva = activeConv?.estado === "pendiente" || activeConv?.estado === "aceptada"
+  const conversacionActiva = activeConv?.estado === "negociando" || activeConv?.estado === "pendiente" || activeConv?.estado === "aceptada"
 
   const MOTIVOS_CLIENTE = [
     { value: "cliente_desistio", label: "He cambiado de opinión" },
@@ -178,13 +194,14 @@ function ChatsPageInner() {
   const handleCancelar = async () => {
     if (!activeId || !motivoCancelacion) return
     setProcesandoEstado(true)
+    setErrorCancelar(null)
     try {
       await cambiarEstadoSolicitud(activeId, "cancelada", motivoCancelacion)
       setConversaciones((prev) => prev.map((c) => (c.id === activeId ? { ...c, estado: "cancelada" } : c)))
       setCancelarOpen(false)
       setMotivoCancelacion("")
     } catch (err) {
-      console.error(err)
+      setErrorCancelar(err instanceof ApiError ? err.message : "No se pudo cancelar la solicitud")
     } finally {
       setProcesandoEstado(false)
     }
@@ -193,11 +210,12 @@ function ChatsPageInner() {
   const handleCambiarEstado = async (estado: "aceptada" | "rechazada" | "completada") => {
     if (!activeId) return
     setProcesandoEstado(true)
+    setErrorEstado(null)
     try {
       await cambiarEstadoSolicitud(activeId, estado)
       setConversaciones((prev) => prev.map((c) => (c.id === activeId ? { ...c, estado } : c)))
     } catch (err) {
-      console.error(err)
+      setErrorEstado(err instanceof ApiError ? err.message : "No se pudo actualizar la solicitud")
     } finally {
       setProcesandoEstado(false)
     }
@@ -206,6 +224,7 @@ function ChatsPageInner() {
   const handleEnviarValoracion = async () => {
     if (!activeConv || puntuacion === 0) return
     setEnviandoValoracion(true)
+    setErrorValoracion(null)
     try {
       await crearValoracion({
         solicitud_id: activeConv.id,
@@ -217,7 +236,7 @@ function ChatsPageInner() {
       setPuntuacion(0)
       setComentario("")
     } catch (err) {
-      console.error(err instanceof ApiError ? err.message : err)
+      setErrorValoracion(err instanceof ApiError ? err.message : "No se pudo enviar la valoración")
     } finally {
       setEnviandoValoracion(false)
     }
@@ -248,6 +267,7 @@ function ChatsPageInner() {
   const handleEnviarReporte = async () => {
     if (!activeConv || !motivoReporte) return
     setEnviandoReporte(true)
+    setErrorReporte(null)
     try {
       await crearReporte({
         usuario_reportado_id: activeConv.otro_usuario_id,
@@ -259,7 +279,7 @@ function ChatsPageInner() {
       setMotivoReporte("")
       setDescripcionReporte("")
     } catch (err) {
-      console.error(err instanceof ApiError ? err.message : err)
+      setErrorReporte(err instanceof ApiError ? err.message : "No se pudo enviar el reporte")
     } finally {
       setEnviandoReporte(false)
     }
@@ -268,12 +288,13 @@ function ChatsPageInner() {
   const handleBloquear = async () => {
     if (!activeConv) return
     setBloqueando(true)
+    setErrorBloqueo(null)
     try {
       await bloquearUsuario(activeConv.otro_usuario_id)
       setConfirmarBloqueoOpen(false)
       cargarConversaciones()
     } catch (err) {
-      console.error(err instanceof ApiError ? err.message : err)
+      setErrorBloqueo(err instanceof ApiError ? err.message : "No se pudo bloquear al usuario")
     } finally {
       setBloqueando(false)
     }
@@ -392,7 +413,11 @@ function ChatsPageInner() {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
-
+                {errorEstado && (
+                  <div className="px-5 py-2 bg-destructive/10 border-b border-border">
+                    <p className="text-xs text-destructive">{errorEstado}</p>
+                  </div>
+                )}
                 <div className="flex-1 overflow-y-auto p-5 space-y-3">
                   {cargandoMensajes ? (
                     <div className="flex justify-center py-10">
@@ -429,6 +454,24 @@ function ChatsPageInner() {
                           
                         )
                       })}
+                      {activeConv.estado === "negociando" && (
+                        <div className="flex justify-center py-2 w-full">
+                          <div className="w-full max-w-sm">
+                            <OfertaPanel
+                              solicitudId={activeConv.id}
+                              currentUserId={user!.id}
+                              tipoPrecioServicio={activeConv.servicio_tipo_precio}
+                              refreshSignal={ofertasVersion}
+                              esCliente={esCliente}
+                              onPagoConfirmado={() => {
+                                setConversaciones((prev) =>
+                                  prev.map((c) => (c.id === activeConv.id ? { ...c, estado: "pendiente" } : c))
+                                )
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )}
                       {activeConv.estado === "pendiente" && !esCliente && (
                         <div className="flex justify-center py-2">
                           <div className="bg-secondary rounded-2xl px-5 py-4 text-center space-y-3 max-w-xs">
@@ -456,6 +499,24 @@ function ChatsPageInner() {
                         </div>
                       )}
 
+                      {activeConv.estado === "completada" && esCliente && activeConv.pago_estado === "capturado" && (
+                        <div className="flex justify-center py-2">
+                          <div className="bg-secondary rounded-2xl px-5 py-4 text-center space-y-3 max-w-xs">
+                            <p className="text-sm text-foreground">¿Todo correcto? Al confirmar, se libera el pago al profesional.</p>
+                            <Button
+                              size="sm"
+                              onClick={async () => {
+                                await confirmarEntrega(activeConv.id)
+                                setConversaciones((prev) =>
+                                  prev.map((c) => (c.id === activeConv.id ? { ...c, pago_estado: "transferido" } : c))
+                                )
+                              }}
+                            >
+                              Confirmar entrega y liberar pago
+                            </Button>
+                          </div>
+                        </div>
+                      )}
 
                       {activeConv.estado === "completada" && esCliente && !activeConv.ya_valorada && (
                         <div className="flex justify-center py-2">
@@ -526,6 +587,8 @@ function ChatsPageInner() {
               onChange={(e) => setComentario(e.target.value)}
               rows={3}
             />
+            {errorValoracion && <p className="text-xs text-destructive">{errorValoracion}</p>}
+            <Button className="w-full" disabled={puntuacion === 0 || enviandoValoracion} onClick={handleEnviarValoracion}></Button>
             <Button className="w-full" disabled={puntuacion === 0 || enviandoValoracion} onClick={handleEnviarValoracion}>
               {enviandoValoracion ? <Loader size={16} className="animate-spin" /> : "Enviar valoración"}
             </Button>
@@ -550,6 +613,8 @@ function ChatsPageInner() {
                 {m.label}
               </button>
             ))}
+            {errorCancelar && <p className="text-xs text-destructive">{errorCancelar}</p>}
+            <Button className="w-full mt-2" disabled={!motivoCancelacion || procesandoEstado} onClick={handleCancelar}></Button>
             <Button className="w-full mt-2" disabled={!motivoCancelacion || procesandoEstado} onClick={handleCancelar}>
               Confirmar cancelación
             </Button>
@@ -580,6 +645,8 @@ function ChatsPageInner() {
               onChange={(e) => setDescripcionReporte(e.target.value)}
               rows={3}
             />
+            {errorReporte && <p className="text-xs text-destructive">{errorReporte}</p>}
+            <Button className="w-full" disabled={!motivoReporte || enviandoReporte} onClick={handleEnviarReporte}></Button>
             <Button className="w-full" disabled={!motivoReporte || enviandoReporte} onClick={handleEnviarReporte}>
               {enviandoReporte ? <Loader size={16} className="animate-spin" /> : "Enviar reporte"}
             </Button>
@@ -596,6 +663,8 @@ function ChatsPageInner() {
               No podréis volver a contactar entre vosotros. Si tenéis una solicitud activa, se cancelará automáticamente.
             </p>
             <div className="flex gap-3">
+              {errorBloqueo && <p className="text-xs text-destructive">{errorBloqueo}</p>}
+              <div className="flex gap-3"></div>
               <Button variant="destructive" className="flex-1" disabled={bloqueando} onClick={handleBloquear}>
                 {bloqueando ? <Loader size={16} className="animate-spin" /> : "Bloquear"}
               </Button>

@@ -45,3 +45,8 @@ async def cambiar_estado(solicitud_id: UUID, datos: CambiarEstadoSolicitud, curr
     perfil = proveedor_service.obtener_por_usuario(usuario_id)
     service = SolicitudService()
     return service.cambiar_estado(solicitud_id, datos.estado.value, usuario_id, perfil.id if perfil else None, datos.motivo)
+
+@router.post("/{solicitud_id}/confirmar-entrega")
+async def confirmar_entrega(solicitud_id: UUID, current_user=Depends(get_current_user)):
+    from services.pago_service import PagoService
+    return PagoService().confirmar_entrega_y_transferir(solicitud_id, current_user["user_id"])
