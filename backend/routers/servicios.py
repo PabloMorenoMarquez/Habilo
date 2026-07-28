@@ -25,10 +25,11 @@ async def buscar_servicios(
     lng: float = Query(..., description="Longitud del usuario"),
     radio_km: float = Query(10.0, description="Radio de búsqueda en km"),
     categoria_id: Optional[UUID] = Query(None),
-    texto: Optional[str] = Query(None, description="Texto a buscar en el título")
+    texto: Optional[str] = Query(None, description="Texto a buscar en el título"),
+    current_user=Depends(get_current_user)
 ):
     service = ServicioService()
-    servicios = service.buscar(lat, lng, radio_km, categoria_id, texto)
+    servicios = service.buscar(lat, lng, radio_km, categoria_id, texto, current_user["user_id"])
     return [ServicioBusquedaOut.model_validate(s) for s in servicios]
 
 

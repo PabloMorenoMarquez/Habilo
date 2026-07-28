@@ -5,6 +5,7 @@ from uuid import UUID
 from fastapi import HTTPException
 from decimal import Decimal
 from datetime import datetime, timezone
+from models.solicitud import Solicitud
 
 class PagoRepository:
     
@@ -117,5 +118,17 @@ class PagoRepository:
         except Exception as e:
             session.rollback()
             raise e
+        finally:
+            session.close()
+            
+    def listar_capturados_completados_antes_de(self, limite):
+        session = SessionLocal()
+        try:
+            stmt = (
+                select(Pago)
+                .join(Solicitud, Pago.solicitud_id == Solicitud.id)
+                .where(Pago.estado == "capturado", Solicitud.estado == "completada", Solicitud.fecha_completada < limite)
+            )
+            return session.scalars(stmt).all()
         finally:
             session.close()

@@ -4,8 +4,10 @@ from repositories.servicio_repository import ServicioRepository
 from repositories.proveedor_repository import ProveedorRepository
 from repositories.bloqueo_repository import BloqueoRepository
 from fastapi import HTTPException
+from datetime import datetime, timezone
 
 TRANSICIONES_VALIDAS = {
+    "negociando": {"pendiente", "cancelada"},
     "pendiente": {"aceptada", "rechazada", "cancelada"},
     "aceptada": {"completada", "cancelada"},
     "rechazada": set(),
@@ -111,6 +113,8 @@ class SolicitudService:
             from services.pago_service import PagoService
             PagoService().reembolsar_pago_de_solicitud(solicitud_id)     
         
+        if nuevo_estado == "completada":
+            self.solicitud_repository.marcar_fecha_completada(solicitud_id)
         
         return self.solicitud_repository.actualizar_estado(solicitud_id, nuevo_estado, motivo)
     
@@ -152,3 +156,10 @@ class SolicitudService:
         if solicitud.estado != "negociando":
             return solicitud
         return self.solicitud_repository.actualizar_estado(solicitud_id, "pendiente")
+    
+    def autocancelar_negociaciones_inactivas(self):
+        from datetime import timedelta
+        limite = datetime.now(timezone.utc) - timedelta(days=7)
+        solicitudes = self.solicitud_repository.listar_negociando_inactivas(limite)
+        for solicitud in solicitudes:
+            self.cancelar_por_sistema(solicitud.id, motivo="inactividad")

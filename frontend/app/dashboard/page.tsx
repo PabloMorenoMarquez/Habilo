@@ -31,6 +31,7 @@ import {
   getMiPerfilProveedor,
   ServicioDetalle,
   ApiError,
+  getConversaciones,
 } from "@/lib/api"
 import { subirImagenServicio } from "@/lib/storage"
 import { geocodeCiudad, getBrowserLocation } from "@/lib/geocode"
@@ -45,6 +46,7 @@ export default function DashboardPage() {
   const [misServicios, setMisServicios] = useState<ServicioDetalle[]>([])
   const [cargandoServicios, setCargandoServicios] = useState(true)
   const [valoracionMedia, setValoracionMedia] = useState<number | null>(null)
+  const [mensajesNoLeidos, setMensajesNoLeidos] = useState<number | null>(null)
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [imageFile, setImageFile] = useState<File | null>(null)
@@ -91,6 +93,10 @@ export default function DashboardPage() {
     getMiPerfilProveedor()
       .then((p: any) => setValoracionMedia(parseFloat(p.valoracion_media)))
       .catch(() => {})
+    
+    getConversaciones()
+      .then((convs) => setMensajesNoLeidos(convs.reduce((acc, c) => acc + c.no_leidos, 0)))
+      .catch((err) => console.error("No se pudieron cargar los mensajes sin leer:", err))
 
     cargarMisServicios()
   }, [])
@@ -106,8 +112,8 @@ export default function DashboardPage() {
   const stats = [
     { label: "Servicios activos", value: misServicios.filter((s) => s.activo).length, icon: <Eye size={20} />, color: "text-primary" },
     { label: "Valoración media", value: valoracionMedia != null ? valoracionMedia.toFixed(1) : "—", icon: <Star size={20} />, color: "text-amber-500" },
-    { label: "Mensajes nuevos", value: "Próximamente", icon: <MessageCircle size={20} />, color: "text-accent" },
     { label: "Ingresos este mes", value: "Próximamente", icon: <TrendingUp size={20} />, color: "text-emerald-500" },
+    { label: "Mensajes nuevos", value: mensajesNoLeidos != null ? mensajesNoLeidos : "—", icon: <MessageCircle size={20} />, color: "text-accent" },
   ]
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

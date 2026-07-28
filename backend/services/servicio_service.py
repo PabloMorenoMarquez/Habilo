@@ -1,7 +1,7 @@
 from uuid import UUID
 from decimal import Decimal
 from repositories.servicio_repository import ServicioRepository
-
+from datetime import datetime, timezone
 class ServicioService:
     def __init__(self):
         self.servicio_repository = ServicioRepository()
@@ -30,8 +30,8 @@ class ServicioService:
             return False
         return self.servicio_repository.eliminar(servicio_id)
 
-    def buscar(self, lat:float, lng:float, radio_km:float, categoria_id:UUID=None, texto:str=None):
-        return self.servicio_repository.buscar_por_proximidad(lat, lng, radio_km, categoria_id, texto)
+    def buscar(self, lat:float, lng:float, radio_km:float, categoria_id:UUID=None, texto:str=None, usuario_id:UUID=None):
+        return self.servicio_repository.buscar_por_proximidad(lat, lng, radio_km, categoria_id, texto, usuario_id)
     
     def obtener_detalle_publico(self, servicio_id):
         return self.servicio_repository.obtener_detalle_publico(servicio_id)

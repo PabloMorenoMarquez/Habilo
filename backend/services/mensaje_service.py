@@ -46,7 +46,11 @@ class MensajeService:
         if solicitud.estado not in ("negociando", "pendiente", "aceptada"):
             raise HTTPException(status_code=400, detail="No puedes hablar con una solicitud cancelada, rechazada o bloqueada")
 
-        return self.mensaje_repository.crear(solicitud_id, remitente_id, contenido)
+        mensaje = self.mensaje_repository.crear(solicitud_id, remitente_id, contenido)
+        
+        self.solicitud_repository.actualizar_ultima_actividad(solicitud_id)
+        
+        return mensaje
 
     def historial(self, solicitud_id:UUID, usuario_id:UUID):
         self._verificar_acceso(solicitud_id, usuario_id)

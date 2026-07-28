@@ -10,6 +10,7 @@ from services.solicitud_service import SolicitudService
 from decimal import Decimal, ROUND_HALF_UP
 from config import Config
 from utils.stripe_client import get_stripe
+from datetime import datetime, timezone
 
 class PagoService:
     
@@ -140,6 +141,31 @@ class PagoService:
         
         return self.pago_repository.marcar_transferido_por_payment_intent_id(pago.stripe_payment_intent_id, transfer.id)
     
+    def confirmar_entrega_y_transferir_por_sistema(self, solicitud_id):
+        solicitud = self.solicitud_repository.get_by_id(solicitud_id)
+        if not solicitud:
+            raise HTTPException(status_code=404, detail="No existe esta solicitud")
+        
+        if solicitud.estado != "completada":
+            raise HTTPException(status_code=400, detail="Esta solicitud no está completada")
+        
+        
+        pago = self.pago_repository.get_by_solicitud_id(solicitud_id)
+        if not pago:
+            raise HTTPException(status_code=404, detail="No existe este pago")
+        
+        if pago.estado != "capturado":
+            raise HTTPException(status_code=400, detail="No hay ningún pago capturado para confirmar")
+        
+        perfil = self.proveedor_repository.get_by_usuario_id(pago.proveedor_id)
+        
+        try:
+            transfer = self.stripe.Transfer.create(amount=int(pago.monto_proveedor * 100), currency="eur", destination=perfil.stripe_account_id, transfer_group=str(solicitud_id))
+        except self.stripe.error.StripeError as e:
+            raise HTTPException(status_code=400, detail=f"No se pudo cobrar el pago: {str(e)}")
+        
+        return self.pago_repository.marcar_transferido_por_payment_intent_id(pago.stripe_payment_intent_id, transfer.id)
+    
     def reembolsar_pago_de_solicitud(self, solicitud_id:UUID):
         pago = self.pago_repository.get_by_solicitud_id(solicitud_id)
         if not pago:
@@ -155,5 +181,13 @@ class PagoService:
         
         return self.pago_repository.marcar_reembolsado_por_payment_intent_id(pago.stripe_payment_intent_id, refund.id)
         
-        
+    def auto_liberar_pagos_sin_confirmar(self):
+        from datetime import timedelta
+        limite = datetime.now(timezone.utc) - timedelta(days=5)
+        pagos = self.pago_repository.listar_capturados_completados_antes_de(limite)
+        for pago in pagos:
+            try:
+                self.confirmar_entrega_y_transferir_por_sistema(pago.solicitud_id)
+            except Exception:
+                continue
         

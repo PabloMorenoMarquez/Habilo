@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 from dotenv import load_dotenv
 from config import Config
+from contextlib import asynccontextmanager
 
 from routers.auth import router as auth_router
 from routers.usuarios import router as usuarios_router
@@ -19,10 +20,19 @@ from routers.webhooks import router as webhooks_router
 from routers.ofertas import router as ofertas_router
 from utils.google_oauth import google_configure_oauth
 from utils.facebook_oauth import facebook_configure_oauth
+from utils.scheduler import iniciar_jobs
 
 load_dotenv()
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    scheduler = iniciar_jobs()
+    
+    yield
+    
+    scheduler.shutdown()
+
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     SessionMiddleware,
@@ -35,6 +45,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"]
 )
+
+
 
 google_configure_oauth(app)
 facebook_configure_oauth(app)

@@ -21,6 +21,7 @@ class MotivoCancelacion(str, Enum):
     no_show_cliente = "no_show_cliente"
     bloqueo = "bloqueo"
     otro = "otro"
+    inactividad = "inactividad"
 
 class CrearSolicitud(BaseModel):
     servicio_id: UUID

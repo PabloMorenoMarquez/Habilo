@@ -3,7 +3,7 @@ from models.solicitud import Solicitud
 from models.servicio import Servicio
 from database.session import SessionLocal
 from uuid import UUID
-
+from datetime import datetime, timezone
 
 class SolicitudRepository:
     def __init__(self):
@@ -155,9 +155,51 @@ class SolicitudRepository:
                 .join(Perfil_Proveedor, Servicio.proveedor_id == Perfil_Proveedor.id)
                 .where(
                     and_(Solicitud.cliente_id == usuario_a, Perfil_Proveedor.usuario_id == usuario_b) | and_(Solicitud.cliente_id == usuario_b, Perfil_Proveedor.usuario_id == usuario_a),
-                    Solicitud.estado.in_(["pendiente", "aceptada"])
+                    Solicitud.estado.in_(["pendiente", "aceptada", "negociando"])
                 )
             )
             return list(session.scalars(stmt))
+        finally:
+            session.close()
+            
+    def actualizar_ultima_actividad(self, solicitud_id: UUID):
+        session = SessionLocal()
+        try:
+            stmt = select(Solicitud).where(Solicitud.id == solicitud_id)
+            solicitud = session.scalar(stmt)
+            if not solicitud:
+                return None
+            solicitud.ultima_actividad = datetime.now(timezone.utc)
+            session.commit()
+            session.refresh(solicitud)
+            return solicitud
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.close()
+            
+    def listar_negociando_inactivas(self, limite):
+        session = SessionLocal()
+        try:
+            stmt = select(Solicitud).where(Solicitud.estado == "negociando", Solicitud.ultima_actividad < limite)
+            return session.scalars(stmt).all()
+        finally:
+            session.close()
+            
+    def marcar_fecha_completada(self, solicitud_id: UUID):
+        session = SessionLocal()
+        try:
+            stmt = select(Solicitud).where(Solicitud.id == solicitud_id)
+            solicitud = session.scalar(stmt)
+            if not solicitud:
+                return None
+            solicitud.fecha_completada = datetime.now(timezone.utc)
+            session.commit()
+            session.refresh(solicitud)
+            return solicitud
+        except Exception as e:
+            session.rollback()
+            raise e
         finally:
             session.close()

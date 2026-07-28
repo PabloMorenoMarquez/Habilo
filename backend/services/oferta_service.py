@@ -33,7 +33,11 @@ class OfertaService:
         if oferta:
             self.oferta_repository.actualizar_estado(oferta.id, "reemplazada")
         
-        return self.oferta_repository.crear(solicitud_id, autor_id, precio, descripcion)
+        oferta_nueva = self.oferta_repository.crear(solicitud_id, autor_id, precio, descripcion)
+        
+        self.solicitud_repository.actualizar_ultima_actividad(solicitud_id)
+        
+        return oferta_nueva
     
     def confirmar_precio_publicado(self, solicitud_id:UUID, cliente_id:UUID):
         solicitud = self.solicitud_repository.get_by_id(solicitud_id)
@@ -55,6 +59,8 @@ class OfertaService:
             self.oferta_repository.actualizar_estado(oferta.id, "reemplazada")
         
         oferta_nueva = self.oferta_repository.crear(solicitud_id, cliente_id, servicio.precio)
+        
+        self.solicitud_repository.actualizar_ultima_actividad(solicitud_id)
         
         return self.oferta_repository.actualizar_estado(oferta_nueva.id, "aceptada")
     
@@ -112,8 +118,11 @@ class OfertaService:
         if oferta_existente:
             self.oferta_repository.actualizar_estado(oferta_existente.id, "reemplazada")
 
-        return self.oferta_repository.crear(solicitud_id, autor_id, precio, descripcion, horas)
+        oferta = self.oferta_repository.crear(solicitud_id, autor_id, precio, descripcion, horas)
 
+        self.solicitud_repository.actualizar_ultima_actividad(solicitud_id)
+        
+        return oferta
         
         
         

@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
+import { useEffect, useState, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -13,10 +14,27 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Bell, MessageCircle, LogOut, User, ChevronDown, Briefcase, Shield } from "lucide-react"
+import { getConversaciones } from "@/lib/api"
+
+const POLL_INTERVAL = 15000 // mismo intervalo que la lista de chats, en ms
 
 export default function Navbar() {
-  const { user, role, logout, selectRole } = useAuth()
+  const { user, role, logout, selectRole, isAuthenticated } = useAuth()
   const router = useRouter()
+  const [noLeidos, setNoLeidos] = useState(0)
+
+  const cargarNoLeidos = useCallback(() => {
+    if (!isAuthenticated) return
+    getConversaciones()
+      .then((convs) => setNoLeidos(convs.reduce((acc, c) => acc + c.no_leidos, 0)))
+      .catch((err) => console.error("No se pudieron cargar los mensajes sin leer:", err))
+  }, [isAuthenticated])
+
+  useEffect(() => {
+    cargarNoLeidos()
+    const interval = setInterval(cargarNoLeidos, POLL_INTERVAL)
+    return () => clearInterval(interval)
+  }, [cargarNoLeidos])
 
   const handleLogout = () => {
     logout()
@@ -48,8 +66,12 @@ export default function Navbar() {
           <Link href="/chats">
             <Button variant="ghost" size="icon" className="relative">
               <MessageCircle size={20} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
-              <span className="sr-only">Mensajes</span>
+              {noLeidos > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold flex items-center justify-center leading-none">
+                  {noLeidos > 9 ? "9+" : noLeidos}
+                </span>
+              )}
+              <span className="sr-only">Mensajes{noLeidos > 0 ? ` (${noLeidos} sin leer)` : ""}</span>
             </Button>
           </Link>
           <Button variant="ghost" size="icon">

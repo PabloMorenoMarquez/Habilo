@@ -15,3 +15,5 @@ class Solicitud(base):
     estado = Column(Text, default="negociando")
     fecha = Column(DateTime, nullable=True, default=lambda: datetime.now(timezone.utc))
     motivo_cancelacion = Column(Text, nullable=True)
+    ultima_actividad = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    fecha_completada = Column(DateTime, nullable=True)
