@@ -1,10 +1,12 @@
 from uuid import UUID
 from repositories.proveedor_repository import ProveedorRepository
+from utils.stripe_client import get_stripe
 from fastapi import HTTPException 
 
 class ProveedorService:
     def __init__(self):
         self.proveedor_repository = ProveedorRepository()
+        self.stripe = get_stripe()
 
     def create_or_update(self, usuario_id:UUID, descripcion:str, radio_km_disponible:int, experiencia_años:int=None):
         return self.proveedor_repository.crear_perfil(usuario_id, descripcion, radio_km_disponible, experiencia_años)
@@ -61,4 +63,34 @@ class ProveedorService:
     def actualizar_estado_onboarding(self, stripe_account_id: str, cuenta_stripe: dict):
         completado = getattr(cuenta_stripe, "payouts_enabled", False)
         return self.proveedor_repository.marcar_onboarding_por_stripe_account_id(stripe_account_id, completado)
+    
+    def iniciar_verificacion_identidad(self, usuario_id:UUID):
+        perfil = self.proveedor_repository.get_by_usuario_id(usuario_id)
+        if not perfil:
+            raise HTTPException(status_code=404, detail="No tienes perfil de proveedor")
+        
+        if perfil.stripe_identity_session_id:
+            session = self.stripe.identity.VerificationSession.retrieve(perfil.stripe_identity_session_id)
+            if session.status == "verified":
+                raise HTTPException(status_code=400, detail="Ya estás verificado")
+            else:
+                return session.client_secret
+        else:
+            session = self.stripe.identity.VerificationSession.create(
+                type="document",
+                options={"document": {"require_matching_selfie": True}},
+                metadata={"perfil_proveedor_id": str(perfil.id)}
+            )
+            self.proveedor_repository.guardar_stripe_identity_session_id(perfil.id, session.id)
+            return session.client_secret
+        
+    def procesar_verificacion_identidad(self, verification_session: dict):
+        session_id = getattr(verification_session, "id", None)
+        estado = getattr(verification_session, "status", None)
+        verificado = estado == "verified"
+        motivo_rechazo = None
+        if not verificado:
+            last_error = getattr(verification_session, "last_error", None)
+            motivo_rechazo = getattr(last_error, "reason", "Verificación no completada") if last_error else "Verificación no completada"
+        return self.proveedor_repository.resolver_verificacion_identidad(session_id, verificado, motivo_rechazo)
             

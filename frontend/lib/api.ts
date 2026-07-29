@@ -484,3 +484,9 @@ export function crearOfertaPorHoras(solicitudId: string, horas: number, descripc
 export function confirmarEntrega(solicitudId: string) {
   return apiFetch(`/solicitudes/${solicitudId}/confirmar-entrega`, { method: "POST" })
 }
+
+export function iniciarVerificacionIdentidad() {
+  return apiFetch("/proveedor/verificacion-identidad", {
+    method: "POST",
+  })
+}

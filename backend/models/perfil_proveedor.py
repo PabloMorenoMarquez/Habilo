@@ -22,3 +22,4 @@ class Perfil_Proveedor(base):
     motivo_rechazo = Column(Text, nullable=True)
     stripe_account_id = Column(Text, nullable=True)
     stripe_onboarding_completado = Column(Boolean, nullable=False, default=False)
+    stripe_identity_session_id = Column(Text, nullable=True)

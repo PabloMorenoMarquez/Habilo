@@ -29,6 +29,14 @@ async def webhook_stripe(request: Request):
     elif event["type"] == "payment_intent.payment_failed":
         payment_intent = event["data"]["object"]
         PagoService().marcar_fallido(payment_intent.id)
+    
+    elif event["type"] == "identity.verification_session.verified":
+        verification_session = event["data"]["object"]
+        ProveedorService().procesar_verificacion_identidad(verification_session)
+        
+    elif event["type"] == "identity.verification_session.requires_input":
+        verification_session = event["data"]["object"]
+        ProveedorService().procesar_verificacion_identidad(verification_session)
 
     return {"received": True}
 

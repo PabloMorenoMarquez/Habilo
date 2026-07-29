@@ -79,3 +79,9 @@ async def crear_link_onboarding(current_user=Depends(get_current_user)):
         frontend_refresh_url=f"{Config.FRONTEND_URL}/dashboard?onboarding=refrescar",
     )
     return {"url": url}
+
+@router.post("/verificacion-identidad")
+async def iniciar_verificacion_identidad(current_user=Depends(get_current_user)):
+    service = ProveedorService()
+    client_secret = service.iniciar_verificacion_identidad(current_user["user_id"])
+    return {"client_secret": client_secret}

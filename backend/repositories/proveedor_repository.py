@@ -160,3 +160,38 @@ class ProveedorRepository:
             raise e
         finally:
             session.close() 
+    
+    def guardar_stripe_identity_session_id(self, perfil_id: UUID, stripe_identity_session_id: str):
+        session = SessionLocal()
+        try:
+            stmt = select(Perfil_Proveedor).where(Perfil_Proveedor.id == perfil_id)
+            perfil = session.scalar(stmt)
+            if not perfil:
+                return None
+            perfil.stripe_identity_session_id = stripe_identity_session_id
+            session.commit()
+            session.refresh(perfil)
+            return perfil
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.close()
+            
+    def resolver_verificacion_identidad(self, stripe_identity_session_id: str, verificado: bool, motivo_rechazo: str = None):
+        session = SessionLocal()
+        try:
+            stmt = select(Perfil_Proveedor).where(Perfil_Proveedor.stripe_identity_session_id == stripe_identity_session_id)
+            perfil = session.scalar(stmt)
+            if not perfil:
+                return None
+            perfil.verificado = verificado
+            perfil.motivo_rechazo = motivo_rechazo
+            session.commit()
+            session.refresh(perfil)
+            return perfil
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.close()

@@ -19,7 +19,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { TrendingUp, Pencil, MessageCircle, Star, Eye, Plus, Trash2, AlertCircle, Upload, X, Image as ImageIcon, MapPin, Loader, Navigation } from "lucide-react"
+import { TrendingUp, Pencil, MessageCircle, Star, Eye, Plus, Trash2, AlertCircle, Upload, X, Image as ImageIcon, MapPin, Loader, Navigation, ShieldCheck, ShieldAlert } from "lucide-react"
 import {
   getCategorias,
   Categoria,
@@ -32,11 +32,15 @@ import {
   ServicioDetalle,
   ApiError,
   getConversaciones,
+  iniciarVerificacionIdentidad,
 } from "@/lib/api"
 import { subirImagenServicio } from "@/lib/storage"
 import { geocodeCiudad, getBrowserLocation } from "@/lib/geocode"
+import { loadStripe } from "@stripe/stripe-js"
 
 const PRICE_TYPES = ["fijo", "hora"]
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
 export default function DashboardPage() {
   const { isAuthenticated, isLoading, role } = useAuth()
@@ -67,6 +71,10 @@ export default function DashboardPage() {
 
   const [errorAcciones, setErrorAcciones] = useState<string | null>(null)
 
+  const [perfilProveedor, setPerfilProveedor] = useState<any>(null)
+  const [verificandoIdentidad, setVerificandoIdentidad] = useState(false)
+  const [errorVerificacion, setErrorVerificacion] = useState<string | null>(null)
+
   const [form, setForm] = useState({
     title: "",
     categoriaId: "",
@@ -91,7 +99,10 @@ export default function DashboardPage() {
       .catch((err) => console.error("No se pudieron cargar las categorías:", err))
 
     getMiPerfilProveedor()
-      .then((p: any) => setValoracionMedia(parseFloat(p.valoracion_media)))
+      .then((p: any) => {
+        setValoracionMedia(parseFloat(p.valoracion_media))
+        setPerfilProveedor(p)
+      })
       .catch(() => {})
     
     getConversaciones()
@@ -302,6 +313,30 @@ export default function DashboardPage() {
       setMisServicios((prev) => prev.map((s) => (s.id === servicio.id ? actualizado : s)))
     } catch (err) {
       setErrorAcciones(err instanceof ApiError ? err.message : "No se pudo actualizar el servicio")
+    }
+  }
+
+  const handleVerificarIdentidad = async () => {
+    setErrorVerificacion(null)
+    setVerificandoIdentidad(true)
+    try {
+      const { client_secret } = await iniciarVerificacionIdentidad()
+      const stripe = await stripePromise
+      if (!stripe) {
+        setErrorVerificacion("No se pudo cargar Stripe. Inténtalo de nuevo.")
+        return
+      }
+      const { error } = await stripe.verifyIdentity(client_secret)
+      if (error) {
+        setErrorVerificacion(error.message || "No se pudo completar la verificación")
+      } else {
+        const perfilActualizado = await getMiPerfilProveedor()
+        setPerfilProveedor(perfilActualizado)
+      }
+    } catch (err) {
+      setErrorVerificacion(err instanceof ApiError ? err.message : "No se pudo iniciar la verificación de identidad")
+    } finally {
+      setVerificandoIdentidad(false)
     }
   }
 
@@ -560,7 +595,42 @@ export default function DashboardPage() {
             </Card>
           ))}
         </div>
-
+        {perfilProveedor && (
+          <Card>
+            <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
+              <div className="flex items-center gap-4">
+                <div className={`p-2.5 rounded-xl bg-secondary ${perfilProveedor.verificado ? "text-emerald-500" : "text-amber-500"}`}>
+                  {perfilProveedor.verificado ? <ShieldCheck size={20} /> : <ShieldAlert size={20} />}
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    {perfilProveedor.verificado ? "Identidad verificada" : "Verificación de identidad pendiente"}
+                  </p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {perfilProveedor.verificado
+                      ? "Tu cuenta ha superado la verificación de identidad."
+                      : perfilProveedor.motivo_rechazo
+                        ? `No se pudo verificar: ${perfilProveedor.motivo_rechazo}`
+                        : "Verifica tu identidad para dar más confianza a tus clientes."}
+                  </p>
+                  {errorVerificacion && (
+                    <p className="text-xs text-destructive mt-1">{errorVerificacion}</p>
+                  )}
+                </div>
+              </div>
+              {!perfilProveedor.verificado && (
+                <Button onClick={handleVerificarIdentidad} disabled={verificandoIdentidad} className="shrink-0">
+                  {verificandoIdentidad ? (
+                    <Loader size={16} className="animate-spin mr-2" />
+                  ) : (
+                    <ShieldCheck size={16} className="mr-2" />
+                  )}
+                  {perfilProveedor.motivo_rechazo ? "Reintentar verificación" : "Verificar identidad"}
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        )}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-lg">Mis servicios</CardTitle>
