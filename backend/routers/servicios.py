@@ -2,11 +2,13 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 from uuid import UUID
 from typing import List, Optional
 from utils.auth_middleware import get_current_user
-from schemas.servicio_schema import CrearServicio, ActualizarServicio, ServicioOut, ServicioBusquedaOut
+from schemas.servicio_schema import CrearServicio, ActualizarServicio, ServicioOut, ServicioBusquedaOut, CrearImagenServicio, ReordenarImagenes
 from services.servicio_service import ServicioService
 from services.proveedor_service import ProveedorService
+from services.imagen_servicio_service import ImagenServicioService
 from utils.storage import generar_signed_upload_url
 from config import Config
+import uuid
 
 router = APIRouter(prefix="/servicio", tags=["servicio"])
 
@@ -94,3 +96,36 @@ async def signed_url_imagen(servicio_id: UUID, current_user=Depends(get_current_
         raise HTTPException(status_code=404, detail="Servicio no encontrado o sin permisos")
     path = f"{perfil.id}/{servicio_id}/imagen"
     return generar_signed_upload_url(Config.STORAGE_BUCKET_SERVICIOS, path)
+
+@router.post("/{servicio_id}/imagenes/signed-url")
+async def signed_url_imagenes(servicio_id: UUID, current_user=Depends(get_current_user)):
+    perfil = _get_perfil_proveedor(current_user["user_id"])
+    service = ServicioService()
+    servicio = service.obtener(servicio_id)
+    if not servicio or str(servicio.proveedor_id) != str(perfil.id):
+        raise HTTPException(status_code=404, detail="Servicio no encontrado o sin permisos")
+    path = f"{perfil.id}/{servicio_id}/{uuid.uuid4()}"
+    return generar_signed_upload_url(Config.STORAGE_BUCKET_SERVICIOS, path)
+
+@router.post("/{servicio_id}/imagenes")
+async def confirmar_subida_imagenes(servicio_id: UUID, imagen: CrearImagenServicio, current_user=Depends(get_current_user)):
+    perfil = _get_perfil_proveedor(current_user["user_id"])
+    service = ImagenServicioService()
+    return service.añadir_imagen(servicio_id, perfil.id, imagen.url)
+
+@router.get("/{servicio_id}/imagenes")
+async def listar_imagenes(servicio_id:UUID):
+    service = ImagenServicioService()
+    return service.listar_imagenes(servicio_id)
+
+@router.delete("/{servicio_id}/imagenes/{imagen_id}")
+async def eliminar_imagen(servicio_id:UUID, imagen_id:UUID,current_user=Depends(get_current_user)):
+    perfil = _get_perfil_proveedor(current_user["user_id"])
+    service = ImagenServicioService()
+    return service.eliminar_imagen(imagen_id, perfil.id)
+
+@router.patch("/{servicio_id}/imagenes/orden")
+async def reordenar(servicio_id:UUID, datos: ReordenarImagenes, current_user=Depends(get_current_user)):
+    perfil = _get_perfil_proveedor(current_user["user_id"])
+    service = ImagenServicioService()
+    return service.reordenar_imagenes(servicio_id, perfil.id, datos.orden)

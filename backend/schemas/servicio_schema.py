@@ -52,3 +52,16 @@ class ServicioBusquedaOut(ServicioOut):
     proveedor_valoracion_media: Optional[float] = None
     proveedor_num_valoraciones: Optional[int] = None
     categoria_nombre: Optional[str] = None
+    
+class ImagenServicioOut(BaseModel):
+    id: UUID
+    url: str
+    orden: int
+    class Config:
+        from_attributes = True
+
+class ReordenarImagenes(BaseModel):
+    orden: list[UUID]
+    
+class CrearImagenServicio(BaseModel):
+    url: str

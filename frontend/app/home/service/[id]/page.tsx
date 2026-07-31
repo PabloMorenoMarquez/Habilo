@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Star, Clock, MapPin, CheckCircle, MessageCircle, Share2, Heart, ArrowLeft, Loader } from "lucide-react"
 import Link from "next/link"
-import { getServicioDetalle, crearSolicitud, ServicioBackend, ApiError } from "@/lib/api"
+import { getServicioDetalle, crearSolicitud, listarImagenesServicio, ImagenServicio, ServicioBackend, ApiError } from "@/lib/api"
 
 function formatPrice(price: number, type: string) {
   if (type === "hora") return `${price}€/hora`
@@ -26,6 +26,9 @@ export default function ServiceDetailPage() {
   const [servicio, setServicio] = useState<ServicioBackend | null>(null)
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const [imagenes, setImagenes] = useState<ImagenServicio[]>([])
+  const [imagenActiva, setImagenActiva] = useState(0)
 
   const [contactando, setContactando] = useState(false)
   const [contactoError, setContactoError] = useState<string | null>(null)
@@ -46,6 +49,11 @@ export default function ServiceDetailPage() {
         setError("No se pudo cargar el servicio.")
       })
       .finally(() => setCargando(false))
+
+    setImagenActiva(0)
+    listarImagenesServicio(id)
+      .then(setImagenes)
+      .catch((err) => console.error("No se pudo cargar la galería:", err))
   }, [params.id])
 
   const handleContactar = async () => {
@@ -92,6 +100,7 @@ export default function ServiceDetailPage() {
   const rating = servicio.proveedor_valoracion_media ?? 0
   const reviewCount = servicio.proveedor_num_valoraciones ?? 0
   const precio = parseFloat(servicio.precio)
+  const fotos = imagenes.length > 0 ? imagenes.map((img) => img.url) : servicio.imagen_url ? [servicio.imagen_url] : []
 
   return (
     <div className="min-h-screen bg-background">
@@ -104,8 +113,25 @@ export default function ServiceDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
             <div className="relative aspect-video rounded-2xl overflow-hidden bg-muted">
-              <Image src={servicio.imagen_url || "/placeholder.jpg"} alt={servicio.titulo} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 66vw" />
+              <Image src={fotos[imagenActiva] || "/placeholder.jpg"} alt={servicio.titulo} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 66vw" />
             </div>
+
+            {fotos.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {fotos.map((url, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => setImagenActiva(index)}
+                    className={`relative shrink-0 w-20 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
+                      index === imagenActiva ? "border-primary" : "border-transparent"
+                    }`}
+                  >
+                    <Image src={url} alt="" fill className="object-cover" sizes="80px" />
+                  </button>
+                ))}
+              </div>
+            )}
 
             <div className="space-y-3">
               <div className="flex items-start justify-between gap-4">

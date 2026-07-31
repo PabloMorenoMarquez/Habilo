@@ -14,6 +14,9 @@ def get_supabase():
 def generar_signed_upload_url(bucket: str, path: str, expires_in: int = 300) -> dict:
     """Genera una URL firmada para subida directa desde el frontend."""
     client = get_supabase()
+    print(Config.SUPABASE_URL)
+
+    print(client.storage.list_buckets())
     result = client.storage.from_(bucket).create_signed_upload_url(path)
     return {
         "signed_url": result["signed_url"],

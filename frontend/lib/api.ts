@@ -490,3 +490,40 @@ export function iniciarVerificacionIdentidad() {
     method: "POST",
   })
 }
+
+export interface ImagenServicio {
+  id: string
+  url: string
+  orden: number
+}
+
+export function getSignedUploadUrlGaleria(servicioId: string) {
+  return apiFetch<{ signed_url: string; path: string; token: string }>(
+    `/servicio/${servicioId}/imagenes/signed-url`,
+    { method: "POST" }
+  )
+}
+
+export function listarImagenesServicio(servicioId: string) {
+  return apiFetch<ImagenServicio[]>(`/servicio/${servicioId}/imagenes`)
+}
+
+export function confirmarImagenServicio(servicioId: string, url: string) {
+  return apiFetch<ImagenServicio>(`/servicio/${servicioId}/imagenes`, {
+    method: "POST",
+    body: JSON.stringify({ url }),
+  })
+}
+
+export function eliminarImagenServicio(servicioId: string, imagenId: string) {
+  return apiFetch(`/servicio/${servicioId}/imagenes/${imagenId}`, {
+    method: "DELETE",
+  })
+}
+
+export function reordenarImagenesServicio(servicioId: string, orden: string[]) {
+  return apiFetch<ImagenServicio[]>(`/servicio/${servicioId}/imagenes/orden`, {
+    method: "PATCH",
+    body: JSON.stringify({ orden }),
+  })
+}

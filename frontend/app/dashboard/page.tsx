@@ -17,6 +17,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
+import GaleriaImagenes from "@/components/galeria-imagenes"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { TrendingUp, Pencil, MessageCircle, Star, Eye, Plus, Trash2, AlertCircle, Upload, X, Image as ImageIcon, MapPin, Loader, Navigation, ShieldCheck, ShieldAlert } from "lucide-react"
@@ -33,6 +34,8 @@ import {
   ApiError,
   getConversaciones,
   iniciarVerificacionIdentidad,
+  getSignedUploadUrlGaleria,
+  confirmarImagenServicio,
 } from "@/lib/api"
 import { subirImagenServicio } from "@/lib/storage"
 import { geocodeCiudad, getBrowserLocation } from "@/lib/geocode"
@@ -53,17 +56,14 @@ export default function DashboardPage() {
   const [mensajesNoLeidos, setMensajesNoLeidos] = useState<number | null>(null)
 
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagenesNuevas, setImagenesNuevas] = useState<{ file: File; preview: string }[]>([])
   const [formCoords, setFormCoords] = useState<{ lat: number; lng: number } | null>(null)
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [creando, setCreando] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
 
 
   const [editingService, setEditingService] = useState<ServicioDetalle | null>(null)
   const [editForm, setEditForm] = useState({ title: "", categoriaId: "", description: "", price: "", priceType: "hora" })
-  const [editImageFile, setEditImageFile] = useState<File | null>(null)
-  const [editImagePreview, setEditImagePreview] = useState<string | null>(null)
   const [guardandoEdicion, setGuardandoEdicion] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
   const [editLocation, setEditLocation] = useState("")
@@ -127,18 +127,31 @@ export default function DashboardPage() {
     { label: "Mensajes nuevos", value: mensajesNoLeidos != null ? mensajesNoLeidos : "—", icon: <MessageCircle size={20} />, color: "text-accent" },
   ]
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setImageFile(file)
-    const reader = new FileReader()
-    reader.onloadend = () => setImagePreview(reader.result as string)
-    reader.readAsDataURL(file)
+  const MAX_IMAGENES_CREAR = 10
+
+  const handleSeleccionarImagenes = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    e.target.value = ""
+    if (files.length === 0) return
+
+    const espacioDisponible = MAX_IMAGENES_CREAR - imagenesNuevas.length
+    const seleccionadas = files.slice(0, espacioDisponible)
+
+    seleccionadas.forEach((file) => {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImagenesNuevas((prev) => [...prev, { file, preview: reader.result as string }])
+      }
+      reader.readAsDataURL(file)
+    })
+  }
+
+  const quitarImagenNueva = (index: number) => {
+    setImagenesNuevas((prev) => prev.filter((_, i) => i !== index))
   }
 
   const clearImage = () => {
-    setImageFile(null)
-    setImagePreview(null)
+    setImagenesNuevas([])
   }
 
   const resetForm = () => {
@@ -186,18 +199,27 @@ export default function DashboardPage() {
         longitud: coords.lng,
       })
 
-      // 3. Si hay imagen, subirla y enlazarla
-      if (imageFile) {
-        const { signed_url, path, token } = await getSignedUploadUrl(nuevo.id)
-        const publicUrl = await subirImagenServicio(path, token, imageFile)
-        if (publicUrl) {
-          await actualizarServicio(nuevo.id, { imagen_url: publicUrl })
+      let fallosImagenes = 0
+      for (const { file } of imagenesNuevas) {
+        try {
+          const { path, token } = await getSignedUploadUrlGaleria(nuevo.id)
+          const publicUrl = await subirImagenServicio(path, token, file)
+          if (publicUrl) {
+            await confirmarImagenServicio(nuevo.id, publicUrl)
+          } else {
+            fallosImagenes++
+          }
+        } catch {
+          fallosImagenes++
         }
       }
 
       resetForm()
       setDialogOpen(false)
       cargarMisServicios()
+      if (fallosImagenes > 0) {
+        setErrorAcciones(`El servicio se creó, pero ${fallosImagenes} imagen(es) no se pudieron subir. Puedes añadirlas editando el servicio.`)
+      }
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "No se pudo publicar el servicio."
       setCreateError(message)
@@ -215,8 +237,6 @@ export default function DashboardPage() {
       price: servicio.precio,
       priceType: servicio.tipo_precio,
     })
-    setEditImagePreview(servicio.imagen_url || null)
-    setEditImageFile(null)
     setEditError(null)
 
      // Precargar ubicación actual (si el servicio tiene coordenadas guardadas)
@@ -233,20 +253,9 @@ export default function DashboardPage() {
 
   const closeEdit = () => {
     setEditingService(null)
-    setEditImageFile(null)
-    setEditImagePreview(null)
     setEditError(null)
     setEditLocation("")      
     setEditFormCoords(null) 
-  }
-
-  const handleEditImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setEditImageFile(file)
-    const reader = new FileReader()
-    reader.onloadend = () => setEditImagePreview(reader.result as string)
-    reader.readAsDataURL(file)
   }
 
   const useMyLocationForEdit = async () => {
@@ -277,15 +286,6 @@ export default function DashboardPage() {
         tipo_precio: editForm.priceType,
         ...(coords ? { latitud: coords.lat, longitud: coords.lng } : {}),
       })
-
-      if (editImageFile) {
-        const { path, token } = await getSignedUploadUrl(editingService.id)
-        const publicUrl = await subirImagenServicio(path, token, editImageFile)
-        if (publicUrl) {
-          await actualizarServicio(editingService.id, { imagen_url: publicUrl })
-        }
-      }
-
       closeEdit()
       cargarMisServicios()
     } catch (err) {
@@ -363,28 +363,42 @@ export default function DashboardPage() {
               </DialogHeader>
               <div className="space-y-4 pt-2">
                 <div className="space-y-2">
-                  <Label>Imagen del servicio (opcional)</Label>
-                  {imagePreview ? (
-                    <div className="relative aspect-video rounded-xl overflow-hidden border border-border bg-muted group">
-                      <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-                      <button
-                        onClick={clearImage}
-                        className="absolute top-2 right-2 p-1.5 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-                        type="button"
-                      >
-                        <X size={16} />
-                      </button>
-                    </div>
-                  ) : (
-                    <label className="flex flex-col items-center justify-center aspect-video rounded-xl border-2 border-dashed border-border bg-muted/20 hover:bg-muted/40 cursor-pointer transition-colors group">
-                      <div className="flex flex-col items-center gap-2 text-muted-foreground group-hover:text-foreground transition-colors">
-                        <Upload size={32} />
-                        <p className="text-sm font-medium">Sube una imagen</p>
-                        <p className="text-xs">JPG, PNG o WEBP (máx. 5MB)</p>
-                      </div>
-                      <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                    </label>
+                  <div className="flex items-center justify-between">
+                    <Label>Fotos del servicio (opcional)</Label>
+                    <span className="text-xs text-muted-foreground">{imagenesNuevas.length}/{MAX_IMAGENES_CREAR}</span>
+                  </div>
+                  {imagenesNuevas.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      La primera foto será la portada. Podrás reordenarlas después, editando el servicio.
+                    </p>
                   )}
+                  <div className="grid grid-cols-3 gap-2">
+                    {imagenesNuevas.map((img, index) => (
+                      <div key={index} className="relative aspect-square rounded-lg overflow-hidden border border-border bg-muted group">
+                        <img src={img.preview} alt="Preview" className="w-full h-full object-cover" />
+                        {index === 0 && (
+                          <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-primary text-primary-foreground text-[10px] font-medium">
+                            Portada
+                          </span>
+                        )}
+                        <button
+                          onClick={() => quitarImagenNueva(index)}
+                          className="absolute top-1 right-1 p-1 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                          type="button"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+
+                    {imagenesNuevas.length < MAX_IMAGENES_CREAR && (
+                      <label className="relative aspect-square rounded-lg border-2 border-dashed border-border bg-muted/20 hover:bg-muted/40 flex flex-col items-center justify-center cursor-pointer transition-colors">
+                        <Upload size={18} className="text-muted-foreground" />
+                        <span className="text-[10px] text-muted-foreground mt-1">Añadir</span>
+                        <input type="file" accept="image/*" multiple onChange={handleSeleccionarImagenes} className="hidden" />
+                      </label>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-1.5">
@@ -480,26 +494,9 @@ export default function DashboardPage() {
               </DialogHeader>
               <div className="space-y-4 pt-2">
                 <div className="space-y-2">
-                  <Label>Imagen del servicio</Label>
-                  {editImagePreview ? (
-                    <div className="relative aspect-video rounded-xl overflow-hidden border border-border bg-muted group">
-                      <img src={editImagePreview} alt="Preview" className="w-full h-full object-cover" />
-                      <button
-                        onClick={() => { setEditImageFile(null); setEditImagePreview(null) }}
-                        className="absolute top-2 right-2 p-1.5 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-                        type="button"
-                      >
-                        <X size={16} />
-                      </button>
-                    </div>
-                  ) : (
-                    <label className="flex flex-col items-center justify-center aspect-video rounded-xl border-2 border-dashed border-border bg-muted/20 hover:bg-muted/40 cursor-pointer transition-colors group">
-                      <div className="flex flex-col items-center gap-2 text-muted-foreground group-hover:text-foreground transition-colors">
-                        <Upload size={32} />
-                        <p className="text-sm font-medium">Sube una imagen</p>
-                      </div>
-                      <input type="file" accept="image/*" onChange={handleEditImageUpload} className="hidden" />
-                    </label>
+                  <Label>Fotos del servicio</Label>
+                  {editingService && (
+                    <GaleriaImagenes servicioId={editingService.id} portadaLegado={editingService.imagen_url} />
                   )}
                 </div>
 
