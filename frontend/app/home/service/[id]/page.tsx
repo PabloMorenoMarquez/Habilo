@@ -10,7 +10,19 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Star, Clock, MapPin, CheckCircle, MessageCircle, Share2, Heart, ArrowLeft, Loader } from "lucide-react"
 import Link from "next/link"
-import { getServicioDetalle, crearSolicitud, listarImagenesServicio, ImagenServicio, ServicioBackend, ApiError } from "@/lib/api"
+import {
+  getServicioDetalle,
+  crearSolicitud,
+  listarImagenesServicio,
+  ImagenServicio,
+  ServicioBackend,
+  ApiError,
+  marcarServicioFavorito,
+  desmarcarServicioFavorito,
+  marcarProveedorFavorito,
+  desmarcarProveedorFavorito,
+  listarProveedoresFavoritos,
+} from "@/lib/api"
 
 function formatPrice(price: number, type: string) {
   if (type === "hora") return `${price}€/hora`
@@ -22,6 +34,10 @@ export default function ServiceDetailPage() {
   const router = useRouter()
   const { isAuthenticated, isLoading } = useAuth()
   const [liked, setLiked] = useState(false)
+  const [cargandoLike, setCargandoLike] = useState(false)
+
+  const [siguiendoProveedor, setSiguiendoProveedor] = useState(false)
+  const [cargandoSeguir, setCargandoSeguir] = useState(false)
 
   const [servicio, setServicio] = useState<ServicioBackend | null>(null)
   const [cargando, setCargando] = useState(true)
@@ -55,6 +71,49 @@ export default function ServiceDetailPage() {
       .then(setImagenes)
       .catch((err) => console.error("No se pudo cargar la galería:", err))
   }, [params.id])
+
+  useEffect(() => {
+    if (servicio) setLiked(servicio.es_favorito)
+  }, [servicio])
+
+  useEffect(() => {
+    if (!servicio) return
+    listarProveedoresFavoritos()
+      .then((favs) => setSiguiendoProveedor(favs.some((p) => p.id === servicio.proveedor_id)))
+      .catch((err) => console.error("No se pudo comprobar si sigues a este profesional:", err))
+  }, [servicio?.proveedor_id])
+
+  const handleToggleLike = async () => {
+    if (!servicio) return
+    const previo = liked
+    setLiked(!previo)
+    setCargandoLike(true)
+    try {
+      if (previo) await desmarcarServicioFavorito(servicio.id)
+      else await marcarServicioFavorito(servicio.id)
+    } catch (err) {
+      setLiked(previo)
+      console.error("No se pudo actualizar el favorito:", err)
+    } finally {
+      setCargandoLike(false)
+    }
+  }
+
+  const handleToggleSeguir = async () => {
+    if (!servicio) return
+    const previo = siguiendoProveedor
+    setSiguiendoProveedor(!previo)
+    setCargandoSeguir(true)
+    try {
+      if (previo) await desmarcarProveedorFavorito(servicio.proveedor_id)
+      else await marcarProveedorFavorito(servicio.proveedor_id)
+    } catch (err) {
+      setSiguiendoProveedor(previo)
+      console.error("No se pudo actualizar el seguimiento:", err)
+    } finally {
+      setCargandoSeguir(false)
+    }
+  }
 
   const handleContactar = async () => {
     if (!servicio) return
@@ -143,7 +202,8 @@ export default function ServiceDetailPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => setLiked((v) => !v)}
+                    onClick={handleToggleLike}
+                    disabled={cargandoLike}
                     className={liked ? "text-red-500" : "text-muted-foreground"}
                   >
                     <Heart size={20} fill={liked ? "currentColor" : "none"} />
@@ -172,20 +232,32 @@ export default function ServiceDetailPage() {
 
             <div className="p-5 rounded-2xl border border-border bg-card space-y-4">
               <h2 className="text-lg font-semibold text-foreground">Sobre el profesional</h2>
-              <div className="flex items-center gap-4">
-                <Avatar className="h-14 w-14">
-                  <AvatarImage src={servicio.proveedor_avatar || undefined} alt={servicio.proveedor_nombre || ""} />
-                  <AvatarFallback>{(servicio.proveedor_nombre || "?").charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-semibold text-foreground">{servicio.proveedor_nombre}</p>
-                  {servicio.distancia_km != null && (
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <MapPin size={12} />
-                      <span>a {servicio.distancia_km.toFixed(1)} km</span>
-                    </div>
-                  )}
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-14 w-14">
+                    <AvatarImage src={servicio.proveedor_avatar || undefined} alt={servicio.proveedor_nombre || ""} />
+                    <AvatarFallback>{(servicio.proveedor_nombre || "?").charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-semibold text-foreground">{servicio.proveedor_nombre}</p>
+                    {servicio.distancia_km != null && (
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <MapPin size={12} />
+                        <span>a {servicio.distancia_km.toFixed(1)} km</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
+                <Button
+                  variant={siguiendoProveedor ? "secondary" : "outline"}
+                  size="sm"
+                  onClick={handleToggleSeguir}
+                  disabled={cargandoSeguir}
+                  className="shrink-0"
+                >
+                  <Heart size={14} className={siguiendoProveedor ? "fill-current mr-1.5" : "mr-1.5"} />
+                  {siguiendoProveedor ? "Dejar de seguir" : "Seguir"}
+                </Button>
               </div>
             </div>
           </div>

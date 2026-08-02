@@ -1,10 +1,12 @@
 from uuid import UUID
 from decimal import Decimal
 from repositories.servicio_repository import ServicioRepository
+from repositories.favorito_repository import FavoritoRepository
 from datetime import datetime, timezone
 class ServicioService:
     def __init__(self):
         self.servicio_repository = ServicioRepository()
+        self.favorito_repository = FavoritoRepository()
 
     def crear(self, proveedor_id:UUID, categoria_id:UUID, titulo:str, descripcion:str,
               precio:Decimal, tipo_precio:str, latitud:float=None, longitud:float=None):
@@ -31,7 +33,24 @@ class ServicioService:
         return self.servicio_repository.eliminar(servicio_id)
 
     def buscar(self, lat:float, lng:float, radio_km:float, categoria_id:UUID=None, texto:str=None, usuario_id:UUID=None):
-        return self.servicio_repository.buscar_por_proximidad(lat, lng, radio_km, categoria_id, texto, usuario_id)
+        servicios = self.servicio_repository.buscar_por_proximidad(lat, lng, radio_km, categoria_id, texto, usuario_id)
+        
+        favoritos = self.favorito_repository.listar_ids_favoritos_servicio(usuario_id)
+
+        for servicio in servicios:
+            servicio["es_favorito"] = servicio["id"] in favoritos
+
+        return servicios
     
-    def obtener_detalle_publico(self, servicio_id):
-        return self.servicio_repository.obtener_detalle_publico(servicio_id)
+    def obtener_detalle_publico(self, servicio_id:UUID, usuario_id:UUID):
+        servicio = self.servicio_repository.obtener_detalle_publico(servicio_id)
+
+        if not servicio:
+            return None
+
+        servicio["es_favorito"] = self.favorito_repository.es_favorito_servicio(
+            usuario_id,
+            servicio_id
+        )
+
+        return servicio

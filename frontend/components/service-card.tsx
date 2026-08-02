@@ -1,8 +1,12 @@
+"use client"
+
 import Image from "next/image"
 import Link from "next/link"
-import { Star, Clock, MapPin } from "lucide-react"
+import { useState } from "react"
+import { Star, Clock, MapPin, Heart } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { marcarServicioFavorito, desmarcarServicioFavorito } from "@/lib/api"
 
 interface ServiceCardProps {
   service: {
@@ -16,6 +20,7 @@ interface ServiceCardProps {
     reviewCount: number
     deliveryDays: number | null
     image: string
+    favorito?: boolean
     professional: {
       id: string
       name: string
@@ -25,6 +30,9 @@ interface ServiceCardProps {
     tags: string[]
     featured: boolean
   }
+  // Se llama cuando cambia el estado de favorito (útil en la pantalla de "Mis favoritos"
+  // para quitar la tarjeta de la lista en cuanto se desmarca, sin esperar a recargar)
+  onFavoritoChange?: (favorito: boolean) => void
 }
 
 function formatPrice(price: number, type: string) {
@@ -36,7 +44,33 @@ function formatPrice(price: number, type: string) {
   return `${price}€`
 }
 
-export default function ServiceCard({ service }: ServiceCardProps) {
+export default function ServiceCard({ service, onFavoritoChange }: ServiceCardProps) {
+  const [favorito, setFavorito] = useState(!!service.favorito)
+  const [cargandoFavorito, setCargandoFavorito] = useState(false)
+
+  const handleToggleFavorito = async (e: React.MouseEvent) => {
+    e.preventDefault() // el card entero es un <Link>, no queremos navegar al pulsar el corazón
+    e.stopPropagation()
+    if (cargandoFavorito) return
+
+    const previo = favorito
+    setFavorito(!previo) // actualización optimista
+    setCargandoFavorito(true)
+    try {
+      if (previo) {
+        await desmarcarServicioFavorito(service.id)
+      } else {
+        await marcarServicioFavorito(service.id)
+      }
+      onFavoritoChange?.(!previo)
+    } catch (err) {
+      setFavorito(previo) // revertimos si falla
+      console.error("No se pudo actualizar el favorito:", err)
+    } finally {
+      setCargandoFavorito(false)
+    }
+  }
+
   return (
     <Link href={`/home/service/${service.id}`} className="group block">
       <article className="bg-card border border-border rounded-2xl overflow-hidden transition-all hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/30 h-full flex flex-col">
@@ -54,11 +88,18 @@ export default function ServiceCard({ service }: ServiceCardProps) {
               <Badge className="bg-primary text-primary-foreground text-xs font-semibold">Destacado</Badge>
             </div>
           )}
-          <div className="absolute top-3 right-3">
+          <div className="absolute top-3 right-3 flex items-center gap-2">
             <Badge variant="secondary" className="text-xs font-medium bg-card/90 text-foreground backdrop-blur-sm">
               {service.category}
             </Badge>
           </div>
+          <button
+            type="button"
+            onClick={handleToggleFavorito}
+            className="absolute bottom-3 right-3 p-2 rounded-full bg-card/90 backdrop-blur-sm hover:bg-card transition-colors"
+          >
+            <Heart size={16} className={favorito ? "fill-red-500 text-red-500" : "text-foreground"} />
+          </button>
         </div>
 
         {/* Content */}

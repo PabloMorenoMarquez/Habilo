@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Bell, MessageCircle, LogOut, User, ChevronDown, Briefcase, Shield } from "lucide-react"
+import { Bell, MessageCircle, LogOut, User, ChevronDown, Briefcase, Shield, Heart } from "lucide-react"
 import { getConversaciones } from "@/lib/api"
 
 const POLL_INTERVAL = 15000 // mismo intervalo que la lista de chats, en ms
@@ -99,6 +99,11 @@ export default function Navbar() {
               <DropdownMenuItem asChild>
                 <Link href="/profile" className="flex items-center gap-2 cursor-pointer">
                   <User size={15} /> Mi perfil
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/favoritos" className="flex items-center gap-2 cursor-pointer">
+                  <Heart size={15} /> Favoritos
                 </Link>
               </DropdownMenuItem>
               {user?.es_admin && (

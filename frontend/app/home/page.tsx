@@ -30,6 +30,7 @@ function mapServicioParaTarjeta(s: ServicioBackend) {
     reviewCount: s.proveedor_num_valoraciones ?? 0,
     deliveryDays: null,
     image: s.imagen_url || "/placeholder.jpg",
+    favorito: s.es_favorito,
     professional: {
       id: s.proveedor_id,
       name: s.proveedor_nombre || "Profesional",

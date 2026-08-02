@@ -106,7 +106,8 @@ export interface ServicioBackend {
   proveedor_avatar: string | null
   proveedor_valoracion_media: number | null
   proveedor_num_valoraciones: number | null
-  categoria_nombre: string | null
+  categoria_nombre: string | null 
+  es_favorito: boolean
 }
 
 export function buscarServicios(params: {
@@ -526,4 +527,40 @@ export function reordenarImagenesServicio(servicioId: string, orden: string[]) {
     method: "PATCH",
     body: JSON.stringify({ orden }),
   })
+}
+
+// --- Favoritos ---
+
+export function marcarServicioFavorito(servicioId: string) {
+  return apiFetch(`/favoritos/servicios/${servicioId}`, { method: "POST" })
+}
+
+export function desmarcarServicioFavorito(servicioId: string) {
+  return apiFetch(`/favoritos/servicios/${servicioId}`, { method: "DELETE" })
+}
+
+export function listarServiciosFavoritos() {
+  return apiFetch<ServicioBackend[]>("/favoritos/servicios")
+}
+
+export interface ProveedorFavorito {
+  id: string
+  nombre: string | null
+  foto_url: string | null
+  descripcion: string | null
+  valoracion_media: number | string | null
+  num_valoraciones: number
+  verificado: boolean | null
+}
+
+export function marcarProveedorFavorito(perfilId: string) {
+  return apiFetch(`/favoritos/proveedores/${perfilId}`, { method: "POST" })
+}
+
+export function desmarcarProveedorFavorito(perfilId: string) {
+  return apiFetch(`/favoritos/proveedores/${perfilId}`, { method: "DELETE" })
+}
+
+export function listarProveedoresFavoritos() {
+  return apiFetch<ProveedorFavorito[]>("/favoritos/proveedores")
 }

@@ -59,9 +59,9 @@ async def listar_mis_servicios(current_user=Depends(get_current_user)):
 
 
 @router.get("/{servicio_id}", response_model=ServicioBusquedaOut)
-async def obtener_servicio(servicio_id: UUID):
+async def obtener_servicio(servicio_id: UUID, current_user=Depends(get_current_user)):
     service = ServicioService()
-    servicio = service.obtener_detalle_publico(servicio_id)
+    servicio = service.obtener_detalle_publico(servicio_id, current_user["user_id"])
     if not servicio:
         raise HTTPException(status_code=404, detail="Servicio no encontrado")
     return servicio

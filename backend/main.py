@@ -18,6 +18,7 @@ from routers.reportes import router as reportes_router
 from routers.admin import router as admin_router
 from routers.webhooks import router as webhooks_router
 from routers.ofertas import router as ofertas_router
+from routers.favoritos import router as favoritos_router
 from utils.google_oauth import google_configure_oauth
 from utils.facebook_oauth import facebook_configure_oauth
 from utils.scheduler import iniciar_jobs
@@ -62,5 +63,6 @@ app.include_router(reportes_router)
 app.include_router(admin_router)
 app.include_router(webhooks_router)
 app.include_router(ofertas_router)
+app.include_router(favoritos_router)
 
 
