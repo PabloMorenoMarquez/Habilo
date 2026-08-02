@@ -77,6 +77,12 @@ export function getMiPerfilProveedor() {
   return apiFetch("/proveedor/me")
 }
 
+export function iniciarVerificacionIdentidad() {
+  return apiFetch("/proveedor/verificacion-identidad", {
+    method: "POST",
+  })
+}
+
 export function crearPerfilProveedor(datos: {
   descripcion: string
   radio_km_disponible: number
@@ -106,7 +112,7 @@ export interface ServicioBackend {
   proveedor_avatar: string | null
   proveedor_valoracion_media: number | null
   proveedor_num_valoraciones: number | null
-  categoria_nombre: string | null 
+  categoria_nombre: string | null
   es_favorito: boolean
 }
 
@@ -211,6 +217,43 @@ export function getSignedUploadUrl(servicioId: string) {
     `/servicio/${servicioId}/imagen/signed-url`,
     { method: "POST" }
   )
+}
+
+export interface ImagenServicio {
+  id: string
+  url: string
+  orden: number
+}
+
+export function getSignedUploadUrlGaleria(servicioId: string) {
+  return apiFetch<{ signed_url: string; path: string; token: string }>(
+    `/servicio/${servicioId}/imagenes/signed-url`,
+    { method: "POST" }
+  )
+}
+
+export function listarImagenesServicio(servicioId: string) {
+  return apiFetch<ImagenServicio[]>(`/servicio/${servicioId}/imagenes`)
+}
+
+export function confirmarImagenServicio(servicioId: string, url: string) {
+  return apiFetch<ImagenServicio>(`/servicio/${servicioId}/imagenes`, {
+    method: "POST",
+    body: JSON.stringify({ url }),
+  })
+}
+
+export function eliminarImagenServicio(servicioId: string, imagenId: string) {
+  return apiFetch(`/servicio/${servicioId}/imagenes/${imagenId}`, {
+    method: "DELETE",
+  })
+}
+
+export function reordenarImagenesServicio(servicioId: string, orden: string[]) {
+  return apiFetch<ImagenServicio[]>(`/servicio/${servicioId}/imagenes/orden`, {
+    method: "PATCH",
+    body: JSON.stringify({ orden }),
+  })
 }
 
 export interface Conversacion {
@@ -422,14 +465,15 @@ export interface Oferta {
   precio: string
   horas: string | null
   descripcion: string | null
+  fecha_hora_propuesta: string | null
   estado: "pendiente" | "aceptada" | "rechazada" | "reemplazada"
   fecha_creacion: string | null
 }
 
-export function crearOferta(solicitudId: string, precio: number, descripcion?: string) {
+export function crearOferta(solicitudId: string, precio: number, descripcion?: string, fechaHoraPropuesta?: string) {
   return apiFetch<Oferta>(`/solicitudes/${solicitudId}/ofertas`, {
     method: "POST",
-    body: JSON.stringify({ precio, descripcion: descripcion || null }),
+    body: JSON.stringify({ precio, descripcion: descripcion || null, fecha_hora_propuesta: fechaHoraPropuesta || null }),
   })
 }
 
@@ -475,58 +519,47 @@ export function crearPago(ofertaId: string) {
   return apiFetch<PagoConClientSecret>(`/ofertas/${ofertaId}/pago`, { method: "POST" })
 }
 
-export function crearOfertaPorHoras(solicitudId: string, horas: number, descripcion?: string) {
+export function crearOfertaPorHoras(solicitudId: string, horas: number, descripcion?: string, fechaHoraPropuesta?: string) {
   return apiFetch<Oferta>(`/solicitudes/${solicitudId}/ofertas/por-horas`, {
     method: "POST",
-    body: JSON.stringify({ horas, descripcion: descripcion || null }),
+    body: JSON.stringify({ horas, descripcion: descripcion || null, fecha_hora_propuesta: fechaHoraPropuesta || null }),
+  })
+}
+
+export interface PerfilProveedorPublico {
+  id: string
+  usuario_id: string
+  descripcion: string | null
+  experiencia_años: number | null
+  radio_km_disponible: number
+  valoracion_media: string | null
+  num_valoraciones: number
+  verificado: boolean | null
+  dias_disponibles: string | null
+  hora_inicio: string | null
+  hora_fin: string | null
+}
+
+export function getPerfilProveedorPublico(perfilId: string) {
+  return apiFetch<PerfilProveedorPublico>(`/proveedor/${perfilId}`)
+}
+
+export function actualizarPerfilProveedor(datos: {
+  descripcion?: string
+  experiencia_años?: number
+  radio_km_disponible?: number
+  dias_disponibles?: string
+  hora_inicio?: string
+  hora_fin?: string
+}) {
+  return apiFetch(`/proveedor/`, {
+    method: "PATCH",
+    body: JSON.stringify(datos),
   })
 }
 
 export function confirmarEntrega(solicitudId: string) {
   return apiFetch(`/solicitudes/${solicitudId}/confirmar-entrega`, { method: "POST" })
-}
-
-export function iniciarVerificacionIdentidad() {
-  return apiFetch("/proveedor/verificacion-identidad", {
-    method: "POST",
-  })
-}
-
-export interface ImagenServicio {
-  id: string
-  url: string
-  orden: number
-}
-
-export function getSignedUploadUrlGaleria(servicioId: string) {
-  return apiFetch<{ signed_url: string; path: string; token: string }>(
-    `/servicio/${servicioId}/imagenes/signed-url`,
-    { method: "POST" }
-  )
-}
-
-export function listarImagenesServicio(servicioId: string) {
-  return apiFetch<ImagenServicio[]>(`/servicio/${servicioId}/imagenes`)
-}
-
-export function confirmarImagenServicio(servicioId: string, url: string) {
-  return apiFetch<ImagenServicio>(`/servicio/${servicioId}/imagenes`, {
-    method: "POST",
-    body: JSON.stringify({ url }),
-  })
-}
-
-export function eliminarImagenServicio(servicioId: string, imagenId: string) {
-  return apiFetch(`/servicio/${servicioId}/imagenes/${imagenId}`, {
-    method: "DELETE",
-  })
-}
-
-export function reordenarImagenesServicio(servicioId: string, orden: string[]) {
-  return apiFetch<ImagenServicio[]>(`/servicio/${servicioId}/imagenes/orden`, {
-    method: "PATCH",
-    body: JSON.stringify({ orden }),
-  })
 }
 
 // --- Favoritos ---

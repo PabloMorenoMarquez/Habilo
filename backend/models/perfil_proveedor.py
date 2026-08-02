@@ -23,3 +23,6 @@ class Perfil_Proveedor(base):
     stripe_account_id = Column(Text, nullable=True)
     stripe_onboarding_completado = Column(Boolean, nullable=False, default=False)
     stripe_identity_session_id = Column(Text, nullable=True)
+    dias_disponibles = Column(Text, nullable=True)
+    hora_inicio = Column(Text, nullable=True)
+    hora_fin = Column(Text, nullable=True)

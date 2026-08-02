@@ -5,6 +5,7 @@ from services.mensaje_service import MensajeService
 from repositories.servicio_repository import ServicioRepository
 from repositories.solicitud_repository import SolicitudRepository
 from decimal import Decimal, ROUND_HALF_UP
+from datetime import datetime, timezone
 
 class OfertaService:
     
@@ -14,13 +15,19 @@ class OfertaService:
         self.servicio_repository = ServicioRepository()
         self.solicitud_repository = SolicitudRepository()
         
-    def crear_oferta(self, solicitud_id:UUID, autor_id:UUID, precio:Decimal, descripcion:str | None = None):
+    def _validar_fecha_propuesta(self, fecha_hora_propuesta):
+        if fecha_hora_propuesta and fecha_hora_propuesta < datetime.now(timezone.utc):
+            raise HTTPException(status_code=400, detail="La fecha propuesta no puede ser en el pasado")
+        
+    def crear_oferta(self, solicitud_id:UUID, autor_id:UUID, precio:Decimal, descripcion:str | None = None, fecha_hora_propuesta=None):
         solicitud = self.solicitud_repository.get_by_id(solicitud_id)
         if not solicitud:
             raise HTTPException(status_code=404, detail="No existe la solicitud")
         
         if solicitud.estado != "negociando":
             raise HTTPException(status_code=400, detail="Ya no se pueden hacer ofertas sobre esta solicitud")
+        
+        self._validar_fecha_propuesta(fecha_hora_propuesta)
         
         self.mensaje_service._verificar_acceso(solicitud_id, autor_id)
         
@@ -33,7 +40,13 @@ class OfertaService:
         if oferta:
             self.oferta_repository.actualizar_estado(oferta.id, "reemplazada")
         
-        oferta_nueva = self.oferta_repository.crear(solicitud_id, autor_id, precio, descripcion)
+        oferta_nueva = self.oferta_repository.crear(
+            solicitud_id=solicitud_id,
+            autor_id=autor_id,
+            precio=precio,
+            descripcion=descripcion,
+            fecha_hora_propuesta=fecha_hora_propuesta,
+        )
         
         self.solicitud_repository.actualizar_ultima_actividad(solicitud_id)
         
@@ -99,12 +112,14 @@ class OfertaService:
         self.mensaje_service._verificar_acceso(solicitud_id, usuario_id)
         return self.oferta_repository.listar_por_solicitud(solicitud_id)
     
-    def crear_oferta_por_horas(self, solicitud_id: UUID, autor_id: UUID, horas: Decimal, descripcion: str | None = None):
+    def crear_oferta_por_horas(self, solicitud_id: UUID, autor_id: UUID, horas: Decimal, descripcion: str | None = None, fecha_hora_propuesta=None):
         solicitud = self.solicitud_repository.get_by_id(solicitud_id)
         if not solicitud:
             raise HTTPException(status_code=404, detail="No existe la solicitud")
         if solicitud.estado != "negociando":
             raise HTTPException(status_code=400, detail="Ya no se pueden hacer ofertas sobre esta solicitud")
+        
+        self._validar_fecha_propuesta(fecha_hora_propuesta)
 
         self.mensaje_service._verificar_acceso(solicitud_id, autor_id)
 
@@ -118,7 +133,7 @@ class OfertaService:
         if oferta_existente:
             self.oferta_repository.actualizar_estado(oferta_existente.id, "reemplazada")
 
-        oferta = self.oferta_repository.crear(solicitud_id, autor_id, precio, descripcion, horas)
+        oferta = self.oferta_repository.crear(solicitud_id=solicitud_id, autor_id=autor_id, precio=precio, descripcion=descripcion, horas=horas, fecha_hora_propuesta=fecha_hora_propuesta)
 
         self.solicitud_repository.actualizar_ultima_actividad(solicitud_id)
         

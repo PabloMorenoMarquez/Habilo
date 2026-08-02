@@ -25,6 +25,25 @@ class ProveedorRepository:
             raise e
         finally:
             session.close()
+            
+    def actualizar(self, perfil_id: UUID, **campos):
+        session = SessionLocal()
+        try:
+            stmt = select(Perfil_Proveedor).where(Perfil_Proveedor.id == perfil_id)
+            perfil = session.scalar(stmt)
+            if not perfil:
+                return None
+            for campo, valor in campos.items():
+                if valor is not None:
+                    setattr(perfil, campo, valor)
+            session.commit()
+            session.refresh(perfil)
+            return perfil
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.close()
 
     def get_by_usuario_id(self, usuario_id:UUID):
         session = SessionLocal()

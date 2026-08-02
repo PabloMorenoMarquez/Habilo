@@ -9,6 +9,9 @@ class CrearPerfilProveedor(BaseModel):
     descripcion: str
     radio_km_disponible: int
     experiencia_años: Optional[int] = None
+    dias_disponibles: Optional[str] = None
+    hora_inicio: Optional[str] = None
+    hora_fin: Optional[str] = None
 
 
 class PerfilProveedorOut(BaseModel):
@@ -23,6 +26,9 @@ class PerfilProveedorOut(BaseModel):
     url_documento: Optional[str] = None
     fecha_creacion: Optional[datetime] = None
     motivo_rechazo: Optional[str] = None
+    dias_disponibles: Optional[str] = None
+    hora_inicio: Optional[str] = None
+    hora_fin: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -44,3 +50,11 @@ class PerfilProveedorAdminOut(BaseModel):
     motivo_rechazo: Optional[str] = None
     usuario_nombre: str
     usuario_email: str
+    
+class ActualizarPerfilProveedor(BaseModel):
+    descripcion: Optional[str] = None
+    experiencia_años: Optional[int] = None
+    radio_km_disponible: Optional[int] = None
+    dias_disponibles: Optional[str] = None
+    hora_inicio: Optional[str] = None
+    hora_fin: Optional[str] = None

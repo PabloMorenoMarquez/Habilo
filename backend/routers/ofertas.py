@@ -14,7 +14,7 @@ router = APIRouter(tags=["oferta"])
 @router.post("/solicitudes/{solicitud_id}/ofertas", response_model=OfertaOut)
 async def crear_oferta(solicitud_id:UUID, oferta: CrearOferta, current_user=Depends(get_current_user)):
     service = OfertaService()
-    resultado =  service.crear_oferta(solicitud_id, current_user["user_id"], oferta.precio, oferta.descripcion)
+    resultado =  service.crear_oferta(solicitud_id, current_user["user_id"], oferta.precio, oferta.descripcion, oferta.fecha_hora_propuesta)
     await manager.broadcast(str(solicitud_id), {"tipo": "oferta_actualizada"})
     return resultado
 
@@ -52,6 +52,6 @@ async def crear_pago(oferta_id: UUID, current_user=Depends(get_current_user)):
 @router.post("/solicitudes/{solicitud_id}/ofertas/por-horas", response_model=OfertaOut)
 async def crear_oferta_por_horas(solicitud_id: UUID, datos: CrearOfertaPorHoras, current_user=Depends(get_current_user)):
     service = OfertaService()
-    resultado = service.crear_oferta_por_horas(solicitud_id, current_user["user_id"], datos.horas, datos.descripcion)
+    resultado = service.crear_oferta_por_horas(solicitud_id, current_user["user_id"], datos.horas, datos.descripcion, datos.fecha_hora_propuesta)
     await manager.broadcast(str(solicitud_id), {"tipo": "oferta_actualizada"})
     return resultado

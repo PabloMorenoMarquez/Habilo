@@ -22,11 +22,25 @@ import {
   marcarProveedorFavorito,
   desmarcarProveedorFavorito,
   listarProveedoresFavoritos,
+  getPerfilProveedorPublico,
+  PerfilProveedorPublico,
 } from "@/lib/api"
 
 function formatPrice(price: number, type: string) {
   if (type === "hora") return `${price}€/hora`
   return `${price}€`
+}
+
+const DIAS_LABELS: Record<number, string> = { 1: "L", 2: "M", 3: "X", 4: "J", 5: "V", 6: "S", 7: "D" }
+
+function formatearDiasDisponibles(csv: string | null | undefined): string {
+  if (!csv) return ""
+  const dias = csv
+    .split(",")
+    .map((n) => parseInt(n.trim(), 10))
+    .filter((n) => !isNaN(n))
+    .sort((a, b) => a - b)
+  return dias.map((d) => DIAS_LABELS[d] || "").join(", ")
 }
 
 export default function ServiceDetailPage() {
@@ -38,6 +52,8 @@ export default function ServiceDetailPage() {
 
   const [siguiendoProveedor, setSiguiendoProveedor] = useState(false)
   const [cargandoSeguir, setCargandoSeguir] = useState(false)
+
+  const [perfilProveedor, setPerfilProveedor] = useState<PerfilProveedorPublico | null>(null)
 
   const [servicio, setServicio] = useState<ServicioBackend | null>(null)
   const [cargando, setCargando] = useState(true)
@@ -81,6 +97,10 @@ export default function ServiceDetailPage() {
     listarProveedoresFavoritos()
       .then((favs) => setSiguiendoProveedor(favs.some((p) => p.id === servicio.proveedor_id)))
       .catch((err) => console.error("No se pudo comprobar si sigues a este profesional:", err))
+
+    getPerfilProveedorPublico(servicio.proveedor_id)
+      .then(setPerfilProveedor)
+      .catch((err) => console.error("No se pudo cargar el perfil del profesional:", err))
   }, [servicio?.proveedor_id])
 
   const handleToggleLike = async () => {
@@ -259,6 +279,38 @@ export default function ServiceDetailPage() {
                   {siguiendoProveedor ? "Dejar de seguir" : "Seguir"}
                 </Button>
               </div>
+
+              {(perfilProveedor?.dias_disponibles || (perfilProveedor?.hora_inicio && perfilProveedor?.hora_fin)) && (
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-secondary/60">
+                  <div className="p-2 rounded-lg bg-card text-primary shrink-0">
+                    <Clock size={16} />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs font-medium text-muted-foreground">Horario habitual</span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {perfilProveedor.dias_disponibles && (
+                        <div className="flex gap-1">
+                          {formatearDiasDisponibles(perfilProveedor.dias_disponibles)
+                            .split(", ")
+                            .map((dia, i) => (
+                              <span
+                                key={i}
+                                className="w-6 h-6 flex items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-semibold"
+                              >
+                                {dia}
+                              </span>
+                            ))}
+                        </div>
+                      )}
+                      {perfilProveedor.hora_inicio && perfilProveedor.hora_fin && (
+                        <span className="text-sm font-medium text-foreground">
+                          {perfilProveedor.hora_inicio} – {perfilProveedor.hora_fin}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

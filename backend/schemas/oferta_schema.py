@@ -15,6 +15,7 @@ class EstadoOferta(str, Enum):
 class CrearOferta(BaseModel):
     precio: Decimal
     descripcion: Optional[str] = None
+    fecha_hora_propuesta: Optional[datetime] = None
     
 class OfertaOut(BaseModel):
     id: UUID
@@ -25,6 +26,7 @@ class OfertaOut(BaseModel):
     estado: str
     fecha_creacion: Optional[datetime] = None
     horas: Optional[Decimal] = None
+    fecha_hora_propuesta: Optional[datetime] = None
     
     class Config:
         from_attributes = True
@@ -32,3 +34,4 @@ class OfertaOut(BaseModel):
 class CrearOfertaPorHoras(BaseModel):
     horas: Decimal
     descripcion: Optional[str] = None
+    fecha_hora_propuesta: Optional[datetime] = None

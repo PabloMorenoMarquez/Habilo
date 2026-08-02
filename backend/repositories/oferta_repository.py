@@ -7,10 +7,10 @@ from decimal import Decimal
 
 class OfertaRepository:
     
-    def crear(self, solicitud_id:UUID, autor_id:UUID, precio:Decimal, descripcion:str=None, horas:Decimal=None):
+    def crear(self, solicitud_id:UUID, autor_id:UUID, precio:Decimal, descripcion:str=None, horas:Decimal=None, fecha_hora_propuesta=None):
         session = SessionLocal()
         try:
-            oferta = Oferta(solicitud_id = solicitud_id, autor_id= autor_id, precio= precio, descripcion= descripcion, horas=horas)
+            oferta = Oferta(solicitud_id = solicitud_id, autor_id= autor_id, precio= precio, descripcion= descripcion, horas=horas, fecha_hora_propuesta=fecha_hora_propuesta)
             session.add(oferta)
             session.commit()
             session.refresh(oferta)

@@ -47,6 +47,7 @@ export default function OfertaPanel({
   const [precio, setPrecio] = useState("")
   const [horas, setHoras] = useState("")
   const [descripcion, setDescripcion] = useState("")
+  const [fechaHoraPropuesta, setFechaHoraPropuesta] = useState("")
 
   const [pagoOpen, setPagoOpen] = useState(false)
   const [clientSecret, setClientSecret] = useState<string | null>(null)
@@ -71,19 +72,21 @@ export default function OfertaPanel({
     setProcesando(true)
     setError(null)
     try {
+      const fechaIso = fechaHoraPropuesta ? new Date(fechaHoraPropuesta).toISOString() : undefined
       if (tipoPrecioServicio === "hora") {
         const horasNum = parseFloat(horas)
         if (!horasNum || horasNum <= 0) return
-        await crearOfertaPorHoras(solicitudId, horasNum, descripcion || undefined)
+        await crearOfertaPorHoras(solicitudId, horasNum, descripcion || undefined, fechaIso)
       } else {
         const precioNum = parseFloat(precio)
         if (!precioNum || precioNum <= 0) return
-        await crearOferta(solicitudId, precioNum, descripcion || undefined)
+        await crearOferta(solicitudId, precioNum, descripcion || undefined, fechaIso)
       }
       setNuevaOfertaOpen(false)
       setPrecio("")
       setHoras("")
       setDescripcion("")
+      setFechaHoraPropuesta("")
       await cargar()
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo enviar la oferta")
@@ -181,6 +184,20 @@ export default function OfertaPanel({
             {ofertaActiva.descripcion && (
               <p className="text-xs text-muted-foreground">{ofertaActiva.descripcion}</p>
             )}
+            {ofertaActiva.fecha_hora_propuesta && (
+              <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+                <Clock size={12} />
+                <span>
+                  {new Date(ofertaActiva.fecha_hora_propuesta).toLocaleString("es-ES", {
+                    weekday: "short",
+                    day: "numeric",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              </div>
+            )}
 
             {ofertaActiva.estado === "pendiente" && ofertaActiva.autor_id !== currentUserId && (
               <div className="flex gap-2 justify-center">
@@ -260,6 +277,15 @@ export default function OfertaPanel({
               onChange={(e) => setDescripcion(e.target.value)}
               rows={3}
             />
+            <div className="space-y-1.5 text-left">
+              <label className="text-xs text-muted-foreground">¿Cuándo te vendría bien? (opcional)</label>
+              <Input
+                type="datetime-local"
+                value={fechaHoraPropuesta}
+                min={new Date().toISOString().slice(0, 16)}
+                onChange={(e) => setFechaHoraPropuesta(e.target.value)}
+              />
+            </div>
             <Button
               className="w-full"
               disabled={procesando || (tipoPrecioServicio === "hora" ? !horas : !precio)}

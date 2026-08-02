@@ -17,10 +17,10 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import GaleriaImagenes from "@/components/galeria-imagenes"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { TrendingUp, Pencil, MessageCircle, Star, Eye, Plus, Trash2, AlertCircle, Upload, X, Image as ImageIcon, MapPin, Loader, Navigation, ShieldCheck, ShieldAlert } from "lucide-react"
+import { loadStripe } from "@stripe/stripe-js"
 import {
   getCategorias,
   Categoria,
@@ -28,22 +28,23 @@ import {
   getMisServicios,
   actualizarServicio,
   eliminarServicio,
-  getSignedUploadUrl,
   getMiPerfilProveedor,
-  ServicioDetalle,
-  ApiError,
   getConversaciones,
   iniciarVerificacionIdentidad,
   getSignedUploadUrlGaleria,
   confirmarImagenServicio,
+  ServicioDetalle,
+  ApiError,
 } from "@/lib/api"
 import { subirImagenServicio } from "@/lib/storage"
 import { geocodeCiudad, getBrowserLocation } from "@/lib/geocode"
-import { loadStripe } from "@stripe/stripe-js"
+import GaleriaImagenes from "@/components/galeria-imagenes"
+import HorarioDisponibilidad from "@/components/horario-disponibilidad"
+
+// loadStripe se llama UNA vez fuera del componente (mismo patrón que stripe-provider.tsx)
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
 const PRICE_TYPES = ["fijo", "hora"]
-
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
 export default function DashboardPage() {
   const { isAuthenticated, isLoading, role } = useAuth()
@@ -54,26 +55,27 @@ export default function DashboardPage() {
   const [cargandoServicios, setCargandoServicios] = useState(true)
   const [valoracionMedia, setValoracionMedia] = useState<number | null>(null)
   const [mensajesNoLeidos, setMensajesNoLeidos] = useState<number | null>(null)
+  const [perfilProveedor, setPerfilProveedor] = useState<any>(null)
+  const [verificandoIdentidad, setVerificandoIdentidad] = useState(false)
+  const [errorVerificacion, setErrorVerificacion] = useState<string | null>(null)
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [imagenesNuevas, setImagenesNuevas] = useState<{ file: File; preview: string }[]>([])
   const [formCoords, setFormCoords] = useState<{ lat: number; lng: number } | null>(null)
+  // (imagePreview eliminado: cada imagen nueva lleva su preview dentro de imagenesNuevas)
   const [creando, setCreando] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
 
 
   const [editingService, setEditingService] = useState<ServicioDetalle | null>(null)
   const [editForm, setEditForm] = useState({ title: "", categoriaId: "", description: "", price: "", priceType: "hora" })
+  // (editImageFile/editImagePreview eliminados: la edición usa ahora la galería de imágenes)
   const [guardandoEdicion, setGuardandoEdicion] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
   const [editLocation, setEditLocation] = useState("")
   const [editFormCoords, setEditFormCoords] = useState<{ lat: number; lng: number } | null>(null)
 
   const [errorAcciones, setErrorAcciones] = useState<string | null>(null)
-
-  const [perfilProveedor, setPerfilProveedor] = useState<any>(null)
-  const [verificandoIdentidad, setVerificandoIdentidad] = useState(false)
-  const [errorVerificacion, setErrorVerificacion] = useState<string | null>(null)
 
   const [form, setForm] = useState({
     title: "",
@@ -104,7 +106,7 @@ export default function DashboardPage() {
         setPerfilProveedor(p)
       })
       .catch(() => {})
-    
+
     getConversaciones()
       .then((convs) => setMensajesNoLeidos(convs.reduce((acc, c) => acc + c.no_leidos, 0)))
       .catch((err) => console.error("No se pudieron cargar los mensajes sin leer:", err))
@@ -123,15 +125,15 @@ export default function DashboardPage() {
   const stats = [
     { label: "Servicios activos", value: misServicios.filter((s) => s.activo).length, icon: <Eye size={20} />, color: "text-primary" },
     { label: "Valoración media", value: valoracionMedia != null ? valoracionMedia.toFixed(1) : "—", icon: <Star size={20} />, color: "text-amber-500" },
-    { label: "Ingresos este mes", value: "Próximamente", icon: <TrendingUp size={20} />, color: "text-emerald-500" },
     { label: "Mensajes nuevos", value: mensajesNoLeidos != null ? mensajesNoLeidos : "—", icon: <MessageCircle size={20} />, color: "text-accent" },
+    { label: "Ingresos este mes", value: "Próximamente", icon: <TrendingUp size={20} />, color: "text-emerald-500" },
   ]
 
   const MAX_IMAGENES_CREAR = 10
 
   const handleSeleccionarImagenes = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
-    e.target.value = ""
+    e.target.value = "" // permite volver a seleccionar el mismo archivo después
     if (files.length === 0) return
 
     const espacioDisponible = MAX_IMAGENES_CREAR - imagenesNuevas.length
@@ -199,6 +201,9 @@ export default function DashboardPage() {
         longitud: coords.lng,
       })
 
+      // 3. Subir las imágenes seleccionadas (si hay) a la galería, en orden de selección.
+      //    La primera se convierte en portada automáticamente (lógica ya resuelta en backend).
+      //    Cada subida va en su propio try/catch para que un fallo puntual no bloquee el resto.
       let fallosImagenes = 0
       for (const { file } of imagenesNuevas) {
         try {
@@ -217,6 +222,7 @@ export default function DashboardPage() {
       resetForm()
       setDialogOpen(false)
       cargarMisServicios()
+
       if (fallosImagenes > 0) {
         setErrorAcciones(`El servicio se creó, pero ${fallosImagenes} imagen(es) no se pudieron subir. Puedes añadirlas editando el servicio.`)
       }
@@ -286,6 +292,7 @@ export default function DashboardPage() {
         tipo_precio: editForm.priceType,
         ...(coords ? { latitud: coords.lat, longitud: coords.lng } : {}),
       })
+
       closeEdit()
       cargarMisServicios()
     } catch (err) {
@@ -306,16 +313,6 @@ export default function DashboardPage() {
     }
   }
 
-  const handleToggle = async (servicio: ServicioDetalle) => {
-    setErrorAcciones(null)
-    try {
-      const actualizado = await actualizarServicio(servicio.id, { activo: !servicio.activo })
-      setMisServicios((prev) => prev.map((s) => (s.id === servicio.id ? actualizado : s)))
-    } catch (err) {
-      setErrorAcciones(err instanceof ApiError ? err.message : "No se pudo actualizar el servicio")
-    }
-  }
-
   const handleVerificarIdentidad = async () => {
     setErrorVerificacion(null)
     setVerificandoIdentidad(true)
@@ -328,8 +325,12 @@ export default function DashboardPage() {
       }
       const { error } = await stripe.verifyIdentity(client_secret)
       if (error) {
+        // El usuario cerró el modal o hubo un error de carga (no un rechazo de verificación,
+        // eso llega después por webhook)
         setErrorVerificacion(error.message || "No se pudo completar la verificación")
       } else {
+        // El resultado real (verificado / requires_input) lo confirma el webhook de Stripe,
+        // aquí solo refrescamos para mostrar el estado más reciente disponible
         const perfilActualizado = await getMiPerfilProveedor()
         setPerfilProveedor(perfilActualizado)
       }
@@ -337,6 +338,16 @@ export default function DashboardPage() {
       setErrorVerificacion(err instanceof ApiError ? err.message : "No se pudo iniciar la verificación de identidad")
     } finally {
       setVerificandoIdentidad(false)
+    }
+  }
+
+  const handleToggle = async (servicio: ServicioDetalle) => {
+    setErrorAcciones(null)
+    try {
+      const actualizado = await actualizarServicio(servicio.id, { activo: !servicio.activo })
+      setMisServicios((prev) => prev.map((s) => (s.id === servicio.id ? actualizado : s)))
+    } catch (err) {
+      setErrorAcciones(err instanceof ApiError ? err.message : "No se pudo actualizar el servicio")
     }
   }
 
@@ -592,6 +603,7 @@ export default function DashboardPage() {
             </Card>
           ))}
         </div>
+
         {perfilProveedor && (
           <Card>
             <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
@@ -628,6 +640,22 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         )}
+
+        {perfilProveedor && (
+          <Card>
+            <CardContent className="p-5">
+              <HorarioDisponibilidad
+                diasIniciales={perfilProveedor.dias_disponibles}
+                horaInicioInicial={perfilProveedor.hora_inicio}
+                horaFinInicial={perfilProveedor.hora_fin}
+                onGuardado={(datos) =>
+                  setPerfilProveedor((prev: any) => (prev ? { ...prev, ...datos } : prev))
+                }
+              />
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-lg">Mis servicios</CardTitle>

@@ -27,7 +27,7 @@ class ActualizarServicio(BaseModel):
     imagen_url: Optional[str] = None
 
 
-class ServicioOut(BaseModel):
+class ServicioBase(BaseModel):
     id: UUID
     proveedor_id: UUID
     categoria_id: Optional[UUID] = None
@@ -38,14 +38,17 @@ class ServicioOut(BaseModel):
     activo: bool
     fecha_creacion: Optional[datetime] = None
     imagen_url: Optional[str] = None
-    latitud: Optional[float] = None
-    longitud: Optional[float] = None
 
     class Config:
         from_attributes = True
 
 
-class ServicioBusquedaOut(ServicioOut):
+class ServicioOut(ServicioBase):
+    latitud: Optional[float] = None
+    longitud: Optional[float] = None
+
+
+class ServicioBusquedaOut(ServicioBase): 
     distancia_km: Optional[float] = None
     proveedor_nombre: Optional[str] = None
     proveedor_avatar: Optional[str] = None

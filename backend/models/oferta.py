@@ -17,3 +17,4 @@ class Oferta(base):
     estado = Column(Text, default="pendiente")
     fecha_creacion = Column(DateTime, nullable=True, default=lambda: datetime.now(timezone.utc))
     horas = Column(Numeric(6, 2), nullable=True)
+    fecha_hora_propuesta = Column(DateTime, nullable=True)

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from uuid import UUID
 from utils.auth_middleware import get_current_user
-from schemas.proveedor_schema import CrearPerfilProveedor, PerfilProveedorOut
+from schemas.proveedor_schema import CrearPerfilProveedor, PerfilProveedorOut, ActualizarPerfilProveedor
 from services.proveedor_service import ProveedorService
 from utils.storage import generar_signed_upload_url
 from config import Config
@@ -15,6 +15,15 @@ async def crear_proveedor(perfil: CrearPerfilProveedor, current_user=Depends(get
     service = ProveedorService()
     resultado = service.create_or_update(user_id, perfil.descripcion, perfil.radio_km_disponible, perfil.experiencia_años)
     return resultado
+
+@router.patch("/", response_model=PerfilProveedorOut)
+async def actualizar_perfil(datos: ActualizarPerfilProveedor, current_user=Depends(get_current_user)):
+    usuario_id = current_user["user_id"]
+    service = ProveedorService()
+    perfil = service.obtener_por_usuario(usuario_id)
+    if not perfil:
+        raise HTTPException(status_code=404, detail="No tienes perfil de proveedor")
+    return service.actualizar_perfil(perfil.id, **datos.model_dump(exclude_none=True))
 
 
 @router.get("/me", response_model=PerfilProveedorOut)
