@@ -14,7 +14,7 @@ class CrearPerfilProveedor(BaseModel):
     hora_fin: Optional[str] = None
 
 
-class PerfilProveedorOut(BaseModel):
+class PerfilProveedorPublico(BaseModel):
     id: UUID
     usuario_id: UUID
     descripcion: Optional[str] = None
@@ -23,15 +23,18 @@ class PerfilProveedorOut(BaseModel):
     valoracion_media: Optional[Decimal] = None
     num_valoraciones: int
     verificado: Optional[bool] = None
-    url_documento: Optional[str] = None
     fecha_creacion: Optional[datetime] = None
-    motivo_rechazo: Optional[str] = None
     dias_disponibles: Optional[str] = None
     hora_inicio: Optional[str] = None
     hora_fin: Optional[str] = None
 
     class Config:
         from_attributes = True
+
+
+class PerfilProveedorOut(PerfilProveedorPublico):
+    url_documento: Optional[str] = None
+    motivo_rechazo: Optional[str] = None
         
 class RechazarDocumento(BaseModel):
     motivo: str

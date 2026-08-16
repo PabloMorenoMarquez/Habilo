@@ -20,3 +20,5 @@ class Usuario(base):
     es_admin = Column(Boolean, default=False)
     baneado = Column(Boolean, default=False)
     motivo_baneo = Column(Text, nullable=True)
+    cuenta_eliminada = Column(Boolean, default = False)
+    fecha_eliminacion = Column (DateTime, nullable=True)

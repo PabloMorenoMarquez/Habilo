@@ -6,6 +6,7 @@ import {
   getUsuariosBaneados,
   banearUsuario,
   desbanearUsuario,
+  eliminarCuentaAdmin,
   UsuarioAdmin,
   ApiError,
 } from "@/lib/api"
@@ -16,7 +17,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog"
-import { Loader, Search, Ban, ShieldOff } from "lucide-react"
+import { Loader, Search, Ban, ShieldOff, Trash2 } from "lucide-react"
 
 export default function AdminUsuariosPage() {
   const { user: currentUser } = useAuth()
@@ -78,6 +79,24 @@ export default function AdminUsuariosPage() {
     }
   }
 
+  const handleEliminarCuenta = async (u: UsuarioAdmin) => {
+    const confirmado = window.confirm(
+      `¿Seguro que quieres eliminar la cuenta de ${u.nombre} (${u.email})? Esta acción es irreversible: se cancelarán sus solicitudes activas (con reembolso si aplica), se desactivarán sus servicios publicados, y sus datos personales se anonimizarán.`
+    )
+    if (!confirmado) return
+
+    setProcesando(u.id)
+    setError(null)
+    try {
+      await eliminarCuentaAdmin(u.id)
+      setResultados((prev) => prev.filter((r) => r.id !== u.id))
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se pudo eliminar la cuenta")
+    } finally {
+      setProcesando(null)
+    }
+  }
+
   const handleDesbanear = async (id: string) => {
     setProcesando(id)
     setError(null)
@@ -124,47 +143,61 @@ export default function AdminUsuariosPage() {
                         {u.nombre}
                         {u.es_admin && <Badge variant="secondary">Admin</Badge>}
                         {u.baneado && <Badge variant="destructive">Baneado</Badge>}
+                        {u.cuenta_eliminada && <Badge variant="outline">Cuenta eliminada</Badge>}
                       </p>
                       <p className="text-xs text-muted-foreground">{u.email}</p>
                     </div>
 
-                    {!u.baneado && u.id !== currentUser?.id && !u.es_admin && (
-                      <Dialog
-                        open={baneoAbierto === u.id}
-                        onOpenChange={(open) => {
-                          setBaneoAbierto(open ? u.id : null)
-                          if (!open) setMotivo("")
-                        }}
-                      >
-                        <DialogTrigger asChild>
-                          <Button size="sm" variant="destructive" disabled={procesando === u.id}>
-                            <Ban size={14} /> Banear
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Banear a {u.nombre}</DialogTitle>
-                          </DialogHeader>
-                          <Textarea
-                            placeholder="Motivo del baneo"
-                            value={motivo}
-                            onChange={(e) => setMotivo(e.target.value)}
-                            rows={3}
-                          />
-                          <DialogFooter>
-                            <Button variant="ghost" onClick={() => setBaneoAbierto(null)}>
-                              Cancelar
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              disabled={!motivo.trim() || procesando === u.id}
-                              onClick={handleBanear}
-                            >
-                              Confirmar baneo
-                            </Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
+                    {!u.cuenta_eliminada && u.id !== currentUser?.id && !u.es_admin && (
+                      <div className="flex gap-2">
+                        {!u.baneado && (
+                          <Dialog
+                            open={baneoAbierto === u.id}
+                            onOpenChange={(open) => {
+                              setBaneoAbierto(open ? u.id : null)
+                              if (!open) setMotivo("")
+                            }}
+                          >
+                            <DialogTrigger asChild>
+                              <Button size="sm" variant="destructive" disabled={procesando === u.id}>
+                                <Ban size={14} /> Banear
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Banear a {u.nombre}</DialogTitle>
+                              </DialogHeader>
+                              <Textarea
+                                placeholder="Motivo del baneo"
+                                value={motivo}
+                                onChange={(e) => setMotivo(e.target.value)}
+                                rows={3}
+                              />
+                              <DialogFooter>
+                                <Button variant="ghost" onClick={() => setBaneoAbierto(null)}>
+                                  Cancelar
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  disabled={!motivo.trim() || procesando === u.id}
+                                  onClick={handleBanear}
+                                >
+                                  Confirmar baneo
+                                </Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
+                        )}
+
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          disabled={procesando === u.id}
+                          onClick={() => handleEliminarCuenta(u)}
+                        >
+                          <Trash2 size={14} /> Eliminar cuenta
+                        </Button>
+                      </div>
                     )}
                   </CardContent>
                 </Card>

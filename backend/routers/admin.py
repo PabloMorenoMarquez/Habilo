@@ -72,4 +72,9 @@ async def banear(usuario_id:UUID, datos:BanearUsuario, current_admin=Depends(get
 async def desbanear(usuario_id:UUID, current_admin=Depends(get_current_admin)):
     service = UserService()
     return service.desbanear(usuario_id)
+
+@router.patch("/usuarios/{usuario_id}/eliminar", response_model=UsuarioAdminOut)
+async def eliminar(usuario_id:UUID, current_admin=Depends(get_current_admin)):
+    service = UserService()
+    return service.eliminar_cuenta(usuario_id, current_admin["user_id"])
     

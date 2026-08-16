@@ -1,6 +1,7 @@
 from sqlalchemy import select
 from models.usuario import Usuario
 from database.session import SessionLocal
+from datetime import datetime, timezone
 from uuid import UUID
 
 class UserRepository:
@@ -97,6 +98,29 @@ class UserRepository:
                 return None
             usuario.baneado = False
             usuario.motivo_baneo = None
+            session.commit()
+            session.refresh(usuario)
+            return usuario
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.close()
+            
+    def eliminar(self, usuario_id:UUID):
+        session = SessionLocal()
+        try:
+            stmt = select(Usuario).where(Usuario.id == usuario_id)
+            usuario = session.scalar(stmt)
+            if not usuario:
+                return None
+            usuario.nombre = "Usuario eliminado"
+            usuario.foto_url = None
+            usuario.telefono = None
+            usuario.telefono_verificado = False
+            usuario.ciudad = None
+            usuario.cuenta_eliminada = True
+            usuario.fecha_eliminacion = datetime.now(timezone.utc)
             session.commit()
             session.refresh(usuario)
             return usuario

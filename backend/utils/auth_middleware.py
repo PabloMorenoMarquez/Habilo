@@ -28,6 +28,12 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
             status_code=403,
             detail="Tu cuenta ha sido suspendida"
         )
+    
+    if usuario.cuenta_eliminada:
+        raise HTTPException(
+            status_code=403,
+            detail="Tu cuenta ha sido eliminada"
+        )
 
     payload["es_admin"] = usuario.es_admin
     return payload
@@ -51,6 +57,9 @@ def decode_token_ws(token: str):
     from repositories.user_repository import UserRepository
     usuario = UserRepository().get_by_id(payload["user_id"])
     if not usuario or usuario.baneado:
+        return None
+    
+    if usuario.cuenta_eliminada:
         return None
 
     return payload

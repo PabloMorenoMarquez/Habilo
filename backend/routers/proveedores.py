@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from uuid import UUID
 from utils.auth_middleware import get_current_user
-from schemas.proveedor_schema import CrearPerfilProveedor, PerfilProveedorOut, ActualizarPerfilProveedor
+from schemas.proveedor_schema import CrearPerfilProveedor, PerfilProveedorOut, ActualizarPerfilProveedor, PerfilProveedorPublico
 from services.proveedor_service import ProveedorService
 from utils.storage import generar_signed_upload_url
 from config import Config
@@ -36,7 +36,7 @@ async def obtener_mi_perfil_proveedor(current_user=Depends(get_current_user)):
     return perfil
 
 
-@router.get("/{perfil_id}", response_model=PerfilProveedorOut)
+@router.get("/{perfil_id}", response_model=PerfilProveedorPublico)
 async def obtener_perfil_proveedor(perfil_id: UUID):
     service = ProveedorService()
     perfil = service.obtener_por_id(perfil_id)

@@ -270,6 +270,25 @@ export default function ProfilePage() {
 
         <Card>
           <CardHeader className="pb-4">
+            <CardTitle className="text-lg">Soporte y contacto</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              ¿Dudas, incidencias con un pago, o quieres darte de baja de la plataforma? Escríbenos y te
+              respondemos lo antes posible.
+            </p>
+            <a
+              href="mailto:soporte@habilo.es"
+              className="flex items-center gap-2 text-sm font-medium text-foreground hover:underline w-fit"
+            >
+              <Mail size={16} className="text-muted-foreground" />
+              soporte@habilo.es
+            </a>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-4">
             <CardTitle className="text-lg">Configuración de cuenta</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">

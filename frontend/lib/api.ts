@@ -434,6 +434,8 @@ export interface UsuarioAdmin {
   ciudad: string | null
   baneado: boolean
   motivo_baneo: string | null
+  cuenta_eliminada: boolean
+  fecha_eliminacion: string | null
   es_admin: boolean
 }
 
@@ -454,6 +456,10 @@ export function banearUsuario(usuarioId: string, motivo: string) {
 
 export function desbanearUsuario(usuarioId: string) {
   return apiFetch<UsuarioAdmin>(`/admin/usuarios/${usuarioId}/desbanear`, { method: "PATCH" })
+}
+
+export function eliminarCuentaAdmin(usuarioId: string) {
+  return apiFetch<UsuarioAdmin>(`/admin/usuarios/${usuarioId}/eliminar`, { method: "PATCH" })
 }
 
 // --- Ofertas ---

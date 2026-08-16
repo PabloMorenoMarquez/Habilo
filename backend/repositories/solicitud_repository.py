@@ -1,4 +1,4 @@
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, or_
 from models.solicitud import Solicitud
 from models.servicio import Servicio
 from database.session import SessionLocal
@@ -155,6 +155,25 @@ class SolicitudRepository:
                 .join(Perfil_Proveedor, Servicio.proveedor_id == Perfil_Proveedor.id)
                 .where(
                     and_(Solicitud.cliente_id == usuario_a, Perfil_Proveedor.usuario_id == usuario_b) | and_(Solicitud.cliente_id == usuario_b, Perfil_Proveedor.usuario_id == usuario_a),
+                    Solicitud.estado.in_(["pendiente", "aceptada", "negociando"])
+                )
+            )
+            return list(session.scalars(stmt))
+        finally:
+            session.close()
+            
+    def listar_activas_de_usuario(usuario_id: UUID):
+        from models.servicio import Servicio
+        from models.perfil_proveedor import Perfil_Proveedor
+
+        session = SessionLocal()
+        try:
+            stmt = (
+                select(Solicitud)
+                .join(Servicio, Solicitud.servicio_id == Servicio.id)
+                .join(Perfil_Proveedor, Servicio.proveedor_id == Perfil_Proveedor.id)
+                .where(
+                    or_(Solicitud.cliente_id == usuario_id, Perfil_Proveedor.usuario_id == usuario_id),
                     Solicitud.estado.in_(["pendiente", "aceptada", "negociando"])
                 )
             )

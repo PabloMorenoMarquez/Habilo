@@ -40,3 +40,5 @@ class UsuarioAdminOut(BaseModel):
     baneado: bool
     motivo_baneo: Optional[str] = None
     es_admin: bool
+    cuenta_eliminada: bool
+    fecha_eliminacion: Optional[datetime] = None
