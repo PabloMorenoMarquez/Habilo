@@ -7,6 +7,7 @@ from repositories.solicitud_repository import SolicitudRepository
 from repositories.pago_repository import PagoRepository
 from repositories.proveedor_repository import ProveedorRepository
 from services.solicitud_service import SolicitudService
+from services.notificacion_push_service import NotificacionPushService
 from decimal import Decimal, ROUND_HALF_UP
 from config import Config
 from utils.stripe_client import get_stripe
@@ -23,6 +24,7 @@ class PagoService:
         self.proveedor_repository = ProveedorRepository()
         self.solicitud_service = SolicitudService()
         self.stripe = get_stripe()
+        self.notificacion_push_service = NotificacionPushService()
         
     def crear_pago_desde_oferta(self, oferta_id:UUID, cliente_id: UUID):
         
@@ -139,7 +141,16 @@ class PagoService:
         except self.stripe.error.StripeError as e:
             raise HTTPException(status_code=400, detail=f"No se pudo cobrar el pago: {str(e)}")
         
-        return self.pago_repository.marcar_transferido_por_payment_intent_id(pago.stripe_payment_intent_id, transfer.id)
+        resultado = self.pago_repository.marcar_transferido_por_payment_intent_id(pago.stripe_payment_intent_id, transfer.id)
+        
+        self.notificacion_push_service.enviar(
+            usuario_id=perfil.usuario_id,
+            titulo="Pago transferido",
+            cuerpo=f"Se han transferido {pago.monto_proveedor}€ a tu cuenta",
+            url="/dashboard",
+        )
+        
+        return resultado
     
     def confirmar_entrega_y_transferir_por_sistema(self, solicitud_id):
         solicitud = self.solicitud_repository.get_by_id(solicitud_id)
@@ -164,7 +175,16 @@ class PagoService:
         except self.stripe.error.StripeError as e:
             raise HTTPException(status_code=400, detail=f"No se pudo cobrar el pago: {str(e)}")
         
-        return self.pago_repository.marcar_transferido_por_payment_intent_id(pago.stripe_payment_intent_id, transfer.id)
+        resultado = self.pago_repository.marcar_transferido_por_payment_intent_id(pago.stripe_payment_intent_id, transfer.id)
+
+        self.notificacion_push_service.enviar(
+            usuario_id=perfil.usuario_id,
+            titulo="Pago transferido",
+            cuerpo=f"Se han transferido {pago.monto_proveedor}€ a tu cuenta",
+            url="/dashboard",
+        )
+
+        return resultado
     
     def reembolsar_pago_de_solicitud(self, solicitud_id:UUID):
         pago = self.pago_repository.get_by_solicitud_id(solicitud_id)

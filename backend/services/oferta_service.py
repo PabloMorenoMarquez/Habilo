@@ -4,6 +4,7 @@ from repositories.oferta_repository import OfertaRepository
 from services.mensaje_service import MensajeService
 from repositories.servicio_repository import ServicioRepository
 from repositories.solicitud_repository import SolicitudRepository
+from services.notificacion_push_service import NotificacionPushService
 from decimal import Decimal, ROUND_HALF_UP
 from datetime import datetime, timezone
 
@@ -14,6 +15,7 @@ class OfertaService:
         self.mensaje_service = MensajeService()
         self.servicio_repository = ServicioRepository()
         self.solicitud_repository = SolicitudRepository()
+        self.notificacion_push_service = NotificacionPushService()
         
     def _validar_fecha_propuesta(self, fecha_hora_propuesta):
         if fecha_hora_propuesta and fecha_hora_propuesta < datetime.now(timezone.utc):
@@ -92,7 +94,17 @@ class OfertaService:
         if str(usuario_id) == str(oferta.autor_id):
             raise HTTPException(status_code=403, detail="No puedes aceptar tu propia oferta")
         
-        return self.oferta_repository.actualizar_estado(oferta_id, "aceptada")
+        oferta_aceptada = self.oferta_repository.actualizar_estado(oferta_id, "aceptada")
+
+        servicio = self.servicio_repository.get_by_id(solicitud.servicio_id)
+        self.notificacion_push_service.enviar(
+            usuario_id=oferta.autor_id,
+            titulo="Oferta aceptada",
+            cuerpo=f"Tu oferta para {servicio.titulo} ha sido aceptada",
+            url=f"/chats?solicitud={solicitud.id}",
+        )
+
+        return oferta_aceptada
         
     def rechazar_oferta(self, oferta_id:UUID, usuario_id:UUID):
         oferta = self.oferta_repository.get_by_id(oferta_id)

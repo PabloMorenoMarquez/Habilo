@@ -3,6 +3,7 @@ from repositories.solicitud_repository import SolicitudRepository
 from repositories.servicio_repository import ServicioRepository
 from repositories.proveedor_repository import ProveedorRepository
 from repositories.bloqueo_repository import BloqueoRepository
+from services.notificacion_push_service import NotificacionPushService
 from fastapi import HTTPException
 from datetime import datetime, timezone
 
@@ -30,6 +31,7 @@ class SolicitudService:
         self.servicio_repository = ServicioRepository()
         self.proveedor_repository = ProveedorRepository()
         self.bloqueo_repository = BloqueoRepository()
+        self.notificacion_push_service = NotificacionPushService()
 
     def crear(self, servicio_id: UUID, cliente_id: UUID):
         servicio = self.servicio_repository.get_by_id(servicio_id)
@@ -48,7 +50,16 @@ class SolicitudService:
         if existente:
             raise HTTPException(status_code=409, detail="Ya tienes una solicitud activa para este servicio")
 
-        return self.solicitud_repository.crear(servicio_id, cliente_id)
+        solicitud = self.solicitud_repository.crear(servicio_id, cliente_id)
+        
+        self.notificacion_push_service.enviar(
+            usuario_id=proveedor.usuario_id,
+            titulo="Nueva solicitud",
+            cuerpo=f"Tienes una nueva solicitud para {servicio.titulo}",
+            url=f"/chats?solicitud={solicitud.id}",
+        )
+
+        return solicitud
 
     def obtener(self, solicitud_id:UUID, usuario_id:UUID, proveedor_id:UUID=None):
         solicitud = self.solicitud_repository.get_by_id(solicitud_id)
@@ -115,6 +126,13 @@ class SolicitudService:
         
         if nuevo_estado == "completada":
             self.solicitud_repository.marcar_fecha_completada(solicitud_id)
+            proveedor = self.proveedor_repository.get_by_id(servicio.proveedor_id)
+            self.notificacion_push_service.enviar(
+                usuario_id=proveedor.usuario_id,
+                titulo= "Servicio marcado como completado",
+                cuerpo= f"El cliente ha confirmado que {servicio.titulo} ha finalizado",
+                url=f"/chats?solicitud={solicitud_id}",
+            )
         
         return self.solicitud_repository.actualizar_estado(solicitud_id, nuevo_estado, motivo)
     

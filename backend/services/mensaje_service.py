@@ -3,13 +3,17 @@ from fastapi import HTTPException
 from repositories.mensaje_repository import MensajeRepository
 from repositories.solicitud_repository import SolicitudRepository
 from repositories.servicio_repository import ServicioRepository
-
+from services.notificacion_push_service import NotificacionPushService
+from services.notificacion_email_service import NotificacionEmailService
+from config import Config
 
 class MensajeService:
     def __init__(self):
         self.mensaje_repository = MensajeRepository()
         self.solicitud_repository = SolicitudRepository()
         self.servicio_repository = ServicioRepository()
+        self.notificacion_push_service = NotificacionPushService()
+        self.notificacion_email_service = NotificacionEmailService()
 
     def _verificar_acceso(self, solicitud_id:UUID, usuario_id:UUID):
         solicitud = self.solicitud_repository.get_by_id(solicitud_id)
@@ -49,6 +53,23 @@ class MensajeService:
         mensaje = self.mensaje_repository.crear(solicitud_id, remitente_id, contenido)
         
         self.solicitud_repository.actualizar_ultima_actividad(solicitud_id)
+        
+        self.notificacion_push_service.enviar(
+            usuario_id=otro_usuario_id,
+            titulo="Nuevo mensaje",
+            cuerpo=contenido[:80],
+            url=f"/chats?solicitud={solicitud_id}"
+        )
+        
+        self.notificacion_email_service.enviar(
+            usuario_id=otro_usuario_id,
+            asunto="Nuevo mensaje en Habilo",
+            cuerpo_html=f"""
+                <p>Tienes un nuevo mensaje en Habilo:</p>
+                <p><em>{contenido[:200]}</em></p>
+                <p><a href="{Config.FRONTEND_URL}/chats?solicitud={solicitud_id}">Ver conversación</a></p>
+            """,
+        )
         
         return mensaje
 

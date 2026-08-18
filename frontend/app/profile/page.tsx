@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { MapPin, Calendar, Star, Edit, Mail, Briefcase, UserCheck, Loader, Phone } from "lucide-react"
 import { getMiPerfilProveedor, getMisServicios, actualizarMe, ApiError, ServicioDetalle, getBloqueados, desbloquearUsuario, UsuarioBloqueado } from "@/lib/api"
+import { suscribirseAPush } from "@/lib/push"
 
 function formatFecha(fecha: string | null | undefined) {
   if (!fecha) return "—"
@@ -34,6 +35,32 @@ export default function ProfilePage() {
   const [bloqueados, setBloqueados] = useState<UsuarioBloqueado[]>([])
 
   const [errorBloqueados, setErrorBloqueados] = useState<string | null>(null)
+
+  const [pushActivado, setPushActivado] = useState(false)
+  const [pushDenegado, setPushDenegado] = useState(false)
+  const [activandoPush, setActivandoPush] = useState(false)
+
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return
+    if (typeof Notification !== "undefined" && Notification.permission === "denied") {
+      setPushDenegado(true)
+    }
+    navigator.serviceWorker.ready.then((registration) => {
+      registration.pushManager.getSubscription().then((sub) => {
+        setPushActivado(!!sub)
+      })
+    })
+  }, [])
+
+  const handleActivarPush = async () => {
+    setActivandoPush(true)
+    const ok = await suscribirseAPush()
+    setPushActivado(ok)
+    if (!ok && Notification.permission === "denied") {
+      setPushDenegado(true)
+    }
+    setActivandoPush(false)
+  }
 
   useEffect(() => {
     if (isLoading) return
@@ -292,6 +319,25 @@ export default function ProfilePage() {
             <CardTitle className="text-lg">Configuración de cuenta</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
+            <div className="flex items-center justify-between py-3 border-b border-border">
+              <div>
+                <p className="text-sm font-medium text-foreground">Notificaciones push</p>
+                <p className="text-xs text-muted-foreground">
+                  Recibe avisos de mensajes y solicitudes en este dispositivo
+                </p>
+              </div>
+              {pushActivado ? (
+                <span className="text-xs text-muted-foreground">Activadas</span>
+              ) : pushDenegado ? (
+                <span className="text-xs text-destructive">
+                  Bloqueadas — actívalas desde los ajustes del navegador
+                </span>
+              ) : (
+                <Button variant="outline" size="sm" onClick={handleActivarPush} disabled={activandoPush}>
+                  {activandoPush ? "Activando..." : "Activar"}
+                </Button>
+              )}
+            </div>
             {[
               { label: "Notificaciones por email", desc: "Recibe alertas de nuevos mensajes" },
               { label: "Privacidad del perfil", desc: "Controla quién puede ver tu información" },
