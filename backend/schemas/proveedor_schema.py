@@ -61,3 +61,6 @@ class ActualizarPerfilProveedor(BaseModel):
     dias_disponibles: Optional[str] = None
     hora_inicio: Optional[str] = None
     hora_fin: Optional[str] = None
+    
+class ConfirmarDocumento(BaseModel):
+    path: str

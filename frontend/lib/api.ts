@@ -83,6 +83,24 @@ export function iniciarVerificacionIdentidad() {
   })
 }
 
+export function getSignedUrlDocumento() {
+  return apiFetch<{ signed_url: string; path: string; token: string }>(
+    "/proveedor/documento/signed-url",
+    { method: "POST" }
+  )
+}
+
+export function confirmarDocumento(path: string) {
+  return apiFetch<{ path: string }>("/proveedor/documento/confirmar", {
+    method: "PATCH",
+    body: JSON.stringify({ path }),
+  })
+}
+
+export function getMiDocumentoUrl() {
+  return apiFetch<{ url: string }>("/proveedor/documento")
+}
+
 export function crearPerfilProveedor(datos: {
   descripcion: string
   radio_km_disponible: number
@@ -419,6 +437,10 @@ export function rechazarProveedor(perfilId: string, motivo: string) {
     method: "PATCH",
     body: JSON.stringify({ motivo }),
   })
+}
+
+export function getUrlDocumentoProveedor(perfilId: string) {
+  return apiFetch<{ url: string }>(`/admin/proveedores/${perfilId}/documento`)
 }
 
 // --- Admin: Usuarios (baneos) ---

@@ -5,6 +5,7 @@ import {
   getProveedoresPendientes,
   verificarProveedor,
   rechazarProveedor,
+  getUrlDocumentoProveedor,
   PerfilProveedorAdmin,
   ApiError,
 } from "@/lib/api"
@@ -22,6 +23,7 @@ export default function AdminProveedoresPage() {
   const [procesando, setProcesando] = useState<string | null>(null)
   const [rechazoAbierto, setRechazoAbierto] = useState<string | null>(null)
   const [motivo, setMotivo] = useState("")
+  const [abriendoDocumento, setAbriendoDocumento] = useState<string | null>(null)
 
   const cargar = useCallback(async () => {
     setCargando(true)
@@ -66,6 +68,19 @@ export default function AdminProveedoresPage() {
     }
   }
 
+  const handleVerDocumento = async (perfilId: string) => {
+    setAbriendoDocumento(perfilId)
+    setError(null)
+    try {
+      const { url } = await getUrlDocumentoProveedor(perfilId)
+      window.open(url, "_blank", "noopener,noreferrer")
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se pudo abrir el documento")
+    } finally {
+      setAbriendoDocumento(null)
+    }
+  }
+
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
@@ -98,14 +113,19 @@ export default function AdminProveedoresPage() {
 
                 {p.descripcion && <p className="text-sm text-muted-foreground">{p.descripcion}</p>}
 
-                <a
-                  href={p.url_documento ?? "#"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+                <button
+                  type="button"
+                  onClick={() => handleVerDocumento(p.id)}
+                  disabled={abriendoDocumento === p.id}
+                  className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline disabled:opacity-50"
                 >
-                  <FileText size={14} /> Ver documento
-                </a>
+                  {abriendoDocumento === p.id ? (
+                    <Loader size={14} className="animate-spin" />
+                  ) : (
+                    <FileText size={14} />
+                  )}
+                  Ver documento
+                </button>
 
                 <div className="flex gap-2 pt-1">
                   <Button size="sm" variant="outline" disabled={procesando === p.id} onClick={() => handleVerificar(p.id)}>

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from uuid import UUID
 from utils.auth_middleware import get_current_user
-from schemas.proveedor_schema import CrearPerfilProveedor, PerfilProveedorOut, ActualizarPerfilProveedor, PerfilProveedorPublico
+from schemas.proveedor_schema import CrearPerfilProveedor, ConfirmarDocumento, PerfilProveedorOut, ActualizarPerfilProveedor, PerfilProveedorPublico
 from services.proveedor_service import ProveedorService
 from utils.storage import generar_signed_upload_url
 from config import Config
@@ -36,6 +36,15 @@ async def obtener_mi_perfil_proveedor(current_user=Depends(get_current_user)):
     return perfil
 
 
+@router.get("/documento")
+async def ver_mi_documento(current_user=Depends(get_current_user)):
+    usuario_id = current_user["user_id"]
+    service = ProveedorService()
+    url = service.obtener_url_documento_por_usuario(usuario_id)
+    return {
+        "url": url
+    }
+
 @router.get("/{perfil_id}", response_model=PerfilProveedorPublico)
 async def obtener_perfil_proveedor(perfil_id: UUID):
     service = ProveedorService()
@@ -57,21 +66,19 @@ async def signed_url_documento(current_user=Depends(get_current_user)):
 
 
 @router.patch("/documento/confirmar")
-async def confirmar_documento(url_documento: str, current_user=Depends(get_current_user)):
+async def confirmar_documento(datos: ConfirmarDocumento, current_user=Depends(get_current_user)):
     usuario_id = current_user["user_id"]
 
-    # Validar que la URL pertenece de verdad a vuestro bucket de Supabase,
-    # no a cualquier dominio que el cliente decida mandar
-    prefijo_esperado = f"{Config.SUPABASE_URL}/storage/v1/object/public/{Config.STORAGE_BUCKET_DOCUMENTOS}/"
-    if not url_documento.startswith(prefijo_esperado):
-        raise HTTPException(status_code=400, detail="URL de documento no válida")
+    path_esperado = f"{usuario_id}/documento"
+    if datos.path != path_esperado:
+        raise HTTPException(status_code=400, detail="Path de documento no válido")
 
     service = ProveedorService()
     perfil = service.obtener_por_usuario(usuario_id)
     if not perfil:
         raise HTTPException(status_code=404, detail="No tienes perfil de proveedor")
-    actualizado = service.actualizar_documento(perfil.id, url_documento)
-    return {"url_documento": actualizado.url_documento}
+    actualizado = service.actualizar_documento(perfil.id, datos.path)
+    return {"path": actualizado.url_documento}
 
 @router.post("/stripe/onboarding-link")
 async def crear_link_onboarding(current_user=Depends(get_current_user)):
@@ -94,3 +101,4 @@ async def iniciar_verificacion_identidad(current_user=Depends(get_current_user))
     service = ProveedorService()
     client_secret = service.iniciar_verificacion_identidad(current_user["user_id"])
     return {"client_secret": client_secret}
+
