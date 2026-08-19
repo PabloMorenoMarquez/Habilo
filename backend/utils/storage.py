@@ -1,5 +1,6 @@
 from supabase import create_client
 from config import Config
+from fastapi import HTTPException
 
 _client = None
 
@@ -28,3 +29,15 @@ def generar_signed_upload_url(bucket: str, path: str, expires_in: int = 300) -> 
 def get_public_url(bucket: str, path: str) -> str:
     client = get_supabase()
     return client.storage.from_(bucket).get_public_url(path)
+
+def generar_signed_download_url(bucket:str, path:str, expires_in: int = 120) -> dict:
+    client = get_supabase()
+    
+    result = client.storage.from_(bucket).create_signed_url(path, expires_in)
+    
+    return {
+        "signed_url": result["signedURL"],
+        "path": path,
+        "token": result.get("token")
+    }
+    

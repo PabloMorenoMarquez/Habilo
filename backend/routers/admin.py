@@ -53,6 +53,14 @@ async def rechazar(perfil_id:UUID, datos: RechazarDocumento, current_admin=Depen
     service = ProveedorService()
     return service.rechazar(perfil_id, datos.motivo)
 
+@router.get("/proveedores/{perfil_id}/documento")
+async def ver_documento_proveedor(perfil_id: UUID, current_admin=Depends(get_current_admin)):
+    service = ProveedorService()
+    url = service.obtener_url_documento(perfil_id)
+    return {
+        "url": url
+    }
+
 @router.get("/usuarios/buscar", response_model=List[UsuarioAdminOut])
 async def buscar_usuarios(email:str = Query(...), current_admin=Depends(get_current_admin)):
     service = UserService()

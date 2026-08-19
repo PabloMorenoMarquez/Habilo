@@ -20,7 +20,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { TrendingUp, Pencil, MessageCircle, Star, Eye, Plus, Trash2, AlertCircle, Upload, X, Image as ImageIcon, MapPin, Loader, Navigation, ShieldCheck, ShieldAlert } from "lucide-react"
-import { loadStripe } from "@stripe/stripe-js"
+//import { loadStripe } from "@stripe/stripe-js"
+import DocumentoIdentidad from "@/components/documento-identidad"
 import {
   getCategorias,
   Categoria,
@@ -30,7 +31,7 @@ import {
   eliminarServicio,
   getMiPerfilProveedor,
   getConversaciones,
-  iniciarVerificacionIdentidad,
+  //iniciarVerificacionIdentidad,
   getSignedUploadUrlGaleria,
   confirmarImagenServicio,
   ServicioDetalle,
@@ -42,7 +43,7 @@ import GaleriaImagenes from "@/components/galeria-imagenes"
 import HorarioDisponibilidad from "@/components/horario-disponibilidad"
 
 // loadStripe se llama UNA vez fuera del componente (mismo patrón que stripe-provider.tsx)
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
+//const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
 const PRICE_TYPES = ["fijo", "hora"]
 
@@ -56,8 +57,8 @@ export default function DashboardPage() {
   const [valoracionMedia, setValoracionMedia] = useState<number | null>(null)
   const [mensajesNoLeidos, setMensajesNoLeidos] = useState<number | null>(null)
   const [perfilProveedor, setPerfilProveedor] = useState<any>(null)
-  const [verificandoIdentidad, setVerificandoIdentidad] = useState(false)
-  const [errorVerificacion, setErrorVerificacion] = useState<string | null>(null)
+  //const [verificandoIdentidad, setVerificandoIdentidad] = useState(false)
+  //const [errorVerificacion, setErrorVerificacion] = useState<string | null>(null)
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [imagenesNuevas, setImagenesNuevas] = useState<{ file: File; preview: string }[]>([])
@@ -313,7 +314,7 @@ export default function DashboardPage() {
     }
   }
 
-  const handleVerificarIdentidad = async () => {
+  /* const handleVerificarIdentidad = async () => {
     setErrorVerificacion(null)
     setVerificandoIdentidad(true)
     try {
@@ -339,7 +340,7 @@ export default function DashboardPage() {
     } finally {
       setVerificandoIdentidad(false)
     }
-  }
+  } */
 
   const handleToggle = async (servicio: ServicioDetalle) => {
     setErrorAcciones(null)
@@ -606,37 +607,16 @@ export default function DashboardPage() {
 
         {perfilProveedor && (
           <Card>
-            <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
-              <div className="flex items-center gap-4">
-                <div className={`p-2.5 rounded-xl bg-secondary ${perfilProveedor.verificado ? "text-emerald-500" : "text-amber-500"}`}>
-                  {perfilProveedor.verificado ? <ShieldCheck size={20} /> : <ShieldAlert size={20} />}
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-foreground">
-                    {perfilProveedor.verificado ? "Identidad verificada" : "Verificación de identidad pendiente"}
-                  </p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    {perfilProveedor.verificado
-                      ? "Tu cuenta ha superado la verificación de identidad."
-                      : perfilProveedor.motivo_rechazo
-                        ? `No se pudo verificar: ${perfilProveedor.motivo_rechazo}`
-                        : "Verifica tu identidad para dar más confianza a tus clientes."}
-                  </p>
-                  {errorVerificacion && (
-                    <p className="text-xs text-destructive mt-1">{errorVerificacion}</p>
-                  )}
-                </div>
-              </div>
-              {!perfilProveedor.verificado && (
-                <Button onClick={handleVerificarIdentidad} disabled={verificandoIdentidad} className="shrink-0">
-                  {verificandoIdentidad ? (
-                    <Loader size={16} className="animate-spin mr-2" />
-                  ) : (
-                    <ShieldCheck size={16} className="mr-2" />
-                  )}
-                  {perfilProveedor.motivo_rechazo ? "Reintentar verificación" : "Verificar identidad"}
-                </Button>
-              )}
+            <CardContent className="p-5">
+              <DocumentoIdentidad
+                verificado={perfilProveedor.verificado}
+                tieneDocumento={!!perfilProveedor.url_documento}
+                motivoRechazo={perfilProveedor.motivo_rechazo}
+                onDocumentoSubido={async () => {
+                  const perfilActualizado = await getMiPerfilProveedor()
+                  setPerfilProveedor(perfilActualizado)
+                }}
+              />
             </CardContent>
           </Card>
         )}
