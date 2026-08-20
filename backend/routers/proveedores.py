@@ -1,23 +1,26 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from uuid import UUID
 from utils.auth_middleware import get_current_user
 from schemas.proveedor_schema import CrearPerfilProveedor, ConfirmarDocumento, PerfilProveedorOut, ActualizarPerfilProveedor, PerfilProveedorPublico
 from services.proveedor_service import ProveedorService
 from utils.storage import generar_signed_upload_url
 from config import Config
+from utils.rate_limiter import limiter
 
 router = APIRouter(prefix="/proveedor", tags=["proveedor"])
 
 
 @router.post("/", response_model=PerfilProveedorOut)
-async def crear_proveedor(perfil: CrearPerfilProveedor, current_user=Depends(get_current_user)):
+@limiter.limit("10/minute")
+async def crear_proveedor(request: Request, perfil: CrearPerfilProveedor, current_user=Depends(get_current_user)):
     user_id = current_user["user_id"]
     service = ProveedorService()
     resultado = service.create_or_update(user_id, perfil.descripcion, perfil.radio_km_disponible, perfil.experiencia_años)
     return resultado
 
 @router.patch("/", response_model=PerfilProveedorOut)
-async def actualizar_perfil(datos: ActualizarPerfilProveedor, current_user=Depends(get_current_user)):
+@limiter.limit("20/minute")
+async def actualizar_perfil(request: Request, datos: ActualizarPerfilProveedor, current_user=Depends(get_current_user)):
     usuario_id = current_user["user_id"]
     service = ProveedorService()
     perfil = service.obtener_por_usuario(usuario_id)
@@ -55,7 +58,8 @@ async def obtener_perfil_proveedor(perfil_id: UUID):
 
 
 @router.post("/documento/signed-url")
-async def signed_url_documento(current_user=Depends(get_current_user)):
+@limiter.limit("5/minute")
+async def signed_url_documento(request: Request, current_user=Depends(get_current_user)):
     usuario_id = current_user["user_id"]
     service = ProveedorService()
     perfil = service.obtener_por_usuario(usuario_id)
@@ -66,7 +70,8 @@ async def signed_url_documento(current_user=Depends(get_current_user)):
 
 
 @router.patch("/documento/confirmar")
-async def confirmar_documento(datos: ConfirmarDocumento, current_user=Depends(get_current_user)):
+@limiter.limit("10/minute")
+async def confirmar_documento(request: Request, datos: ConfirmarDocumento, current_user=Depends(get_current_user)):
     usuario_id = current_user["user_id"]
 
     path_esperado = f"{usuario_id}/documento"
@@ -81,7 +86,8 @@ async def confirmar_documento(datos: ConfirmarDocumento, current_user=Depends(ge
     return {"path": actualizado.url_documento}
 
 @router.post("/stripe/onboarding-link")
-async def crear_link_onboarding(current_user=Depends(get_current_user)):
+@limiter.limit("10/minute")
+async def crear_link_onboarding(request: Request, current_user=Depends(get_current_user)):
     from repositories.user_repository import UserRepository
 
     usuario_id = current_user["user_id"]
@@ -97,7 +103,8 @@ async def crear_link_onboarding(current_user=Depends(get_current_user)):
     return {"url": url}
 
 @router.post("/verificacion-identidad")
-async def iniciar_verificacion_identidad(current_user=Depends(get_current_user)):
+@limiter.limit("5/minute")
+async def iniciar_verificacion_identidad(request: Request, current_user=Depends(get_current_user)):
     service = ProveedorService()
     client_secret = service.iniciar_verificacion_identidad(current_user["user_id"])
     return {"client_secret": client_secret}

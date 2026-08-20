@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from utils.auth_middleware import get_current_user
 from schemas.usuario_schema import ActualizarUsuario, UsuarioOut
 from services.user_service import UserService
@@ -6,6 +6,7 @@ from schemas.bloqueo_schema import BloquearUsuario, UsuarioBloqueadoOut
 from services.bloqueo_service import BloqueoService
 from uuid import UUID
 from typing import List
+from utils.rate_limiter import limiter
 
 router = APIRouter(prefix="/usuarios", tags=["usuarios"])
 
@@ -21,7 +22,8 @@ async def obtener_perfil(current_user=Depends(get_current_user)):
 
 
 @router.patch("/me", response_model=UsuarioOut)
-async def actualizar_perfil(datos: ActualizarUsuario, current_user=Depends(get_current_user)):
+@limiter.limit("20/minute")
+async def actualizar_perfil(request: Request, datos: ActualizarUsuario, current_user=Depends(get_current_user)):
     usuario_id = current_user["user_id"]
     service = UserService()
     usuario = service.actualizar(usuario_id, **datos.model_dump(exclude_none=True))
@@ -30,7 +32,8 @@ async def actualizar_perfil(datos: ActualizarUsuario, current_user=Depends(get_c
     return usuario
 
 @router.post("/bloquear")
-async def bloquear_usuario(datos: BloquearUsuario, current_user=Depends(get_current_user)):
+@limiter.limit("10/minute")
+async def bloquear_usuario(request: Request, datos: BloquearUsuario, current_user=Depends(get_current_user)):
     service = BloqueoService()
     service.bloquear(current_user["user_id"], datos.usuario_id)
     return {"ok": True}
