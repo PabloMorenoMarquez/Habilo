@@ -23,6 +23,10 @@ from routers.suscripcion_push import router as suscripcion_push_router
 from utils.google_oauth import google_configure_oauth
 from utils.facebook_oauth import facebook_configure_oauth
 from utils.scheduler import iniciar_jobs
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from utils.rate_limiter import limiter
+from slowapi.middleware import SlowAPIMiddleware
 
 load_dotenv()
 
@@ -35,6 +39,9 @@ async def lifespan(app: FastAPI):
     scheduler.shutdown()
 
 app = FastAPI(lifespan=lifespan)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 app.add_middleware(
     SessionMiddleware,

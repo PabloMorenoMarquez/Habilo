@@ -6,16 +6,19 @@ from config import Config
 from utils.jwt_handler import create_access_token
 from services.user_service import UserService
 import httpx   
+from utils.rate_limiter import limiter
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.get("/google/login")
+@limiter.limit("10/minute")
 async def google_login(request: Request):
     google = get_google_oauth_client()
     redirect_uri = Config.BACKEND_URL.rstrip("/") + "/auth/google/callback"
     return await google.authorize_redirect(request, redirect_uri)
 
 @router.get("/google/callback")
+@limiter.limit("10/minute")
 async def google_callback(request: Request):
     try:
         google = get_google_oauth_client()
@@ -49,12 +52,14 @@ async def google_callback(request: Request):
     
 
 @router.get("/facebook/login")
+@limiter.limit("10/minute")
 async def facebook_login(request: Request):
     facebook = get_facebook_oauth_client()
     redirect_uri = Config.BACKEND_URL.rstrip("/") + "/auth/facebook/callback"
     return await facebook.authorize_redirect(request, redirect_uri)
 
 @router.get("/facebook/callback")
+@limiter.limit("10/minute")
 async def facebook_callback(request: Request):
     try:
         facebook = get_facebook_oauth_client()

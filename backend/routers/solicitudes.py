@@ -1,16 +1,18 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from uuid import UUID
 from typing import List
 from utils.auth_middleware import get_current_user
 from schemas.solicitud_schema import CrearSolicitud, CambiarEstadoSolicitud, SolicitudOut, ConversacionOut
 from services.solicitud_service import SolicitudService
 from services.proveedor_service import ProveedorService
+from utils.rate_limiter import limiter
 
 router = APIRouter(prefix="/solicitudes", tags=["solicitudes"])
 
 
 @router.post("/", response_model=SolicitudOut)
-async def crear_solicitud(datos: CrearSolicitud, current_user=Depends(get_current_user)):
+@limiter.limit("20/minute")
+async def crear_solicitud(request: Request, datos: CrearSolicitud, current_user=Depends(get_current_user)):
     service = SolicitudService()
     return service.crear(datos.servicio_id, current_user["user_id"])
 
@@ -39,7 +41,8 @@ async def obtener_solicitud(solicitud_id: UUID, current_user=Depends(get_current
 
 
 @router.patch("/{solicitud_id}/estado", response_model=SolicitudOut)
-async def cambiar_estado(solicitud_id: UUID, datos: CambiarEstadoSolicitud, current_user=Depends(get_current_user)):
+@limiter.limit("20/minute")
+async def cambiar_estado(request: Request, solicitud_id: UUID, datos: CambiarEstadoSolicitud, current_user=Depends(get_current_user)):
     usuario_id = current_user["user_id"]
     proveedor_service = ProveedorService()
     perfil = proveedor_service.obtener_por_usuario(usuario_id)
@@ -47,6 +50,7 @@ async def cambiar_estado(solicitud_id: UUID, datos: CambiarEstadoSolicitud, curr
     return service.cambiar_estado(solicitud_id, datos.estado.value, usuario_id, perfil.id if perfil else None, datos.motivo)
 
 @router.post("/{solicitud_id}/confirmar-entrega")
-async def confirmar_entrega(solicitud_id: UUID, current_user=Depends(get_current_user)):
+@limiter.limit("10/minute")
+async def confirmar_entrega(request: Request, solicitud_id: UUID, current_user=Depends(get_current_user)):
     from services.pago_service import PagoService
     return PagoService().confirmar_entrega_y_transferir(solicitud_id, current_user["user_id"])

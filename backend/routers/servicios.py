@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, Request
 from uuid import UUID
 from typing import List, Optional
 from utils.auth_middleware import get_current_user
@@ -9,6 +9,7 @@ from services.imagen_servicio_service import ImagenServicioService
 from utils.storage import generar_signed_upload_url
 from config import Config
 import uuid
+from utils.rate_limiter import limiter
 
 router = APIRouter(prefix="/servicio", tags=["servicio"])
 
@@ -22,7 +23,9 @@ def _get_perfil_proveedor(usuario_id):
 
 
 @router.get("/", response_model=List[ServicioBusquedaOut])
+@limiter.limit("60/minute")
 async def buscar_servicios(
+    request: Request,
     lat: float = Query(..., description="Latitud del usuario"),
     lng: float = Query(..., description="Longitud del usuario"),
     radio_km: float = Query(10.0, description="Radio de búsqueda en km"),
@@ -36,7 +39,8 @@ async def buscar_servicios(
 
 
 @router.post("/", response_model=ServicioOut)
-async def crear_servicio(servicio: CrearServicio, current_user=Depends(get_current_user)):
+@limiter.limit("10/minute")
+async def crear_servicio(request: Request, servicio: CrearServicio, current_user=Depends(get_current_user)):
     perfil = _get_perfil_proveedor(current_user["user_id"])
     service = ServicioService()
     return service.crear(
@@ -59,7 +63,8 @@ async def listar_mis_servicios(current_user=Depends(get_current_user)):
 
 
 @router.get("/{servicio_id}", response_model=ServicioBusquedaOut)
-async def obtener_servicio(servicio_id: UUID, current_user=Depends(get_current_user)):
+@limiter.limit("60/minute")
+async def obtener_servicio(request: Request, servicio_id: UUID, current_user=Depends(get_current_user)):
     service = ServicioService()
     servicio = service.obtener_detalle_publico(servicio_id, current_user["user_id"])
     if not servicio:
@@ -68,7 +73,8 @@ async def obtener_servicio(servicio_id: UUID, current_user=Depends(get_current_u
 
 
 @router.patch("/{servicio_id}", response_model=ServicioOut)
-async def actualizar_servicio(servicio_id: UUID, datos: ActualizarServicio, current_user=Depends(get_current_user)):
+@limiter.limit("20/minute")
+async def actualizar_servicio(request: Request, servicio_id: UUID, datos: ActualizarServicio, current_user=Depends(get_current_user)):
     perfil = _get_perfil_proveedor(current_user["user_id"])
     service = ServicioService()
     servicio = service.actualizar(servicio_id, perfil.id, **datos.model_dump(exclude_none=True))
@@ -78,7 +84,8 @@ async def actualizar_servicio(servicio_id: UUID, datos: ActualizarServicio, curr
 
 
 @router.delete("/{servicio_id}")
-async def eliminar_servicio(servicio_id: UUID, current_user=Depends(get_current_user)):
+@limiter.limit("10/minute")
+async def eliminar_servicio(request: Request, servicio_id: UUID, current_user=Depends(get_current_user)):
     perfil = _get_perfil_proveedor(current_user["user_id"])
     service = ServicioService()
     eliminado = service.eliminar(servicio_id, perfil.id)
@@ -88,7 +95,8 @@ async def eliminar_servicio(servicio_id: UUID, current_user=Depends(get_current_
 
 
 @router.post("/{servicio_id}/imagen/signed-url")
-async def signed_url_imagen(servicio_id: UUID, current_user=Depends(get_current_user)):
+@limiter.limit("10/minute")
+async def signed_url_imagen(request: Request, servicio_id: UUID, current_user=Depends(get_current_user)):
     perfil = _get_perfil_proveedor(current_user["user_id"])
     service = ServicioService()
     servicio = service.obtener(servicio_id)
@@ -98,7 +106,8 @@ async def signed_url_imagen(servicio_id: UUID, current_user=Depends(get_current_
     return generar_signed_upload_url(Config.STORAGE_BUCKET_SERVICIOS, path)
 
 @router.post("/{servicio_id}/imagenes/signed-url")
-async def signed_url_imagenes(servicio_id: UUID, current_user=Depends(get_current_user)):
+@limiter.limit("10/minute")
+async def signed_url_imagenes(request: Request, servicio_id: UUID, current_user=Depends(get_current_user)):
     perfil = _get_perfil_proveedor(current_user["user_id"])
     service = ServicioService()
     servicio = service.obtener(servicio_id)
@@ -108,7 +117,8 @@ async def signed_url_imagenes(servicio_id: UUID, current_user=Depends(get_curren
     return generar_signed_upload_url(Config.STORAGE_BUCKET_SERVICIOS, path)
 
 @router.post("/{servicio_id}/imagenes")
-async def confirmar_subida_imagenes(servicio_id: UUID, imagen: CrearImagenServicio, current_user=Depends(get_current_user)):
+@limiter.limit("10/minute")
+async def confirmar_subida_imagenes(request: Request, servicio_id: UUID, imagen: CrearImagenServicio, current_user=Depends(get_current_user)):
     perfil = _get_perfil_proveedor(current_user["user_id"])
     service = ImagenServicioService()
     return service.añadir_imagen(servicio_id, perfil.id, imagen.url)
@@ -119,13 +129,15 @@ async def listar_imagenes(servicio_id:UUID):
     return service.listar_imagenes(servicio_id)
 
 @router.delete("/{servicio_id}/imagenes/{imagen_id}")
-async def eliminar_imagen(servicio_id:UUID, imagen_id:UUID,current_user=Depends(get_current_user)):
+@limiter.limit("10/minute")
+async def eliminar_imagen(request: Request, servicio_id:UUID, imagen_id:UUID,current_user=Depends(get_current_user)):
     perfil = _get_perfil_proveedor(current_user["user_id"])
     service = ImagenServicioService()
     return service.eliminar_imagen(imagen_id, perfil.id)
 
 @router.patch("/{servicio_id}/imagenes/orden")
-async def reordenar(servicio_id:UUID, datos: ReordenarImagenes, current_user=Depends(get_current_user)):
+@limiter.limit("20/minute")
+async def reordenar(request: Request, servicio_id:UUID, datos: ReordenarImagenes, current_user=Depends(get_current_user)):
     perfil = _get_perfil_proveedor(current_user["user_id"])
     service = ImagenServicioService()
     return service.reordenar_imagenes(servicio_id, perfil.id, datos.orden)

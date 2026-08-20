@@ -1,15 +1,17 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from uuid import UUID
 from typing import List
 from utils.auth_middleware import get_current_user
 from schemas.valoracion_schema import CrearValoracion, ValoracionOut
 from services.valoracion_service import ValoracionService
+from utils.rate_limiter import limiter
 
 router = APIRouter(prefix="/valoraciones", tags=["valoraciones"])
 
 
 @router.post("/", response_model=ValoracionOut)
-async def crear_valoracion(datos: CrearValoracion, current_user=Depends(get_current_user)):
+@limiter.limit("10/minute")
+async def crear_valoracion(request: Request, datos: CrearValoracion, current_user=Depends(get_current_user)):
     service = ValoracionService()
     return service.crear(
         solicitud_id=datos.solicitud_id,

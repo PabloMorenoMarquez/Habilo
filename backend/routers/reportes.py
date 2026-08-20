@@ -1,13 +1,15 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from utils.auth_middleware import get_current_user
 from schemas.reporte_schema import CrearReporte, ReporteOut
 from services.reporte_service import ReporteService
 from uuid import UUID
+from utils.rate_limiter import limiter
 
 router = APIRouter(prefix="/reportes", tags=["reportes"])
 
 @router.post("/", response_model=ReporteOut)
-async def crear_reporte(datos: CrearReporte, current_user=Depends(get_current_user)):
+@limiter.limit("10/minute")
+async def crear_reporte(request: Request, datos: CrearReporte, current_user=Depends(get_current_user)):
     service = ReporteService()
     return service.crear(
         autor_id=current_user["user_id"],

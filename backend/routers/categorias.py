@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from uuid import UUID
 from typing import List
 from utils.auth_middleware import get_current_user
 from schemas.categoria_schema import CrearCategoria, CategoriaOut
 from services.categoria_service import CategoriaService
+from utils.rate_limiter import limiter
 
 router = APIRouter(prefix="/categorias", tags=["categorias"])
 
@@ -24,6 +25,7 @@ async def obtener_categoria(categoria_id: UUID):
 
 
 @router.post("/", response_model=CategoriaOut)
-async def crear_categoria(datos: CrearCategoria, current_user=Depends(get_current_user)):
+@limiter.limit("5/minute")
+async def crear_categoria(request: Request, datos: CrearCategoria, current_user=Depends(get_current_user)):
     service = CategoriaService()
     return service.crear(datos.nombre, datos.icono, datos.descripcion)
