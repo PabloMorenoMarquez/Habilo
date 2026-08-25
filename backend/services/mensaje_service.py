@@ -54,12 +54,15 @@ class MensajeService:
         
         self.solicitud_repository.actualizar_ultima_actividad(solicitud_id)
         
-        self.notificacion_push_service.enviar(
-            usuario_id=otro_usuario_id,
-            titulo="Nuevo mensaje",
-            cuerpo=contenido[:80],
-            url=f"/chats?solicitud={solicitud_id}"
-        )
+        try:
+            self.notificacion_push_service.enviar(
+                usuario_id=otro_usuario_id,
+                titulo="Nuevo mensaje",
+                cuerpo=contenido[:80],
+                url=f"/chats?solicitud={solicitud_id}"
+            )
+        except Exception as e:
+            print(f"Fallo enviando push a {otro_usuario_id}: {e}")
         
         self.notificacion_email_service.enviar(
             usuario_id=otro_usuario_id,

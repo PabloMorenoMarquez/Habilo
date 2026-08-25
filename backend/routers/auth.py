@@ -8,6 +8,10 @@ from services.user_service import UserService
 import httpx   
 from utils.rate_limiter import limiter
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.get("/google/login")
@@ -48,6 +52,7 @@ async def google_callback(request: Request):
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Error en callback de Google: {e}")
         raise HTTPException(status_code=400, detail=f"Error en callback de Google: {str(e)}")
     
 
@@ -97,4 +102,5 @@ async def facebook_callback(request: Request):
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Error en callback de Facebook: {e}")
         raise HTTPException(status_code=400, detail=f"Error en callback de Facebook: {str(e)}")

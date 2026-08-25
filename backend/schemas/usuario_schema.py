@@ -1,13 +1,13 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from uuid import UUID
 from typing import Optional
 from datetime import datetime
 
 
 class ActualizarUsuario(BaseModel):
-    nombre: Optional[str] = None
-    telefono: Optional[str] = None
-    ciudad: Optional[str] = None
+    nombre: Optional[str] = Field(None, max_length=100)
+    telefono: Optional[str] = Field(None, max_length=20)
+    ciudad: Optional[str] = Field(None, max_length=100)
     foto_url: Optional[str] = None
 
 

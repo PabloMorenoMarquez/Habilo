@@ -6,8 +6,6 @@ from uuid import UUID
 from datetime import datetime, timezone
 
 class SolicitudRepository:
-    def __init__(self):
-        self.session = SessionLocal()
 
     def crear(self, servicio_id:UUID, cliente_id:UUID):
         session = SessionLocal()

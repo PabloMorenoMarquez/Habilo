@@ -97,12 +97,16 @@ class OfertaService:
         oferta_aceptada = self.oferta_repository.actualizar_estado(oferta_id, "aceptada")
 
         servicio = self.servicio_repository.get_by_id(solicitud.servicio_id)
-        self.notificacion_push_service.enviar(
-            usuario_id=oferta.autor_id,
-            titulo="Oferta aceptada",
-            cuerpo=f"Tu oferta para {servicio.titulo} ha sido aceptada",
-            url=f"/chats?solicitud={solicitud.id}",
-        )
+        
+        try:
+            self.notificacion_push_service.enviar(
+                usuario_id=oferta.autor_id,
+                titulo="Oferta aceptada",
+                cuerpo=f"Tu oferta para {servicio.titulo} ha sido aceptada",
+                url=f"/chats?solicitud={solicitud.id}",
+            )
+        except Exception as e:
+            print(f"Fallo enviando push a {oferta.autor_id}: {e}")
 
         return oferta_aceptada
         

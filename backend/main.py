@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 import os
+import logging
 from dotenv import load_dotenv
 from config import Config
 from contextlib import asynccontextmanager
@@ -43,16 +44,25 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
+session_secret = os.getenv("SESSION_SECRET_KEY")
+if not session_secret:
+    raise RuntimeError("SESSION_SECRET_KEY no está definida")
+
 app.add_middleware(
     SessionMiddleware,
-    secret_key=os.getenv("SESSION_SECRET_KEY", "dev-secret-change-me"),
+    secret_key=session_secret
 )
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=Config.FRONTEND_URL,
+    allow_origins=Config.FRONTEND_URLS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"]
+)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 
 

@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from uuid import UUID
 from typing import Optional
 from datetime import datetime
@@ -14,7 +14,7 @@ class MotivoReporte(str, Enum):
 class CrearReporte(BaseModel):
     usuario_reportado_id: UUID
     motivo: MotivoReporte
-    descripcion: Optional[str] = None
+    descripcion: Optional[str] = Field(None, max_length=1000)
     solicitud_id: Optional[UUID] = None
 
 class ReporteOut(BaseModel):

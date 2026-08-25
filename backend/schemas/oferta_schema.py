@@ -1,4 +1,4 @@
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, model_validator, Field
 from uuid import UUID
 from typing import Optional
 from datetime import datetime
@@ -13,8 +13,8 @@ class EstadoOferta(str, Enum):
     reemplazada = "reemplazada"
     
 class CrearOferta(BaseModel):
-    precio: Decimal
-    descripcion: Optional[str] = None
+    precio: Decimal = Field(gt=0) 
+    descripcion: Optional[str] = Field(None, max_length=500)
     fecha_hora_propuesta: Optional[datetime] = None
     
 class OfertaOut(BaseModel):
@@ -32,6 +32,6 @@ class OfertaOut(BaseModel):
         from_attributes = True
         
 class CrearOfertaPorHoras(BaseModel):
-    horas: Decimal
-    descripcion: Optional[str] = None
+    horas: Decimal = Field(gt=0) 
+    descripcion: Optional[str] = Field(None, max_length=500)
     fecha_hora_propuesta: Optional[datetime] = None

@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from uuid import UUID
 from typing import Optional
 from decimal import Decimal
@@ -6,12 +6,12 @@ from datetime import datetime
 
 
 class CrearPerfilProveedor(BaseModel):
-    descripcion: str
-    radio_km_disponible: int
-    experiencia_años: Optional[int] = None
-    dias_disponibles: Optional[str] = None
-    hora_inicio: Optional[str] = None
-    hora_fin: Optional[str] = None
+    descripcion: str = Field(max_length=1000)
+    radio_km_disponible: int = Field(gt=0) 
+    experiencia_años: Optional[int] = Field(default=None, ge=0) 
+    dias_disponibles: Optional[str] = Field(None, max_length=20)
+    hora_inicio: Optional[str] = Field(None, max_length=5)
+    hora_fin: Optional[str] = Field(None, max_length=5)
 
 
 class PerfilProveedorPublico(BaseModel):
@@ -55,12 +55,12 @@ class PerfilProveedorAdminOut(BaseModel):
     usuario_email: str
     
 class ActualizarPerfilProveedor(BaseModel):
-    descripcion: Optional[str] = None
+    descripcion: Optional[str] = Field(None, max_length=1000)
     experiencia_años: Optional[int] = None
-    radio_km_disponible: Optional[int] = None
-    dias_disponibles: Optional[str] = None
-    hora_inicio: Optional[str] = None
-    hora_fin: Optional[str] = None
+    radio_km_disponible: Optional[int] = Field(default=None, gt=0) 
+    dias_disponibles: Optional[str] = Field(None, max_length=100)
+    hora_inicio: Optional[str] = Field(None, max_length=5)
+    hora_fin: Optional[str] = Field(None, max_length=5)
     
 class ConfirmarDocumento(BaseModel):
     path: str

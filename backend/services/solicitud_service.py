@@ -52,13 +52,15 @@ class SolicitudService:
 
         solicitud = self.solicitud_repository.crear(servicio_id, cliente_id)
         
-        self.notificacion_push_service.enviar(
-            usuario_id=proveedor.usuario_id,
-            titulo="Nueva solicitud",
-            cuerpo=f"Tienes una nueva solicitud para {servicio.titulo}",
-            url=f"/chats?solicitud={solicitud.id}",
-        )
-
+        try:
+            self.notificacion_push_service.enviar(
+                usuario_id=proveedor.usuario_id,
+                titulo="Nueva solicitud",
+                cuerpo=f"Tienes una nueva solicitud para {servicio.titulo}",
+                url=f"/chats?solicitud={solicitud.id}",
+            )
+        except Exception as e:
+            print(f"Fallo enviando push a {proveedor.usuario_id}: {e}")
         return solicitud
 
     def obtener(self, solicitud_id:UUID, usuario_id:UUID, proveedor_id:UUID=None):
@@ -127,12 +129,15 @@ class SolicitudService:
         if nuevo_estado == "completada":
             self.solicitud_repository.marcar_fecha_completada(solicitud_id)
             proveedor = self.proveedor_repository.get_by_id(servicio.proveedor_id)
-            self.notificacion_push_service.enviar(
-                usuario_id=proveedor.usuario_id,
-                titulo= "Servicio marcado como completado",
-                cuerpo= f"El cliente ha confirmado que {servicio.titulo} ha finalizado",
-                url=f"/chats?solicitud={solicitud_id}",
-            )
+            try:
+                self.notificacion_push_service.enviar(
+                    usuario_id=proveedor.usuario_id,
+                    titulo= "Servicio marcado como completado",
+                    cuerpo= f"El cliente ha confirmado que {servicio.titulo} ha finalizado",
+                    url=f"/chats?solicitud={solicitud_id}",
+                )
+            except Exception as e:
+                print(f"Fallo enviando push a {proveedor.usuario_id}: {e}")
         
         return self.solicitud_repository.actualizar_estado(solicitud_id, nuevo_estado, motivo)
     

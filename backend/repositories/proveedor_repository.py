@@ -4,8 +4,6 @@ from database.session import SessionLocal
 from uuid import UUID
 
 class ProveedorRepository:
-    def __init__(self):
-        self.session = SessionLocal()
 
     def crear_perfil(self, usuario_id:UUID, descripcion:str, radio_km_disponible:int, experiencia_años:int=None):
         session = SessionLocal()

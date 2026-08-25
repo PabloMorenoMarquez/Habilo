@@ -1,4 +1,4 @@
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, Field
 from uuid import UUID
 from typing import Optional
 from datetime import datetime
@@ -7,7 +7,7 @@ from datetime import datetime
 class CrearValoracion(BaseModel):
     solicitud_id: UUID
     puntuacion: int
-    comentario: Optional[str] = None
+    comentario: Optional[str] = Field(None, max_length=1000)
 
     @field_validator("puntuacion")
     @classmethod
