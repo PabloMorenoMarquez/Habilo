@@ -12,6 +12,9 @@ from decimal import Decimal, ROUND_HALF_UP
 from config import Config
 from utils.stripe_client import get_stripe
 from datetime import datetime, timezone
+import logging
+
+logger = logging.getLogger(__name__)
 
 class PagoService:
     
@@ -143,13 +146,15 @@ class PagoService:
         
         resultado = self.pago_repository.marcar_transferido_por_payment_intent_id(pago.stripe_payment_intent_id, transfer.id)
         
-        self.notificacion_push_service.enviar(
-            usuario_id=perfil.usuario_id,
-            titulo="Pago transferido",
-            cuerpo=f"Se han transferido {pago.monto_proveedor}€ a tu cuenta",
-            url="/dashboard",
-        )
-        
+        try:
+            self.notificacion_push_service.enviar(
+                usuario_id=perfil.usuario_id,
+                titulo="Pago transferido",
+                cuerpo=f"Se han transferido {pago.monto_proveedor}€ a tu cuenta",
+                url="/dashboard",
+            )
+        except Exception as e:
+            print(f"Fallo enviando push a {perfil.usuario_id}: {e}")
         return resultado
     
     def confirmar_entrega_y_transferir_por_sistema(self, solicitud_id):
@@ -177,13 +182,15 @@ class PagoService:
         
         resultado = self.pago_repository.marcar_transferido_por_payment_intent_id(pago.stripe_payment_intent_id, transfer.id)
 
-        self.notificacion_push_service.enviar(
-            usuario_id=perfil.usuario_id,
-            titulo="Pago transferido",
-            cuerpo=f"Se han transferido {pago.monto_proveedor}€ a tu cuenta",
-            url="/dashboard",
-        )
-
+        try:
+            self.notificacion_push_service.enviar(
+                usuario_id=perfil.usuario_id,
+                titulo="Pago transferido",
+                cuerpo=f"Se han transferido {pago.monto_proveedor}€ a tu cuenta",
+                url="/dashboard",
+            )
+        except Exception as e:
+            print(f"Fallo enviando push a {perfil.usuario_id}: {e}")
         return resultado
     
     def reembolsar_pago_de_solicitud(self, solicitud_id:UUID):
@@ -208,6 +215,9 @@ class PagoService:
         for pago in pagos:
             try:
                 self.confirmar_entrega_y_transferir_por_sistema(pago.solicitud_id)
-            except Exception:
+            except Exception as e:
+                logger.error(
+                    f"Fallo auto-liberando pago {pago.id} (solicitud {pago.solicitud_id}): {e}"
+                )
                 continue
         

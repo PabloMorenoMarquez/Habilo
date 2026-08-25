@@ -27,7 +27,7 @@ class NotificacionPushService:
                 webpush(
                     subscription_info=subscription_info,
                     data=json.dumps(payload),
-                    vapid_private_key=Config.VAPID_PRIVATE_KEY_PATH,
+                    vapid_private_key=Config.VAPID_PRIVATE_KEY,
                     vapid_claims={"sub": Config.VAPID_CONTACT_EMAIL},
                 )
             except WebPushException as ex:

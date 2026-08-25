@@ -5,8 +5,6 @@ from uuid import UUID
 
 
 class ValoracionRepository:
-    def __init__(self):
-        self.session = SessionLocal()
 
     def crear(self, solicitud_id:UUID, autor_id:UUID, destinatario_id:UUID, puntuacion:int, comentario:str=None):
         session = SessionLocal()

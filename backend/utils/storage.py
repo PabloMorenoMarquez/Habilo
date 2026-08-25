@@ -15,9 +15,6 @@ def get_supabase():
 def generar_signed_upload_url(bucket: str, path: str, expires_in: int = 300) -> dict:
     """Genera una URL firmada para subida directa desde el frontend."""
     client = get_supabase()
-    print(Config.SUPABASE_URL)
-
-    print(client.storage.list_buckets())
     result = client.storage.from_(bucket).create_signed_upload_url(path)
     return {
         "signed_url": result["signed_url"],
@@ -40,4 +37,23 @@ def generar_signed_download_url(bucket:str, path:str, expires_in: int = 120) -> 
         "path": path,
         "token": result.get("token")
     }
-    
+
+def eliminar_archivo(bucket: str, path: str) -> bool:
+    # Borra un archivo de Supabase Storage
+    client = get_supabase()
+    try:
+        client.storage.from_(bucket).remove([path])
+        return True
+    except Exception:
+        return False
+
+
+def extraer_path_desde_url_publica(bucket: str, url: str) -> str | None:
+    #Recupera el path interno (el que se usó al generar la signed URL) a partir
+    # de una URL pública de Supabase Storage, del tipo:
+    # https://<proyecto>.supabase.co/storage/v1/object/public/<bucket>/<path>
+    # Devuelve None si la URL no tiene el formato esperado.
+    marcador = f"/object/public/{bucket}/"
+    if marcador not in url:
+        return None
+    return url.split(marcador, 1)[1]

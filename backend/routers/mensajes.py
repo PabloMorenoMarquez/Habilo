@@ -6,6 +6,7 @@ from utils.auth_middleware import get_current_user, decode_token_ws
 from utils.ws_manager import manager
 from schemas.mensaje_schema import MensajeOut
 from services.mensaje_service import MensajeService
+from config import Config
 
 router = APIRouter(tags=["mensajes"])
 
@@ -28,6 +29,11 @@ async def chat_websocket(
         return
 
     usuario_id = payload["user_id"]
+    
+    origin = websocket.headers.get("origin")
+    if origin and origin.rstrip("/") not in Config.FRONTEND_URLS: #Cambiar if origin not in Config.FRONTEND_URLS para exigir Origin siempre
+        await websocket.close(code=4003)
+        return
 
     if not manager.permitir_conexion(str(usuario_id)):
         await websocket.close(code=4029)
@@ -50,8 +56,13 @@ async def chat_websocket(
     try:
         while True:
             data = await websocket.receive_json()
+            MAX_LONGITUD_MENSAJE = 2000
             contenido = data.get("contenido", "").strip()
             if not contenido:
+                continue
+            
+            if len(contenido) > MAX_LONGITUD_MENSAJE:
+                await websocket.send_json({"error": f"El mensaje no puede superar los {MAX_LONGITUD_MENSAJE} caracteres"})
                 continue
 
             ahora = time.monotonic()

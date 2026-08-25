@@ -15,11 +15,16 @@ class Config:
     OAUTH_FACEBOOK_SCOPES = ["email", "public_profile"]
     
     FRONTEND_URL = os.getenv("FRONTEND_URL")
+    FRONTEND_URLS = [
+        origen.strip().rstrip("/")
+        for origen in os.getenv("CORS_ALLOWED_ORIGINS", FRONTEND_URL or "").split(",")
+        if origen.strip()
+    ]
     BACKEND_URL = os.getenv("BACKEND_URL")
 
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
     JWT_ALGORITH = os.getenv("JWT_ALGORITH", "HS256")
-    JWT_EXPIRATION_HOURS = os.getenv("JWT_EXPIRATION_HOURS", 24)
+    JWT_EXPIRATION_HOURS = int(os.getenv("JWT_EXPIRATION_HOURS", 24))
 
     FACEBOOK_APP_ID = os.getenv("FACEBOOK_APP_ID")
     FACEBOOK_APP_SECRET = os.getenv("FACEBOOK_APP_SECRET")

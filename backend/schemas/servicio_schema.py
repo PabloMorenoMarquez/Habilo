@@ -1,28 +1,28 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from uuid import UUID
 from decimal import Decimal
-from typing import Optional
+from typing import Optional, Literal
 from datetime import datetime
 
 
 class CrearServicio(BaseModel):
     categoria_id: UUID
-    titulo: str
-    descripcion: Optional[str] = None
-    precio: Decimal
-    tipo_precio: str
-    latitud: Optional[float] = None
-    longitud: Optional[float] = None
+    titulo: str = Field(min_length=3, max_length=100)
+    descripcion: Optional[str] = Field(default=None, max_length=2000)
+    precio: Decimal = Field(gt=0)
+    tipo_precio: Literal["fijo", "hora"]
+    latitud: Optional[float] = Field(default=None, ge=-90, le=90)
+    longitud: Optional[float] = Field(default=None, ge=-180, le=180) 
 
 
 class ActualizarServicio(BaseModel):
     categoria_id: Optional[UUID] = None
     titulo: Optional[str] = None
     descripcion: Optional[str] = None
-    precio: Optional[Decimal] = None
-    tipo_precio: Optional[str] = None
-    latitud: Optional[float] = None
-    longitud: Optional[float] = None
+    precio: Optional[Decimal] = Field(default=None, gt=0)
+    tipo_precio: Optional[Literal["fijo", "hora"]] = None
+    latitud: Optional[float] = Field(default=None, ge=-90, le=90)
+    longitud: Optional[float] = Field(default=None, ge=-180, le=180) 
     activo: Optional[bool] = None
     imagen_url: Optional[str] = None
 

@@ -5,8 +5,6 @@ from uuid import UUID
 
 
 class CategoriaRepository:
-    def __init__(self):
-        self.session = SessionLocal()
 
     def listar(self):
         session = SessionLocal()

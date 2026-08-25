@@ -1,7 +1,12 @@
 from uuid import UUID
 from repositories.imagen_servicio_repository import ImagenServicioRepository
 from repositories.servicio_repository import ServicioRepository
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
+import httpx
+from config import Config
+from utils.storage import extraer_path_desde_url_publica, eliminar_archivo
+
+TIPOS_IMAGEN_PERMITIDOS = {"image/jpeg", "image/png", "image/webp"}
 
 class ImagenServicioService:
     
@@ -9,7 +14,7 @@ class ImagenServicioService:
         self.imagen_servicio_repository = ImagenServicioRepository()
         self.servicio_repository = ServicioRepository()
         
-    def añadir_imagen(self, servicio_id:UUID, proveedor_id:UUID, url:str):
+    async def añadir_imagen(self, servicio_id:UUID, proveedor_id:UUID, url:str):
         servicio = self.servicio_repository.get_by_id(servicio_id)
         if not servicio:
             raise HTTPException(status_code=404, detail="No existe el servicio")
@@ -22,12 +27,27 @@ class ImagenServicioService:
         if cantidad >= 10:
             raise HTTPException(status_code=400, detail="Máximo 10 imágenes por servicio")
         
+        self._validar_es_imagen(url)
+        
         imagen = self.imagen_servicio_repository.crear(servicio_id, url, cantidad)
         
         if not servicio.imagen_url:
             self.servicio_repository.actualizar(servicio_id, imagen_url=url)
             
         return imagen
+    
+    def _validar_es_imagen(self, url: str):
+        try:
+            respuesta = httpx.head(url, timeout=5.0, follow_redirects=True)
+        except httpx.RequestError:
+            raise HTTPException(status_code=400, detail="No se pudo verificar el archivo subido")
+
+        content_type = respuesta.headers.get("content-type", "")
+        if content_type not in TIPOS_IMAGEN_PERMITIDOS:
+            path = extraer_path_desde_url_publica(Config.STORAGE_BUCKET_SERVICIOS, url)
+            if path:
+                eliminar_archivo(Config.STORAGE_BUCKET_SERVICIOS, path)
+            raise HTTPException(status_code=400, detail="El archivo subido no es una imagen válida")
     
     def eliminar_imagen(self, imagen_id:UUID, proveedor_id:UUID):
         imagen = self.imagen_servicio_repository.get_by_id(imagen_id)
