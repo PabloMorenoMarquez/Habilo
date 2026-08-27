@@ -47,10 +47,10 @@ async def cambiar_estado(request: Request, solicitud_id: UUID, datos: CambiarEst
     proveedor_service = ProveedorService()
     perfil = proveedor_service.obtener_por_usuario(usuario_id)
     service = SolicitudService()
-    return service.cambiar_estado(solicitud_id, datos.estado.value, usuario_id, perfil.id if perfil else None, datos.motivo)
+    return await service.cambiar_estado(solicitud_id, datos.estado.value, usuario_id, perfil.id if perfil else None, datos.motivo)
 
 @router.post("/{solicitud_id}/confirmar-entrega")
 @limiter.limit("10/minute")
 async def confirmar_entrega(request: Request, solicitud_id: UUID, current_user=Depends(get_current_user)):
     from services.pago_service import PagoService
-    return PagoService().confirmar_entrega_y_transferir(solicitud_id, current_user["user_id"])
+    return await PagoService().confirmar_entrega_y_transferir(solicitud_id, current_user["user_id"])

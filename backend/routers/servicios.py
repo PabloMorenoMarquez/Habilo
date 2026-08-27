@@ -121,7 +121,7 @@ async def signed_url_imagenes(request: Request, servicio_id: UUID, current_user=
 async def confirmar_subida_imagenes(request: Request, servicio_id: UUID, imagen: CrearImagenServicio, current_user=Depends(get_current_user)):
     perfil = _get_perfil_proveedor(current_user["user_id"])
     service = ImagenServicioService()
-    return service.añadir_imagen(servicio_id, perfil.id, imagen.url)
+    return await service.añadir_imagen(servicio_id, perfil.id, imagen.url)
 
 @router.get("/{servicio_id}/imagenes")
 async def listar_imagenes(servicio_id:UUID):

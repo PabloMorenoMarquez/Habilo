@@ -94,7 +94,7 @@ async def crear_link_onboarding(request: Request, current_user=Depends(get_curre
     usuario = UserRepository().get_by_id(usuario_id)
 
     service = ProveedorService()
-    url = service.iniciar_onboarding_stripe(
+    url = await service.iniciar_onboarding_stripe(
         usuario_id,
         usuario.email,
         frontend_return_url=f"{Config.FRONTEND_URL}/dashboard?onboarding=completado",
@@ -106,6 +106,6 @@ async def crear_link_onboarding(request: Request, current_user=Depends(get_curre
 @limiter.limit("5/minute")
 async def iniciar_verificacion_identidad(request: Request, current_user=Depends(get_current_user)):
     service = ProveedorService()
-    client_secret = service.iniciar_verificacion_identidad(current_user["user_id"])
+    client_secret = await service.iniciar_verificacion_identidad(current_user["user_id"])
     return {"client_secret": client_secret}
 

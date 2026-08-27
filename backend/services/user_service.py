@@ -44,7 +44,7 @@ class UserService:
         
         return self.user_repository.desbanear(usuario_id)
     
-    def eliminar_cuenta(self, usuario_id: UUID, admin_actual_id: UUID):
+    async def eliminar_cuenta(self, usuario_id: UUID, admin_actual_id: UUID):
         from repositories.solicitud_repository import SolicitudRepository
         from services.solicitud_service import SolicitudService
         from repositories.proveedor_repository import ProveedorRepository
@@ -62,7 +62,7 @@ class UserService:
         
         solicitudes = SolicitudRepository().listar_activas_de_usuario(usuario_id)
         for solicitud in solicitudes:
-            SolicitudService().cancelar_por_sistema(solicitud.id, motivo="cuenta eliminada")
+            await SolicitudService().cancelar_por_sistema(solicitud.id, motivo="cuenta eliminada")
         
         proveedor = ProveedorRepository().get_by_usuario_id(usuario_id)
         

@@ -28,7 +28,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from utils.rate_limiter import limiter
 from slowapi.middleware import SlowAPIMiddleware
-
+import sentry_sdk
 load_dotenv()
 
 @asynccontextmanager
@@ -38,6 +38,12 @@ async def lifespan(app: FastAPI):
     yield
     
     scheduler.shutdown()
+    
+sentry_sdk.init(
+    dsn=os.getenv("SENTRY_DSN"),
+    environment=os.getenv("ENVIRONMENT", "production"),
+    traces_sample_rate=0.2,
+)
 
 app = FastAPI(lifespan=lifespan)
 app.state.limiter = limiter
@@ -60,8 +66,9 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
+log_level = os.getenv("LOG_LEVEL", "INFO").upper()
 logging.basicConfig(
-    level=logging.INFO,
+    level=log_level,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 

@@ -27,7 +27,7 @@ class ImagenServicioService:
         if cantidad >= 10:
             raise HTTPException(status_code=400, detail="Máximo 10 imágenes por servicio")
         
-        self._validar_es_imagen(url)
+        await self._validar_es_imagen(url)
         
         imagen = self.imagen_servicio_repository.crear(servicio_id, url, cantidad)
         
@@ -36,9 +36,10 @@ class ImagenServicioService:
             
         return imagen
     
-    def _validar_es_imagen(self, url: str):
+    async def _validar_es_imagen(self, url: str):
         try:
-            respuesta = httpx.head(url, timeout=5.0, follow_redirects=True)
+            async with httpx.AsyncClient() as client:
+                respuesta = await client.head(url, timeout=5.0, follow_redirects=True)
         except httpx.RequestError:
             raise HTTPException(status_code=400, detail="No se pudo verificar el archivo subido")
 

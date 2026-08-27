@@ -134,13 +134,44 @@ export interface ServicioBackend {
   es_favorito: boolean
 }
 
-export function buscarServicios(params: {
+let busquedaServiciosCache: { key: string; data: ServicioBackend[]; timestamp: number } | null = null
+const BUSQUEDA_TTL_MS = 30 * 1000
+
+function claveBusqueda(params: { lat: number; lng: number; radio_km: number; categoria_id?: string; texto?: string }) {
+  // Redondeamos lat/lng a 4 decimales (~11m de precisión) para que
+  // micro-variaciones del GPS no invaliden el caché sin necesidad.
+  return JSON.stringify({
+    lat: params.lat.toFixed(4),
+    lng: params.lng.toFixed(4),
+    radio_km: params.radio_km,
+    categoria_id: params.categoria_id || null,
+    texto: params.texto || null,
+  })
+}
+
+// Por si en algún punto quieres forzar un dato fresco (ej. tras marcar
+// un favorito) sin esperar a que expire el TTL.
+export function invalidarCacheBusquedaServicios() {
+  busquedaServiciosCache = null
+}
+
+export async function buscarServicios(params: {
   lat: number
   lng: number
   radio_km: number
   categoria_id?: string
   texto?: string
 }) {
+  const key = claveBusqueda(params)
+  const ahora = Date.now()
+  if (
+    busquedaServiciosCache &&
+    busquedaServiciosCache.key === key &&
+    ahora - busquedaServiciosCache.timestamp < BUSQUEDA_TTL_MS
+  ) {
+    return busquedaServiciosCache.data
+  }
+
   const query = new URLSearchParams({
     lat: String(params.lat),
     lng: String(params.lng),
@@ -148,7 +179,10 @@ export function buscarServicios(params: {
   })
   if (params.categoria_id) query.set("categoria_id", params.categoria_id)
   if (params.texto) query.set("texto", params.texto)
-  return apiFetch<ServicioBackend[]>(`/servicio/?${query.toString()}`)
+
+  const data = await apiFetch<ServicioBackend[]>(`/servicio/?${query.toString()}`)
+  busquedaServiciosCache = { key, data, timestamp: ahora }
+  return data
 }
 
 export interface Categoria {
@@ -158,8 +192,17 @@ export interface Categoria {
   descripcion: string
 }
 
-export function getCategorias() {
-  return apiFetch<Categoria[]>("/categorias/")
+let categoriasCache: { data: Categoria[]; timestamp: number } | null = null
+const CATEGORIAS_TTL_MS = 5 * 60 * 1000 // 5 minutos
+
+export async function getCategorias(): Promise<Categoria[]> {
+  const ahora = Date.now()
+  if (categoriasCache && ahora - categoriasCache.timestamp < CATEGORIAS_TTL_MS) {
+    return categoriasCache.data
+  }
+  const data = await apiFetch<Categoria[]>("/categorias/")
+  categoriasCache = { data, timestamp: ahora }
+  return data
 }
 
 export interface CrearServicioInput {
