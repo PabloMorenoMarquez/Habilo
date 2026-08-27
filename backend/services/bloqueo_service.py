@@ -10,7 +10,7 @@ class BloqueoService:
         self.solicitud_repository = SolicitudRepository()
         self.solicitud_service = SolicitudService()
 
-    def bloquear(self, bloqueador_id:UUID, bloqueado_id:UUID):
+    async def bloquear(self, bloqueador_id:UUID, bloqueado_id:UUID):
         if bloqueador_id == bloqueado_id:
             raise HTTPException(status_code=400, detail="No te puedes bloquear a ti mismo")
             
@@ -19,7 +19,7 @@ class BloqueoService:
         solicitudes_activas = self.solicitud_repository.buscar_activas_entre_usuarios(bloqueador_id, bloqueado_id)
         
         for solicitud_activa in solicitudes_activas:
-            self.solicitud_service.cancelar_por_sistema(solicitud_activa.id, "bloqueo")
+            await self.solicitud_service.cancelar_por_sistema(solicitud_activa.id, "bloqueo")
         
         return bloqueo
 

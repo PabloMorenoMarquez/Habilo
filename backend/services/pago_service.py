@@ -13,7 +13,8 @@ from config import Config
 from utils.stripe_client import get_stripe
 from datetime import datetime, timezone
 import logging
-
+from starlette.concurrency import run_in_threadpool
+import sentry_sdk
 logger = logging.getLogger(__name__)
 
 class PagoService:
@@ -29,7 +30,7 @@ class PagoService:
         self.stripe = get_stripe()
         self.notificacion_push_service = NotificacionPushService()
         
-    def crear_pago_desde_oferta(self, oferta_id:UUID, cliente_id: UUID):
+    async def crear_pago_desde_oferta(self, oferta_id:UUID, cliente_id: UUID):
         
         oferta = self.oferta_repository.get_by_id(oferta_id)
         if not oferta:
@@ -49,8 +50,8 @@ class PagoService:
         
         pago = self.pago_repository.get_by_solicitud_id(solicitud.id)
         if pago and pago.estado not in ("fallido", "cancelado"):
-            payment_intent_pago = self.stripe.PaymentIntent.retrieve(
-                pago.stripe_payment_intent_id
+            payment_intent_pago = await run_in_threadpool(
+                self.stripe.PaymentIntent.retrieve, pago.stripe_payment_intent_id
             )
             return {
                 "pago": pago,
@@ -68,7 +69,8 @@ class PagoService:
             raise HTTPException(status_code=404, detail="No existe el proveedor")
         
 
-        payment_intent = self.stripe.PaymentIntent.create(
+        payment_intent = await run_in_threadpool(
+            self.stripe.PaymentIntent.create,
             amount=int(oferta.precio * 100),
             currency="eur",
             capture_method="manual",
@@ -92,19 +94,19 @@ class PagoService:
     def marcar_fallido(self, stripe_payment_intent_id: str):
         return self.pago_repository.actualizar_estado_por_payment_intent_id(stripe_payment_intent_id, "fallido")
     
-    def capturar_pago_de_solicitud(self, solicitud_id:UUID):
+    async def capturar_pago_de_solicitud(self, solicitud_id:UUID):
         pago = self.pago_repository.get_by_solicitud_id(solicitud_id)
         if not pago or pago.estado != "autorizado":
             raise HTTPException(status_code=400, detail="No hay un pago autorizado para esta solicitud")
         
         try:
-            self.stripe.PaymentIntent.capture(pago.stripe_payment_intent_id)
+            await run_in_threadpool(self.stripe.PaymentIntent.capture, pago.stripe_payment_intent_id)
         except self.stripe.error.StripeError as e:
             raise HTTPException(status_code=400, detail=f"No se pudo cobrar el pago: {str(e)}")
         
         return self.pago_repository.marcar_capturado_por_payment_intent_id(pago.stripe_payment_intent_id)
     
-    def cancelar_pago_de_solicitud(self, solicitud_id:UUID):
+    async def cancelar_pago_de_solicitud(self, solicitud_id:UUID):
         pago = self.pago_repository.get_by_solicitud_id(solicitud_id)
         if not pago:
             return
@@ -113,13 +115,13 @@ class PagoService:
             return
         
         try:
-            self.stripe.PaymentIntent.cancel(pago.stripe_payment_intent_id)
+            await run_in_threadpool(self.stripe.PaymentIntent.cancel, pago.stripe_payment_intent_id)
         except self.stripe.error.StripeError as e:
             raise HTTPException(status_code=400, detail=f"No se pudo cancelar el pago: {str(e)}")
         
         return self.pago_repository.marcar_cancelado_por_payment_intent_id(pago.stripe_payment_intent_id)
     
-    def confirmar_entrega_y_transferir(self, solicitud_id:UUID, cliente_id:UUID):
+    async def confirmar_entrega_y_transferir(self, solicitud_id:UUID, cliente_id:UUID):
         solicitud = self.solicitud_repository.get_by_id(solicitud_id)
         if not solicitud:
             raise HTTPException(status_code=404, detail="No existe esta solicitud")
@@ -140,7 +142,13 @@ class PagoService:
         perfil = self.proveedor_repository.get_by_usuario_id(pago.proveedor_id)
         
         try:
-            transfer = self.stripe.Transfer.create(amount=int(pago.monto_proveedor * 100), currency="eur", destination=perfil.stripe_account_id, transfer_group=str(solicitud_id))
+            transfer = await run_in_threadpool(
+                self.stripe.Transfer.create,
+                amount=int(pago.monto_proveedor * 100),
+                currency="eur",
+                destination=perfil.stripe_account_id,
+                transfer_group=str(solicitud_id),
+            )
         except self.stripe.error.StripeError as e:
             raise HTTPException(status_code=400, detail=f"No se pudo cobrar el pago: {str(e)}")
         
@@ -154,10 +162,10 @@ class PagoService:
                 url="/dashboard",
             )
         except Exception as e:
-            print(f"Fallo enviando push a {perfil.usuario_id}: {e}")
+            logger.error(f"Fallo enviando push a {perfil.usuario_id}: {e}", exc_info=True)
         return resultado
     
-    def confirmar_entrega_y_transferir_por_sistema(self, solicitud_id):
+    async def confirmar_entrega_y_transferir_por_sistema(self, solicitud_id):
         solicitud = self.solicitud_repository.get_by_id(solicitud_id)
         if not solicitud:
             raise HTTPException(status_code=404, detail="No existe esta solicitud")
@@ -176,7 +184,13 @@ class PagoService:
         perfil = self.proveedor_repository.get_by_usuario_id(pago.proveedor_id)
         
         try:
-            transfer = self.stripe.Transfer.create(amount=int(pago.monto_proveedor * 100), currency="eur", destination=perfil.stripe_account_id, transfer_group=str(solicitud_id))
+            transfer = await run_in_threadpool(
+                self.stripe.Transfer.create,
+                amount=int(pago.monto_proveedor * 100),
+                currency="eur",
+                destination=perfil.stripe_account_id,
+                transfer_group=str(solicitud_id),
+            )
         except self.stripe.error.StripeError as e:
             raise HTTPException(status_code=400, detail=f"No se pudo cobrar el pago: {str(e)}")
         
@@ -190,10 +204,10 @@ class PagoService:
                 url="/dashboard",
             )
         except Exception as e:
-            print(f"Fallo enviando push a {perfil.usuario_id}: {e}")
+            logger.error(f"Fallo enviando push a {perfil.usuario_id}: {e}", exc_info=True)
         return resultado
     
-    def reembolsar_pago_de_solicitud(self, solicitud_id:UUID):
+    async def reembolsar_pago_de_solicitud(self, solicitud_id:UUID):
         pago = self.pago_repository.get_by_solicitud_id(solicitud_id)
         if not pago:
             return
@@ -202,22 +216,23 @@ class PagoService:
             return
         
         try:
-            refund = self.stripe.Refund.create(payment_intent=pago.stripe_payment_intent_id)
+            refund = await run_in_threadpool(self.stripe.Refund.create, payment_intent=pago.stripe_payment_intent_id)
         except self.stripe.error.StripeError as e:
             raise HTTPException(status_code=400, detail=f"No se pudo reembolsar el pago: {str(e)}")
         
         return self.pago_repository.marcar_reembolsado_por_payment_intent_id(pago.stripe_payment_intent_id, refund.id)
         
-    def auto_liberar_pagos_sin_confirmar(self):
+    async def auto_liberar_pagos_sin_confirmar(self):
         from datetime import timedelta
         limite = datetime.now(timezone.utc) - timedelta(days=5)
         pagos = self.pago_repository.listar_capturados_completados_antes_de(limite)
         for pago in pagos:
             try:
-                self.confirmar_entrega_y_transferir_por_sistema(pago.solicitud_id)
+                await self.confirmar_entrega_y_transferir_por_sistema(pago.solicitud_id)
             except Exception as e:
                 logger.error(
                     f"Fallo auto-liberando pago {pago.id} (solicitud {pago.solicitud_id}): {e}"
                 )
+                sentry_sdk.capture_exception(e)
                 continue
         

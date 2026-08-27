@@ -6,7 +6,9 @@ from repositories.servicio_repository import ServicioRepository
 from services.notificacion_push_service import NotificacionPushService
 from services.notificacion_email_service import NotificacionEmailService
 from config import Config
+import logging
 
+logger = logging.getLogger(__name__)
 class MensajeService:
     def __init__(self):
         self.mensaje_repository = MensajeRepository()
@@ -62,7 +64,7 @@ class MensajeService:
                 url=f"/chats?solicitud={solicitud_id}"
             )
         except Exception as e:
-            print(f"Fallo enviando push a {otro_usuario_id}: {e}")
+            logger.error(f"Fallo enviando push a {otro_usuario_id}: {e}", exc_info=True)
         
         self.notificacion_email_service.enviar(
             usuario_id=otro_usuario_id,

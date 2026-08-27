@@ -8,6 +8,9 @@ from services.notificacion_push_service import NotificacionPushService
 from decimal import Decimal, ROUND_HALF_UP
 from datetime import datetime, timezone
 
+import logging
+
+logger = logging.getLogger(__name__)
 class OfertaService:
     
     def __init__(self):
@@ -106,7 +109,7 @@ class OfertaService:
                 url=f"/chats?solicitud={solicitud.id}",
             )
         except Exception as e:
-            print(f"Fallo enviando push a {oferta.autor_id}: {e}")
+            logger.error(f"Fallo enviando push a {oferta.autor_id}: {e}", exc_info=True)
 
         return oferta_aceptada
         

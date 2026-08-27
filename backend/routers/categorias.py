@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends, Request, Response
 from uuid import UUID
 from typing import List
 from utils.auth_middleware import get_current_admin
@@ -10,7 +10,8 @@ router = APIRouter(prefix="/categorias", tags=["categorias"])
 
 
 @router.get("/", response_model=List[CategoriaOut])
-async def listar_categorias():
+async def listar_categorias(response: Response):
+    response.headers["Cache-Control"] = "public, max-age=300"
     service = CategoriaService()
     return service.listar()
 

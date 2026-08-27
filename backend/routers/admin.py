@@ -84,5 +84,5 @@ async def desbanear(usuario_id:UUID, current_admin=Depends(get_current_admin)):
 @router.patch("/usuarios/{usuario_id}/eliminar", response_model=UsuarioAdminOut)
 async def eliminar(usuario_id:UUID, current_admin=Depends(get_current_admin)):
     service = UserService()
-    return service.eliminar_cuenta(usuario_id, current_admin["user_id"])
+    return await service.eliminar_cuenta(usuario_id, current_admin["user_id"])
     

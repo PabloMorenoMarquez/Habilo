@@ -53,7 +53,7 @@ async def rechazar_oferta(request: Request, oferta_id:UUID, current_user=Depends
 @limiter.limit("10/minute")
 async def crear_pago(request: Request, oferta_id: UUID, current_user=Depends(get_current_user)):
     service = PagoService()
-    return service.crear_pago_desde_oferta(oferta_id, current_user["user_id"])
+    return await service.crear_pago_desde_oferta(oferta_id, current_user["user_id"])
 
 @router.post("/solicitudes/{solicitud_id}/ofertas/por-horas", response_model=OfertaOut)
 @limiter.limit("20/minute")

@@ -35,7 +35,7 @@ async def actualizar_perfil(request: Request, datos: ActualizarUsuario, current_
 @limiter.limit("10/minute")
 async def bloquear_usuario(request: Request, datos: BloquearUsuario, current_user=Depends(get_current_user)):
     service = BloqueoService()
-    service.bloquear(current_user["user_id"], datos.usuario_id)
+    await service.bloquear(current_user["user_id"], datos.usuario_id)
     return {"ok": True}
 
 @router.delete("/bloquear/{usuario_id}")

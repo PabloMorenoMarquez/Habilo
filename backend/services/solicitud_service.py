@@ -7,6 +7,10 @@ from services.notificacion_push_service import NotificacionPushService
 from fastapi import HTTPException
 from datetime import datetime, timezone
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 TRANSICIONES_VALIDAS = {
     "negociando": {"pendiente", "cancelada"},
     "pendiente": {"aceptada", "rechazada", "cancelada"},
@@ -60,7 +64,7 @@ class SolicitudService:
                 url=f"/chats?solicitud={solicitud.id}",
             )
         except Exception as e:
-            print(f"Fallo enviando push a {proveedor.usuario_id}: {e}")
+            logger.error(f"Fallo enviando push a {proveedor.usuario_id}: {e}", exc_info=True)
         return solicitud
 
     def obtener(self, solicitud_id:UUID, usuario_id:UUID, proveedor_id:UUID=None):
@@ -81,7 +85,7 @@ class SolicitudService:
             return self.solicitud_repository.listar_por_proveedor(proveedor_id)
         return self.solicitud_repository.listar_por_cliente(usuario_id)
 
-    def cambiar_estado(self, solicitud_id:UUID, nuevo_estado:str,usuario_id:UUID, proveedor_id:UUID = None, motivo:str = None):  
+    async def cambiar_estado(self, solicitud_id:UUID, nuevo_estado:str,usuario_id:UUID, proveedor_id:UUID = None, motivo:str = None):  
         solicitud = self.solicitud_repository.get_by_id(solicitud_id)
         if not solicitud:
             raise HTTPException(status_code=404, detail="Solicitud no encontrada")
@@ -116,15 +120,15 @@ class SolicitudService:
         
         if solicitud.estado == "pendiente" and nuevo_estado == "aceptada":
             from services.pago_service import PagoService
-            PagoService().capturar_pago_de_solicitud(solicitud_id)
+            await PagoService().capturar_pago_de_solicitud(solicitud_id)
 
         if solicitud.estado == "pendiente" and nuevo_estado in ("rechazada", "cancelada"):
             from services.pago_service import PagoService
-            PagoService().cancelar_pago_de_solicitud(solicitud_id)
+            await PagoService().cancelar_pago_de_solicitud(solicitud_id)
             
         if solicitud.estado == "aceptada" and nuevo_estado == "cancelada":
             from services.pago_service import PagoService
-            PagoService().reembolsar_pago_de_solicitud(solicitud_id)     
+            await PagoService().reembolsar_pago_de_solicitud(solicitud_id)     
         
         if nuevo_estado == "completada":
             self.solicitud_repository.marcar_fecha_completada(solicitud_id)
@@ -137,7 +141,7 @@ class SolicitudService:
                     url=f"/chats?solicitud={solicitud_id}",
                 )
             except Exception as e:
-                print(f"Fallo enviando push a {proveedor.usuario_id}: {e}")
+                logger.error(f"Fallo enviando push a {proveedor.usuario_id}: {e}", exc_info=True)
         
         return self.solicitud_repository.actualizar_estado(solicitud_id, nuevo_estado, motivo)
     
@@ -157,7 +161,7 @@ class SolicitudService:
             c["ya_valorada"] = str(c["id"]) in valoradas
         return base
     
-    def cancelar_por_sistema(self, solicitud_id: UUID, motivo: str):
+    async def cancelar_por_sistema(self, solicitud_id: UUID, motivo: str):
         solicitud = self.solicitud_repository.get_by_id(solicitud_id)
         if not solicitud:
             return None
@@ -166,9 +170,9 @@ class SolicitudService:
         
         from services.pago_service import PagoService
         if solicitud.estado == "pendiente":
-            PagoService().cancelar_pago_de_solicitud(solicitud_id)
+            await PagoService().cancelar_pago_de_solicitud(solicitud_id)
         elif solicitud.estado == "aceptada":
-            PagoService().reembolsar_pago_de_solicitud(solicitud_id)
+            await PagoService().reembolsar_pago_de_solicitud(solicitud_id)
             
         return self.solicitud_repository.actualizar_estado(solicitud_id, "cancelada", motivo)
     
@@ -180,9 +184,9 @@ class SolicitudService:
             return solicitud
         return self.solicitud_repository.actualizar_estado(solicitud_id, "pendiente")
     
-    def autocancelar_negociaciones_inactivas(self):
+    async def autocancelar_negociaciones_inactivas(self):
         from datetime import timedelta
         limite = datetime.now(timezone.utc) - timedelta(days=7)
         solicitudes = self.solicitud_repository.listar_negociando_inactivas(limite)
         for solicitud in solicitudes:
-            self.cancelar_por_sistema(solicitud.id, motivo="inactividad")
+            await self.cancelar_por_sistema(solicitud.id, motivo="inactividad")
