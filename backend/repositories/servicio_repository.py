@@ -100,7 +100,7 @@ class ServicioRepository:
             session.close()
 
     def buscar_por_proximidad(self, lat:float, lng:float, radio_km:float,
-                               categoria_id:UUID=None, texto:str=None, usuario_id:UUID = None):
+                               categoria_id:UUID=None, texto:str=None, usuario_id:UUID = None, limit:int = 20, offset:int = 0):
         from geoalchemy2.functions import ST_DWithin, ST_Distance, ST_SetSRID, ST_MakePoint
         from sqlalchemy import cast
         from geoalchemy2 import Geography
@@ -134,6 +134,8 @@ class ServicioRepository:
             if usuario_id:
                 stmt = stmt.where(Usuario.id != usuario_id)
             stmt = stmt.order_by(ST_Distance(Servicio.ubicacion, punto))
+            
+            stmt = stmt.limit(limit+1).offset(offset)
             
             rows = session.execute(stmt).all()
             

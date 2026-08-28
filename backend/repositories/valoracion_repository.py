@@ -34,12 +34,13 @@ class ValoracionRepository:
         finally:
             session.close()
 
-    def listar_por_destinatario(self, destinatario_id:UUID):
+    def listar_por_destinatario(self, destinatario_id:UUID, limit: int = 20, offset: int = 0):
         session = SessionLocal()
         try:
             stmt = select(Valoracion).where(
                 Valoracion.destinatario_id == destinatario_id
             ).order_by(Valoracion.fecha.desc())
+            stmt = stmt.limit(limit+1).offset(offset)
             return list(session.scalars(stmt))
         finally:
             session.close()

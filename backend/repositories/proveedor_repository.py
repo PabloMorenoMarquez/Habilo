@@ -76,13 +76,15 @@ class ProveedorRepository:
         finally:
             session.close()
             
-    def listar_pendientes_verificacion(self):
+    def listar_pendientes_verificacion(self, limit: int = 20, offset: int = 0):
         from models.usuario import Usuario
         session = SessionLocal()
         try:
             stmt = (select(Perfil_Proveedor, Usuario.nombre.label("usuario_nombre"), Usuario.email.label("usuario_email"))
                     .join(Usuario, Perfil_Proveedor.usuario_id == Usuario.id)
                     .where(Perfil_Proveedor.url_documento.isnot(None), Perfil_Proveedor.verificado == False))
+            
+            stmt = stmt.limit(limit+1).offset(offset)
             
             rows = session.execute(stmt).all()
             resultado = []

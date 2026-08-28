@@ -55,10 +55,11 @@ class UserRepository:
         finally:
             session.close()
     
-    def buscar_por_email(self, email:str):
+    def buscar_por_email(self, email:str, limit: int = 20, offset: int = 0):
         session = SessionLocal()
         try:
             stmt = select(Usuario).where(Usuario.email.ilike(f"%{email}%"))
+            stmt = stmt.limit(limit+1).offset(offset)
             return session.scalars(stmt).all()
         finally:
             session.close()

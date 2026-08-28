@@ -161,27 +161,39 @@ export async function buscarServicios(params: {
   radio_km: number
   categoria_id?: string
   texto?: string
-}) {
-  const key = claveBusqueda(params)
+  limit?: number
+  offset?: number
+}): Promise<Paginado<ServicioBackend>> {
+  const limit = params.limit ?? 20
+  const offset = params.offset ?? 0
+
+  // El caché de 30s solo tiene sentido para la primera página (offset 0);
+  // páginas siguientes son "cargar más" y no deben servirse desde caché.
+  const key = claveBusqueda({ ...params, limit } as any)
   const ahora = Date.now()
   if (
+    offset === 0 &&
     busquedaServiciosCache &&
     busquedaServiciosCache.key === key &&
     ahora - busquedaServiciosCache.timestamp < BUSQUEDA_TTL_MS
   ) {
-    return busquedaServiciosCache.data
+    return busquedaServiciosCache.data as unknown as Paginado<ServicioBackend>
   }
 
   const query = new URLSearchParams({
     lat: String(params.lat),
     lng: String(params.lng),
     radio_km: String(params.radio_km),
+    limit: String(limit),
+    offset: String(offset),
   })
   if (params.categoria_id) query.set("categoria_id", params.categoria_id)
   if (params.texto) query.set("texto", params.texto)
 
-  const data = await apiFetch<ServicioBackend[]>(`/servicio/?${query.toString()}`)
-  busquedaServiciosCache = { key, data, timestamp: ahora }
+  const data = await apiFetch<Paginado<ServicioBackend>>(`/servicio/?${query.toString()}`)
+  if (offset === 0) {
+    busquedaServiciosCache = { key, data: data as any, timestamp: ahora }
+  }
   return data
 }
 
@@ -337,8 +349,10 @@ export interface Conversacion {
   pago_estado: string | null
 }
 
-export function getConversaciones() {
-  return apiFetch<Conversacion[]>("/solicitudes/conversaciones")
+export function getConversaciones(limit = 20, offset = 0) {
+  return apiFetch<Paginado<Conversacion>>(
+    `/solicitudes/conversaciones?limit=${limit}&offset=${offset}`
+  )
 }
 
 export interface MensajeBackend {
@@ -667,4 +681,12 @@ export function desmarcarProveedorFavorito(perfilId: string) {
 
 export function listarProveedoresFavoritos() {
   return apiFetch<ProveedorFavorito[]>("/favoritos/proveedores")
+}
+
+// Tipo genérico para cualquier respuesta paginada del backend
+export interface Paginado<T> {
+  items: T[]
+  has_more: boolean
+  limit: number
+  offset: number
 }

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends, Request, Query
 from uuid import UUID
 from typing import List
 from utils.auth_middleware import get_current_user
@@ -6,6 +6,7 @@ from schemas.solicitud_schema import CrearSolicitud, CambiarEstadoSolicitud, Sol
 from services.solicitud_service import SolicitudService
 from services.proveedor_service import ProveedorService
 from utils.rate_limiter import limiter
+from schemas.paginacion_schema import PaginatedResponse
 
 router = APIRouter(prefix="/solicitudes", tags=["solicitudes"])
 
@@ -25,10 +26,13 @@ async def listar_solicitudes(current_user=Depends(get_current_user)):
     service = SolicitudService()
     return service.listar_mias(usuario_id, perfil.id if perfil else None)
 
-@router.get("/conversaciones", response_model=List[ConversacionOut])
-async def listar_conversaciones(current_user=Depends(get_current_user)):
+@router.get("/conversaciones", response_model=PaginatedResponse[ConversacionOut])
+async def listar_conversaciones(limit: int = Query(20, ge=1, le=100),  offset: int = Query(0, ge=0),current_user=Depends(get_current_user)):
     service = SolicitudService()
-    return service.listar_conversaciones(current_user["user_id"])
+    conversaciones, has_more = service.listar_conversaciones(
+        current_user["user_id"], limit=limit, offset=offset
+    )
+    return PaginatedResponse(items=conversaciones, has_more=has_more, limit=limit, offset=offset)
 
 
 @router.get("/{solicitud_id}", response_model=SolicitudOut)

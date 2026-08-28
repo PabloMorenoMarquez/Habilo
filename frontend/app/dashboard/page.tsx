@@ -108,8 +108,8 @@ export default function DashboardPage() {
       })
       .catch(() => {})
 
-    getConversaciones()
-      .then((convs) => setMensajesNoLeidos(convs.reduce((acc, c) => acc + c.no_leidos, 0)))
+    getConversaciones(50)
+      .then((data) => setMensajesNoLeidos(data.items.reduce((acc, c) => acc + c.no_leidos, 0)))
       .catch((err) => console.error("No se pudieron cargar los mensajes sin leer:", err))
 
     cargarMisServicios()

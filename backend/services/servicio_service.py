@@ -3,6 +3,7 @@ from decimal import Decimal
 from repositories.servicio_repository import ServicioRepository
 from repositories.favorito_repository import FavoritoRepository
 from datetime import datetime, timezone
+from utils.paginacion import paginar
 class ServicioService:
     def __init__(self):
         self.servicio_repository = ServicioRepository()
@@ -32,15 +33,17 @@ class ServicioService:
             return False
         return self.servicio_repository.eliminar(servicio_id)
 
-    def buscar(self, lat:float, lng:float, radio_km:float, categoria_id:UUID=None, texto:str=None, usuario_id:UUID=None):
-        servicios = self.servicio_repository.buscar_por_proximidad(lat, lng, radio_km, categoria_id, texto, usuario_id)
+    def buscar(self, lat:float, lng:float, radio_km:float, categoria_id:UUID=None, texto:str=None, usuario_id:UUID=None, limit: int = 20, offset: int = 0):
+        servicios = self.servicio_repository.buscar_por_proximidad(lat, lng, radio_km, categoria_id, texto, usuario_id, limit=limit, offset=offset)
+        
+        servicios, has_more = paginar(servicios, limit)
         
         favoritos = self.favorito_repository.listar_ids_favoritos_servicio(usuario_id)
 
         for servicio in servicios:
             servicio["es_favorito"] = servicio["id"] in favoritos
 
-        return servicios
+        return servicios, has_more
     
     def obtener_detalle_publico(self, servicio_id:UUID, usuario_id:UUID):
         servicio = self.servicio_repository.obtener_detalle_publico(servicio_id)

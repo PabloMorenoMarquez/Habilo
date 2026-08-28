@@ -10,6 +10,7 @@ from utils.storage import generar_signed_upload_url
 from config import Config
 import uuid
 from utils.rate_limiter import limiter
+from schemas.paginacion_schema import PaginatedResponse
 
 router = APIRouter(prefix="/servicio", tags=["servicio"])
 
@@ -22,7 +23,7 @@ def _get_perfil_proveedor(usuario_id):
     return perfil
 
 
-@router.get("/", response_model=List[ServicioBusquedaOut])
+@router.get("/", response_model=PaginatedResponse[ServicioBusquedaOut])
 @limiter.limit("60/minute")
 async def buscar_servicios(
     request: Request,
@@ -31,11 +32,21 @@ async def buscar_servicios(
     radio_km: float = Query(10.0, description="Radio de búsqueda en km"),
     categoria_id: Optional[UUID] = Query(None),
     texto: Optional[str] = Query(None, description="Texto a buscar en el título"),
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
     current_user=Depends(get_current_user)
 ):
     service = ServicioService()
-    servicios = service.buscar(lat, lng, radio_km, categoria_id, texto, current_user["user_id"])
-    return [ServicioBusquedaOut.model_validate(s) for s in servicios]
+    servicios, has_more = service.buscar(
+        lat, lng, radio_km, categoria_id, texto, current_user["user_id"],
+        limit=limit, offset=offset
+    )
+    return PaginatedResponse(
+        items=[ServicioBusquedaOut.model_validate(s) for s in servicios],
+        has_more=has_more,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.post("/", response_model=ServicioOut)

@@ -21,7 +21,7 @@ class ReporteRepository:
         finally:
             session.close()
             
-    def listar(self, estado: str = None):
+    def listar(self, estado: str = None, limit: int = 20, offset: int = 0):
         from sqlalchemy.orm import aliased
         from models.usuario import Usuario
 
@@ -45,6 +45,8 @@ class ReporteRepository:
                 stmt = stmt.where(Reporte.estado == estado)
             stmt = stmt.order_by(Reporte.fecha.desc())
 
+            stmt = stmt.limit(limit + 1).offset(offset)
+            
             rows = session.execute(stmt).all()
             resultado = []
             for row in rows:

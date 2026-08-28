@@ -79,7 +79,7 @@ class SolicitudRepository:
         finally:
             session.close()
             
-    def listar_conversaciones_base(self, usuario_id: UUID):
+    def listar_conversaciones_base(self, usuario_id: UUID, limit:int = 20, offset:int = 0):
         from sqlalchemy.orm import aliased
         from models.servicio import Servicio
         from models.perfil_proveedor import Perfil_Proveedor
@@ -115,6 +115,9 @@ class SolicitudRepository:
                 )
                 .order_by(Solicitud.fecha.desc())
             )
+            
+            stmt = stmt.limit(limit + 1).offset(offset)
+            
             rows = session.execute(stmt).all()
 
             resultado = []

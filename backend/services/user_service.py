@@ -1,7 +1,7 @@
 from uuid import UUID
 from repositories.user_repository import UserRepository
 from fastapi import HTTPException
-
+from utils.paginacion import paginar
 
 class UserService:
     def __init__(self):
@@ -18,8 +18,10 @@ class UserService:
             campos["telefono_verificado"] = False
         return self.user_repository.actualizar(usuario_id, **campos)
     
-    def buscar_por_email(self, email:str):
-        return self.user_repository.buscar_por_email(email)
+    def buscar_por_email(self, email:str, limit: int = 20, offset: int = 0):
+        usuarios = self.user_repository.buscar_por_email(email, limit=limit, offset=offset)
+        usuarios, has_more = paginar(usuarios, limit)
+        return usuarios, has_more
     
     def listar_baneados(self):
         return self.user_repository.listar_baneados()

@@ -6,6 +6,9 @@ import logging
 from dotenv import load_dotenv
 from config import Config
 from contextlib import asynccontextmanager
+from database.engine import engine
+from sqlalchemy import text
+from fastapi import HTTPException
 
 from routers.auth import router as auth_router
 from routers.usuarios import router as usuarios_router
@@ -28,6 +31,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from utils.rate_limiter import limiter
 from slowapi.middleware import SlowAPIMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 import sentry_sdk
 load_dotenv()
 
@@ -47,6 +51,7 @@ sentry_sdk.init(
 
 app = FastAPI(lifespan=lifespan)
 app.state.limiter = limiter
+app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=6)
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
@@ -90,5 +95,13 @@ app.include_router(webhooks_router)
 app.include_router(ofertas_router)
 app.include_router(favoritos_router)
 app.include_router(suscripcion_push_router)
+@app.get("/health")
+async def health_check():
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return {"status": "ok"}
+    except Exception:
+        raise HTTPException(status_code=503, detail="unhealthy")
 
 

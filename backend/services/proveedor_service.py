@@ -5,6 +5,7 @@ from fastapi import HTTPException
 from utils.storage import generar_signed_download_url
 from cachetools import TTLCache
 from starlette.concurrency import run_in_threadpool
+from utils.paginacion import paginar
 
 _perfil_publico_cache = TTLCache(maxsize=200, ttl=60)
 class ProveedorService:
@@ -34,8 +35,10 @@ class ProveedorService:
     def actualizar_documento(self, perfil_id:UUID, url_documento:str):
         return self.proveedor_repository.actualizar_documento(perfil_id, url_documento)
     
-    def listar_pendientes(self):
-        return self.proveedor_repository.listar_pendientes_verificacion()
+    def listar_pendientes(self, limit: int = 20, offset: int = 0):
+        pendientes = self.proveedor_repository.listar_pendientes_verificacion(limit=limit, offset=offset)
+        pendientes, has_more = paginar(pendientes, limit)
+        return pendientes, has_more
     
     def verificar(self, perfil_id:UUID):
         perfil = self.proveedor_repository.verificar(perfil_id)
