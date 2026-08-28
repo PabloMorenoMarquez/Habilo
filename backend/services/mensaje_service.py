@@ -6,6 +6,7 @@ from repositories.servicio_repository import ServicioRepository
 from services.notificacion_push_service import NotificacionPushService
 from services.notificacion_email_service import NotificacionEmailService
 from config import Config
+from utils.paginacion import paginar
 import logging
 
 logger = logging.getLogger(__name__)
@@ -78,9 +79,11 @@ class MensajeService:
         
         return mensaje
 
-    def historial(self, solicitud_id:UUID, usuario_id:UUID):
+    def historial(self, solicitud_id:UUID, usuario_id:UUID, limit: int = 20, offset: int = 0):
         self._verificar_acceso(solicitud_id, usuario_id)
-        return self.mensaje_repository.listar_por_solicitud(solicitud_id)
+        mensajes = self.mensaje_repository.listar_por_solicitud(solicitud_id, limit=limit, offset=offset)
+        mensajes, has_more = paginar(mensajes, limit)
+        return mensajes, has_more
     
     def verificar_acceso(self, solicitud_id: UUID, usuario_id: UUID):
         return self._verificar_acceso(solicitud_id, usuario_id)

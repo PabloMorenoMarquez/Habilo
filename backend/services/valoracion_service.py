@@ -4,7 +4,7 @@ from repositories.valoracion_repository import ValoracionRepository
 from repositories.solicitud_repository import SolicitudRepository
 from repositories.servicio_repository import ServicioRepository
 from repositories.proveedor_repository import ProveedorRepository
-
+from utils.paginacion import paginar
 
 class ValoracionService:
     def __init__(self):
@@ -31,5 +31,7 @@ class ValoracionService:
         
         return self.valoracion_repository.crear(solicitud_id, autor_id, destinatario_id, puntuacion, comentario)
 
-    def listar_por_destinatario(self, destinatario_id:UUID):
-        return self.valoracion_repository.listar_por_destinatario(destinatario_id)
+    def listar_por_destinatario(self, destinatario_id:UUID, limit: int = 20, offset: int = 0):
+        valoraciones = self.valoracion_repository.listar_por_destinatario(destinatario_id, limit=limit, offset=offset)
+        valoraciones, has_more = paginar(valoraciones, limit)
+        return valoraciones, has_more

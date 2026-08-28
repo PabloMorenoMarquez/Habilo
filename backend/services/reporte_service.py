@@ -1,6 +1,7 @@
 from uuid import UUID
 from repositories.reporte_repository import ReporteRepository
 from fastapi import HTTPException
+from utils.paginacion import paginar
 
 TRANSICIONES_VALIDAS_REPORTE = {
     "pendiente": {"resuelto", "descartado"},
@@ -21,8 +22,10 @@ class ReporteService:
         
         return self.reporte_repository.crear(autor_id, usuario_reportado_id, motivo, descripcion, solicitud_id)
     
-    def listar(self, estado: str = None):
-        return self.reporte_repository.listar(estado)
+    def listar(self, estado: str = None, limit: int = 20, offset: int = 0):
+        reportes = self.reporte_repository.listar(estado, limit=limit, offset=offset)
+        reportes, has_more = paginar(reportes, limit)
+        return reportes, has_more
 
     def obtener(self, reporte_id: UUID):
         reporte = self.reporte_repository.obtener_detalle(reporte_id)

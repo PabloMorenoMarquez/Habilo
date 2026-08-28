@@ -192,7 +192,14 @@ export default function ServiceDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
             <div className="relative aspect-video rounded-2xl overflow-hidden bg-muted">
-              <Image src={fotos[imagenActiva] || "/placeholder.jpg"} alt={servicio.titulo} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 66vw" />
+              <Image
+                src={fotos[imagenActiva] || "/placeholder.jpg"}
+                alt={servicio.titulo}
+                fill
+                priority
+                className="object-cover"
+                sizes="(max-width: 1024px) 100vw, 66vw"
+              />
             </div>
 
             {fotos.length > 1 && (

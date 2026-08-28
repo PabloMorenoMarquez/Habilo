@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label"
 import { Search, SlidersHorizontal, X, MapPin, Navigation, Loader } from "lucide-react"
 import { buscarServicios, getCategorias, ServicioBackend, Categoria } from "@/lib/api"
 import { geocodeCiudad, getBrowserLocation } from "@/lib/geocode"
+import { usePaginacion } from "@/hooks/use-paginacion"
 
 const RADIO_KM = 50 // radio de búsqueda por defecto
 const LOCATION_KEY = "serviclick_location"
@@ -62,8 +63,6 @@ export default function ClientHomePage() {
   const [ciudadLabel, setCiudadLabel] = useState(user?.location || "")
   const [locatingUser, setLocatingUser] = useState(false)
 
-  const [servicios, setServicios] = useState<ServicioBackend[]>([])
-  const [buscando, setBuscando] = useState(false)
   const [errorBusqueda, setErrorBusqueda] = useState<string | null>(null)
 
   useEffect(() => {
@@ -147,24 +146,29 @@ export default function ClientHomePage() {
   }
 
   // Buscar servicios cada vez que cambian coordenadas, categoría o texto
+  const {
+    items: servicios,
+    cargando: buscando,
+    hasMore,
+    cargar: cargarServicios,
+  } = usePaginacion<ServicioBackend>(
+    (offset) =>
+      buscarServicios({
+        lat: coords!.lat,
+        lng: coords!.lng,
+        radio_km: RADIO_KM,
+        categoria_id: activeCategoriaId || undefined,
+        texto: search || undefined,
+        offset,
+      }),
+    20
+  )
+
+  // ✅ SUSTITUYE tu useEffect de búsqueda actual por este:
   useEffect(() => {
     if (!coords) return
-    setBuscando(true)
-    setErrorBusqueda(null)
-    buscarServicios({
-      lat: coords.lat,
-      lng: coords.lng,
-      radio_km: RADIO_KM,
-      categoria_id: activeCategoriaId || undefined,
-      texto: search || undefined,
-    })
-      .then(setServicios)
-      .catch((err) => {
-        console.error(err)
-        setErrorBusqueda("No se pudieron cargar los servicios.")
-        setServicios([])
-      })
-      .finally(() => setBuscando(false))
+    cargarServicios(true) // true = reset, siempre desde offset 0 al cambiar filtros
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coords, activeCategoriaId, search])
 
   // El precio no lo filtra el backend: se filtra aquí sobre los resultados ya traídos
@@ -400,11 +404,28 @@ export default function ClientHomePage() {
             </p>
           </div>
         ) : tarjetas.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {tarjetas.map((service) => (
-              <ServiceCard key={service.id} service={service} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              {tarjetas.map((service) => (
+                <ServiceCard key={service.id} service={service} />
+              ))}
+            </div>
+
+            {hasMore && (
+              <div className="flex justify-center py-6">
+                <Button
+                  variant="outline"
+                  onClick={() => cargarServicios(false)}
+                  disabled={buscando}
+                >
+                  {buscando ? (
+                    <Loader size={16} className="animate-spin mr-2" />
+                  ) : null}
+                  Cargar más servicios
+                </Button>
+              </div>
+            )}
+          </>
         ) : !buscando ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
             <Search size={40} className="text-muted-foreground/40" />

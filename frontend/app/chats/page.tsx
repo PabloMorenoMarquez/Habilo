@@ -88,8 +88,8 @@ function ChatsPageInner() {
   }, [isAuthenticated, isLoading, router])
 
   const cargarConversaciones = useCallback(() => {
-    getConversaciones()
-      .then(setConversaciones)
+    getConversaciones(50)
+      .then((data) => setConversaciones(data.items))
       .catch((err) => console.error("No se pudieron cargar las conversaciones:", err))
       .finally(() => setCargandoLista(false))
   }, [])

@@ -26,12 +26,13 @@ class MensajeRepository:
         finally:
             session.close()
 
-    def listar_por_solicitud(self, solicitud_id:UUID):
+    def listar_por_solicitud(self, solicitud_id:UUID, limit: int = 20, offset: int = 0):
         session = SessionLocal()
         try:
             stmt = select(Mensaje).where(
                 Mensaje.solicitud_id == solicitud_id
             ).order_by(Mensaje.fecha)
+            stmt = stmt.limit(limit+1).offset(offset)
             return list(session.scalars(stmt))
         finally:
             session.close()

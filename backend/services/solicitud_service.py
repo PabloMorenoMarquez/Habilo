@@ -145,11 +145,14 @@ class SolicitudService:
         
         return self.solicitud_repository.actualizar_estado(solicitud_id, nuevo_estado, motivo)
     
-    def listar_conversaciones(self, usuario_id: UUID):
+    def listar_conversaciones(self, usuario_id: UUID, limit: int = 20, offset: int = 0):
         from repositories.mensaje_repository import MensajeRepository
         from repositories.valoracion_repository import ValoracionRepository
+        from utils.paginacion import paginar
         
-        base = self.solicitud_repository.listar_conversaciones_base(usuario_id)
+        base = self.solicitud_repository.listar_conversaciones_base(usuario_id, limit=limit, offset=offset)
+        base, has_more = paginar(base, limit)
+        
         ids = [c["id"] for c in base]
         resumen = MensajeRepository().resumen_por_solicitudes(ids, usuario_id) if ids else {}
         valoradas = ValoracionRepository().obtener_solicitudes_valoradas(ids) if ids else set()
@@ -159,7 +162,7 @@ class SolicitudService:
             c["ultimo_mensaje_fecha"] = info.get("ultimo_mensaje_fecha")
             c["no_leidos"] = info.get("no_leidos", 0)
             c["ya_valorada"] = str(c["id"]) in valoradas
-        return base
+        return base, has_more
     
     async def cancelar_por_sistema(self, solicitud_id: UUID, motivo: str):
         solicitud = self.solicitud_repository.get_by_id(solicitud_id)

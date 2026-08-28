@@ -25,8 +25,8 @@ export default function Navbar() {
 
   const cargarNoLeidos = useCallback(() => {
     if (!isAuthenticated) return
-    getConversaciones()
-      .then((convs) => setNoLeidos(convs.reduce((acc, c) => acc + c.no_leidos, 0)))
+    getConversaciones(50) // limit alto: el badge necesita contar sobre bastantes conversaciones, no solo 20
+      .then((data) => setNoLeidos(data.items.reduce((acc, c) => acc + c.no_leidos, 0)))
       .catch((err) => console.error("No se pudieron cargar los mensajes sin leer:", err))
   }, [isAuthenticated])
 

@@ -146,7 +146,13 @@ export default function GaleriaImagenes({
               dragOverIndex === index ? "border-primary" : "border-border"
             }`}
           >
-            <img src={img.url} alt="" className="w-full h-full object-cover pointer-events-none" />
+            <img
+              src={img.url}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              className="w-full h-full object-cover pointer-events-none"
+            />
             {index === 0 && (
               <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-primary text-primary-foreground text-[10px] font-medium">
                 Portada

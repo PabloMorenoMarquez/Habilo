@@ -7,14 +7,16 @@ from utils.ws_manager import manager
 from schemas.mensaje_schema import MensajeOut
 from services.mensaje_service import MensajeService
 from config import Config
+from schemas.paginacion_schema import PaginatedResponse
 
 router = APIRouter(tags=["mensajes"])
 
 
-@router.get("/solicitudes/{solicitud_id}/mensajes", response_model=List[MensajeOut])
-async def historial_mensajes(solicitud_id: UUID, current_user=Depends(get_current_user)):
+@router.get("/solicitudes/{solicitud_id}/mensajes", response_model=PaginatedResponse[MensajeOut])
+async def historial_mensajes(solicitud_id: UUID,limit: int = Query(20, ge=1, le=100), offset: int = Query(0, ge=0), current_user=Depends(get_current_user)):
     service = MensajeService()
-    return service.historial(solicitud_id, current_user["user_id"])
+    mensajes, has_more = service.historial(solicitud_id, current_user["user_id"], limit=limit, offset=offset)
+    return PaginatedResponse(items=mensajes, has_more=has_more, limit=limit, offset=offset)
 
 
 @router.websocket("/ws/solicitudes/{solicitud_id}")

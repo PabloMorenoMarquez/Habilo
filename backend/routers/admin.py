@@ -9,17 +9,21 @@ from schemas.proveedor_schema import PerfilProveedorAdminOut, RechazarDocumento,
 from services.proveedor_service import ProveedorService
 from schemas.usuario_schema import BanearUsuario, UsuarioAdminOut
 from services.user_service import UserService
+from schemas.paginacion_schema import PaginatedResponse
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 
-@router.get("/reportes", response_model=List[ReporteAdminOut])
+@router.get("/reportes", response_model=PaginatedResponse[ReporteAdminOut])
 async def listar_reportes(
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
     estado: Optional[str] = Query(default=None),
     current_admin=Depends(get_current_admin),
 ):
     service = ReporteService()
-    return service.listar(estado)
+    reportes, has_more = service.listar(estado, limit=limit, offset=offset)
+    return PaginatedResponse(items=reportes, has_more=has_more, limit=limit, offset=offset)
 
 
 @router.get("/reportes/{reporte_id}", response_model=ReporteAdminOut)
@@ -38,10 +42,11 @@ async def cambiar_estado_reporte(
     service.cambiar_estado(reporte_id, datos.estado.value)
     return service.obtener(reporte_id)
 
-@router.get("/proveedores/pendientes", response_model=List[PerfilProveedorAdminOut])
-async def listar_pendientes(current_admin=Depends(get_current_admin)):
+@router.get("/proveedores/pendientes", response_model=PaginatedResponse[PerfilProveedorAdminOut])
+async def listar_pendientes(limit: int = Query(20, ge=1, le=100),offset: int = Query(0, ge=0),current_admin=Depends(get_current_admin)):
     service = ProveedorService()
-    return service.listar_pendientes()
+    pendientes, has_more = service.listar_pendientes(limit=limit, offset=offset)
+    return PaginatedResponse(items=pendientes, has_more=has_more, limit=limit, offset=offset)
 
 @router.patch("/proveedores/{perfil_id}/verificar", response_model=PerfilProveedorOut)
 async def verificar(perfil_id:UUID, current_admin=Depends(get_current_admin)):
@@ -61,10 +66,11 @@ async def ver_documento_proveedor(perfil_id: UUID, current_admin=Depends(get_cur
         "url": url
     }
 
-@router.get("/usuarios/buscar", response_model=List[UsuarioAdminOut])
-async def buscar_usuarios(email:str = Query(...), current_admin=Depends(get_current_admin)):
+@router.get("/usuarios/buscar", response_model=PaginatedResponse[UsuarioAdminOut])
+async def buscar_usuarios(email:str = Query(...),limit: int = Query(20, ge=1, le=100),offset: int = Query(0, ge=0), current_admin=Depends(get_current_admin)):
     service = UserService()
-    return service.buscar_por_email(email)
+    usuarios, has_more = service.buscar_por_email(email, limit=limit, offset=offset)
+    return PaginatedResponse(items=usuarios, has_more=has_more, limit=limit, offset=offset)
 
 @router.get("/usuarios/baneados", response_model=List[UsuarioAdminOut])
 async def listar_baneados(current_admin=Depends(get_current_admin)):
