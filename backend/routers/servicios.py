@@ -66,11 +66,13 @@ async def crear_servicio(request: Request, servicio: CrearServicio, current_user
     )
 
 
-@router.get("/mios", response_model=List[ServicioOut])
-async def listar_mis_servicios(current_user=Depends(get_current_user)):
+@router.get("/mios", response_model=PaginatedResponse[ServicioOut])
+async def listar_mis_servicios(limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),current_user=Depends(get_current_user)):
     perfil = _get_perfil_proveedor(current_user["user_id"])
     service = ServicioService()
-    return service.listar_por_proveedor(perfil.id)
+    servicios, has_more = service.listar_por_proveedor(perfil.id, limit=limit, offset=offset)
+    return PaginatedResponse(items=servicios, has_more=has_more, limit=limit, offset=offset)
 
 
 @router.get("/{servicio_id}", response_model=ServicioBusquedaOut)
