@@ -61,7 +61,7 @@ async def rechazar(perfil_id:UUID, datos: RechazarDocumento, current_admin=Depen
 @router.get("/proveedores/{perfil_id}/documento")
 async def ver_documento_proveedor(perfil_id: UUID, current_admin=Depends(get_current_admin)):
     service = ProveedorService()
-    url = service.obtener_url_documento(perfil_id)
+    url = await service.obtener_url_documento(perfil_id)
     return {
         "url": url
     }

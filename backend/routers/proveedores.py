@@ -43,7 +43,7 @@ async def obtener_mi_perfil_proveedor(current_user=Depends(get_current_user)):
 async def ver_mi_documento(current_user=Depends(get_current_user)):
     usuario_id = current_user["user_id"]
     service = ProveedorService()
-    url = service.obtener_url_documento_por_usuario(usuario_id)
+    url = await service.obtener_url_documento_por_usuario(usuario_id)
     return {
         "url": url
     }
@@ -66,7 +66,7 @@ async def signed_url_documento(request: Request, current_user=Depends(get_curren
     if not perfil:
         raise HTTPException(status_code=404, detail="No tienes perfil de proveedor")
     path = f"{usuario_id}/documento"
-    return generar_signed_upload_url(Config.STORAGE_BUCKET_DOCUMENTOS, path)
+    return await generar_signed_upload_url(Config.STORAGE_BUCKET_DOCUMENTOS, path)
 
 
 @router.patch("/documento/confirmar")
