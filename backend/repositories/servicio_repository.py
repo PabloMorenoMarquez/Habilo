@@ -45,13 +45,14 @@ class ServicioRepository:
         finally:
             session.close()
 
-    def listar_por_proveedor(self, proveedor_id:UUID):
+    def listar_por_proveedor(self, proveedor_id:UUID, limit:int = 20, offset:int = 0):
         session = SessionLocal()
         try:
             stmt = select(Servicio).where(
                 Servicio.proveedor_id == proveedor_id,
                 Servicio.activo == True
             )
+            stmt = stmt.limit(limit+1).offset(offset)
             return list(session.scalars(stmt))
         finally:
             session.close()

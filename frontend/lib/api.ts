@@ -272,7 +272,7 @@ export function crearServicio(datos: {
 }
 
 export function getMisServicios() {
-  return apiFetch<ServicioDetalle[]>("/servicio/mios")
+  return apiFetch<Paginado<ServicioDetalle>>("/servicio/mios").then(data => data.items)
 }
 
 export function actualizarServicio(

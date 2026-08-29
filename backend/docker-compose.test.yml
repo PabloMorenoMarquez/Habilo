@@ -1,0 +1,14 @@
+services:
+  postgis-test:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: serviclick_test
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+    ports:
+      - "5433:5432"   # Puerto distinto al de desarrollo para no colisionar
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test -d serviclick_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 10

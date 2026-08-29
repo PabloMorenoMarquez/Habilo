@@ -39,7 +39,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className={`${inter.variable} ${jakarta.variable}`}>
-      <body className="font-sans antialiased bg-background text-foreground">
+      <body suppressHydrationWarning className="font-sans antialiased bg-background text-foreground">
         <GoogleOAuthProvider clientId="942976025153-ogog1r1e33lh9dr5gmamtb10dk67rtsf.apps.googleusercontent.com">
           <AuthProvider>
             {children}

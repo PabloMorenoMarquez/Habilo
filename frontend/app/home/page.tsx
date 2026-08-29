@@ -118,7 +118,7 @@ export default function ClientHomePage() {
     if (loc) {
       setCoords(loc)
       setCiudadLabel(ciudad)
-      localStorage.setItem(LOCATION_KEY, JSON.stringify({ ...loc, label: ciudad }))   
+      localStorage.setItem(LOCATION_KEY, JSON.stringify({ ...loc, label: ciudad }))
     } else {
       setErrorBusqueda(`No se pudo localizar "${ciudad}". Prueba con otra ciudad.`)
     }
@@ -132,7 +132,7 @@ export default function ClientHomePage() {
     if (loc) {
       setCoords(loc)
       setCiudadLabel("tu ubicación actual")
-      localStorage.setItem(LOCATION_KEY, JSON.stringify({ ...loc, label: "tu ubicación actual" }))   
+      localStorage.setItem(LOCATION_KEY, JSON.stringify({ ...loc, label: "tu ubicación actual" }))
     } else {
       setErrorBusqueda("No se pudo acceder a tu ubicación. Revisa los permisos del navegador.")
     }
@@ -142,7 +142,7 @@ export default function ClientHomePage() {
     setCoords(null)
     setCiudadLabel("")
     setLocationInput("")
-    localStorage.removeItem(LOCATION_KEY)  
+    localStorage.removeItem(LOCATION_KEY)
   }
 
   // Buscar servicios cada vez que cambian coordenadas, categoría o texto
@@ -164,7 +164,6 @@ export default function ClientHomePage() {
     20
   )
 
-  // ✅ SUSTITUYE tu useEffect de búsqueda actual por este:
   useEffect(() => {
     if (!coords) return
     cargarServicios(true) // true = reset, siempre desde offset 0 al cambiar filtros
@@ -289,8 +288,8 @@ export default function ClientHomePage() {
           <button
             onClick={() => setActiveCategoriaId(null)}
             className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${activeCategoriaId === null
-                ? "bg-primary text-primary-foreground"
-                : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              ? "bg-primary text-primary-foreground"
+              : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
               }`}
           >
             Todos
@@ -300,8 +299,8 @@ export default function ClientHomePage() {
               key={cat.id}
               onClick={() => setActiveCategoriaId(cat.id)}
               className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors capitalize ${activeCategoriaId === cat.id
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                 }`}
             >
               {cat.nombre}

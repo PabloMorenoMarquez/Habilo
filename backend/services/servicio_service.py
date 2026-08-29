@@ -18,8 +18,10 @@ class ServicioService:
     def obtener(self, servicio_id:UUID):
         return self.servicio_repository.get_by_id(servicio_id)
 
-    def listar_por_proveedor(self, proveedor_id:UUID):
-        return self.servicio_repository.listar_por_proveedor(proveedor_id)
+    def listar_por_proveedor(self, proveedor_id:UUID, limit:int = 20, offset:int = 0):
+        servicios = self.servicio_repository.listar_por_proveedor(proveedor_id, limit=limit, offset=offset)
+        servicios, has_more = paginar(servicios, limit)
+        return servicios, has_more
 
     def actualizar(self, servicio_id:UUID, proveedor_id:UUID, **campos):
         servicio = self.servicio_repository.get_by_id(servicio_id)

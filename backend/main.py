@@ -8,7 +8,8 @@ from config import Config
 from contextlib import asynccontextmanager
 from database.engine import engine
 from sqlalchemy import text
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
+from fastapi.responses import JSONResponse
 
 from routers.auth import router as auth_router
 from routers.usuarios import router as usuarios_router
@@ -50,6 +51,14 @@ sentry_sdk.init(
 )
 
 app = FastAPI(lifespan=lifespan)
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    sentry_sdk.capture_exception(exc)
+
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Error interno del servidor"}
+    )
 app.state.limiter = limiter
 app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=6)
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
