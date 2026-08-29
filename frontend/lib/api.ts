@@ -379,7 +379,8 @@ export interface MensajeBackend {
 }
 
 export function getHistorialMensajes(solicitudId: string) {
-  return apiFetch<MensajeBackend[]>(`/solicitudes/${solicitudId}/mensajes`)
+  return apiFetch<Paginado<MensajeBackend>>(`/solicitudes/${solicitudId}/mensajes`)
+    .then((data) => data.items)
 }
 
 export function marcarMensajesLeidos(solicitudId: string) {
@@ -467,7 +468,8 @@ export interface ReporteAdmin {
 
 export function getReportesAdmin(estado?: string) {
   const query = estado ? `?estado=${estado}` : ""
-  return apiFetch<ReporteAdmin[]>(`/admin/reportes${query}`)
+  return apiFetch<Paginado<ReporteAdmin>>(`/admin/reportes${query}`)
+    .then((data) => data.items)
 }
 
 export function cambiarEstadoReporte(id: string, estado: "resuelto" | "descartado") {
@@ -496,7 +498,8 @@ export interface PerfilProveedorAdmin {
 }
 
 export function getProveedoresPendientes() {
-  return apiFetch<PerfilProveedorAdmin[]>("/admin/proveedores/pendientes")
+  return apiFetch<Paginado<PerfilProveedorAdmin>>("/admin/proveedores/pendientes")
+    .then((data) => data.items)
 }
 
 export function verificarProveedor(perfilId: string) {
@@ -533,7 +536,8 @@ export interface UsuarioAdmin {
 }
 
 export function buscarUsuariosAdmin(email: string) {
-  return apiFetch<UsuarioAdmin[]>(`/admin/usuarios/buscar?email=${encodeURIComponent(email)}`)
+  return apiFetch<Paginado<UsuarioAdmin>>(`/admin/usuarios/buscar?email=${encodeURIComponent(email)}`)
+    .then((data) => data.items)
 }
 
 export function getUsuariosBaneados() {

@@ -38,9 +38,6 @@ function LoginPageInner() {
 
     setIsProcessingToken(true)
     loginWithToken(token)
-      .then(() => {
-        router.replace("/")
-      })
       .catch((err) => {
         console.error("Error al iniciar sesión:", err)
         setLoginError("No se pudo iniciar sesión. Inténtalo de nuevo.")
