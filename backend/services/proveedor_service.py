@@ -117,17 +117,17 @@ class ProveedorService:
             motivo_rechazo = getattr(last_error, "reason", "Verificación no completada") if last_error else "Verificación no completada"
         return self.proveedor_repository.resolver_verificacion_identidad(session_id, verificado, motivo_rechazo)
     
-    def _generar_url_desde_perfil(self, perfil):
+    async def _generar_url_desde_perfil(self, perfil):
         if not perfil:
             raise HTTPException(status_code=404, detail="Perfil de proveedor no encontrado")
         path = perfil.url_documento
         if not path:
             raise HTTPException(status_code=404, detail="No hay ningún documento subido")
-        result = generar_signed_download_url("documentos", path)
+        result = await generar_signed_download_url("documentos", path)
         return result["signed_url"]
 
-    def obtener_url_documento(self, perfil_id: UUID):
-        return self._generar_url_desde_perfil(self.proveedor_repository.get_by_id(perfil_id))
+    async def obtener_url_documento(self, perfil_id: UUID):
+        return await self._generar_url_desde_perfil(self.proveedor_repository.get_by_id(perfil_id))
 
-    def obtener_url_documento_por_usuario(self, usuario_id: UUID):
-        return self._generar_url_desde_perfil(self.obtener_por_usuario(usuario_id))
+    async def obtener_url_documento_por_usuario(self, usuario_id: UUID):
+        return await self._generar_url_desde_perfil(self.obtener_por_usuario(usuario_id))

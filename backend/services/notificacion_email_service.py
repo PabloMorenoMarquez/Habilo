@@ -4,9 +4,19 @@ from config import Config
 from uuid import UUID
 from utils.background import ejecutar_en_segundo_plano
 import logging
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 logger = logging.getLogger(__name__)
 
+_retry_resend = retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=1, max=8),
+    reraise=True,
+)
+
+@_retry_resend
+def _enviar_resend(payload: dict):
+    resend.Emails.send(payload)
 
 class NotificacionEmailService:
     def __init__(self):
@@ -21,7 +31,7 @@ class NotificacionEmailService:
             usuario = self.user_repository.get_by_id(usuario_id)
             if not usuario:
                 return
-            resend.Emails.send({
+            _enviar_resend({
                 "from": Config.EMAIL_FROM,
                 "to": usuario.email,
                 "subject": asunto,

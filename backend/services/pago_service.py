@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 import logging
 from starlette.concurrency import run_in_threadpool
 import sentry_sdk
+from utils.stripe_client import stripe_call
 logger = logging.getLogger(__name__)
 
 class PagoService:
@@ -51,6 +52,7 @@ class PagoService:
         pago = self.pago_repository.get_by_solicitud_id(solicitud.id)
         if pago and pago.estado not in ("fallido", "cancelado"):
             payment_intent_pago = await run_in_threadpool(
+                stripe_call,
                 self.stripe.PaymentIntent.retrieve, pago.stripe_payment_intent_id
             )
             return {
@@ -70,6 +72,7 @@ class PagoService:
         
 
         payment_intent = await run_in_threadpool(
+            stripe_call,
             self.stripe.PaymentIntent.create,
             amount=int(oferta.precio * 100),
             currency="eur",
@@ -77,6 +80,7 @@ class PagoService:
             transfer_group=str(solicitud.id),
             automatic_payment_methods={"enabled": True},
             metadata={"solicitud_id": str(solicitud.id), "oferta_id": str(oferta.id)},
+            idempotency_key=f"payment-intent-oferta-{oferta.id}",
         )
         
         pago_nuevo = self.pago_repository.crear(solicitud.id, solicitud.cliente_id, perfil.usuario_id, oferta.precio, comision, monto_proveedor, payment_intent.id)
@@ -100,7 +104,7 @@ class PagoService:
             raise HTTPException(status_code=400, detail="No hay un pago autorizado para esta solicitud")
         
         try:
-            await run_in_threadpool(self.stripe.PaymentIntent.capture, pago.stripe_payment_intent_id)
+            await run_in_threadpool(stripe_call, self.stripe.PaymentIntent.capture, pago.stripe_payment_intent_id)
         except self.stripe.error.StripeError as e:
             raise HTTPException(status_code=400, detail=f"No se pudo cobrar el pago: {str(e)}")
         
@@ -115,7 +119,7 @@ class PagoService:
             return
         
         try:
-            await run_in_threadpool(self.stripe.PaymentIntent.cancel, pago.stripe_payment_intent_id)
+            await run_in_threadpool(stripe_call, self.stripe.PaymentIntent.cancel, pago.stripe_payment_intent_id)
         except self.stripe.error.StripeError as e:
             raise HTTPException(status_code=400, detail=f"No se pudo cancelar el pago: {str(e)}")
         
@@ -143,11 +147,13 @@ class PagoService:
         
         try:
             transfer = await run_in_threadpool(
+                stripe_call, 
                 self.stripe.Transfer.create,
                 amount=int(pago.monto_proveedor * 100),
                 currency="eur",
                 destination=perfil.stripe_account_id,
                 transfer_group=str(solicitud_id),
+                idempotency_key=f"transfer-solicitud-{solicitud_id}",
             )
         except self.stripe.error.StripeError as e:
             raise HTTPException(status_code=400, detail=f"No se pudo cobrar el pago: {str(e)}")
@@ -185,11 +191,13 @@ class PagoService:
         
         try:
             transfer = await run_in_threadpool(
+                stripe_call,
                 self.stripe.Transfer.create,
                 amount=int(pago.monto_proveedor * 100),
                 currency="eur",
                 destination=perfil.stripe_account_id,
                 transfer_group=str(solicitud_id),
+                idempotency_key=f"transfer-solicitud-{solicitud_id}",
             )
         except self.stripe.error.StripeError as e:
             raise HTTPException(status_code=400, detail=f"No se pudo cobrar el pago: {str(e)}")
@@ -216,7 +224,7 @@ class PagoService:
             return
         
         try:
-            refund = await run_in_threadpool(self.stripe.Refund.create, payment_intent=pago.stripe_payment_intent_id)
+            refund = await run_in_threadpool(stripe_call, self.stripe.Refund.create, payment_intent=pago.stripe_payment_intent_id, idempotency_key=f"refund-solicitud-{solicitud_id}",)
         except self.stripe.error.StripeError as e:
             raise HTTPException(status_code=400, detail=f"No se pudo reembolsar el pago: {str(e)}")
         

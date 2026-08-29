@@ -31,10 +31,10 @@ export class ApiError extends Error {
 
 export async function apiFetch<T = any>(
   path: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  timeoutMs = 15000
 ): Promise<T> {
   const token = getToken()
-
   const isFormData = options.body instanceof FormData
 
   const headers: HeadersInit = {
@@ -43,10 +43,24 @@ export async function apiFetch<T = any>(
     ...options.headers,
   }
 
-  const response = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers,
-  })
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+
+  let response: Response
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      ...options,
+      headers,
+      signal: controller.signal,
+    })
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new ApiError("La solicitud tardó demasiado. Inténtalo de nuevo.", 408)
+    }
+    throw err
+  } finally {
+    clearTimeout(timeoutId)
+  }
 
   const contentType = response.headers.get("content-type")
   const hasJson = contentType?.includes("application/json")

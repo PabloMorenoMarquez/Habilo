@@ -1,19 +1,21 @@
 // Convierte un nombre de ciudad/localidad en coordenadas usando Nominatim
 // (OpenStreetMap), gratuito y sin necesidad de API key.
-export async function geocodeCiudad(nombre: string): Promise<{ lat: number; lng: number } | null> {
+export async function geocodeCiudad(nombre: string, timeoutMs = 8000): Promise<{ lat: number; lng: number } | null> {
   if (!nombre.trim()) return null
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
   try {
     const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(nombre)}`
-    const res = await fetch(url, {
-      headers: { "Accept-Language": "es" },
-    })
+    const res = await fetch(url, { headers: { "Accept-Language": "es" }, signal: controller.signal })
     if (!res.ok) return null
     const data = await res.json()
     if (!Array.isArray(data) || data.length === 0) return null
     return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) }
   } catch {
     return null
-  } 
+  } finally {
+    clearTimeout(timeoutId)
+  }
 }
 
 // Pide la ubicación GPS/IP al navegador (requiere permiso del usuario).
@@ -37,14 +39,18 @@ export function getBrowserLocation(): Promise<{ lat: number; lng: number } | nul
 }
 
 // Convierte coordenadas en un nombre de lugar legible
-export async function reverseGeocode(lat: number, lng: number): Promise<string | null> {
+export async function reverseGeocode(lat: number, lng: number, timeoutMs = 8000): Promise<string | null> {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
   try {
     const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
-    const res = await fetch(url, { headers: { "Accept-Language": "es" } })
+    const res = await fetch(url, { headers: { "Accept-Language": "es" }, signal: controller.signal })
     if (!res.ok) return null
     const data = await res.json()
     return data.address?.city || data.address?.town || data.address?.village || data.display_name || null
   } catch {
     return null
+  } finally{
+    clearTimeout(timeoutId)
   }
 }

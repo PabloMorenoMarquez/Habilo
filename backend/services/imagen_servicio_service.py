@@ -47,7 +47,7 @@ class ImagenServicioService:
         if content_type not in TIPOS_IMAGEN_PERMITIDOS:
             path = extraer_path_desde_url_publica(Config.STORAGE_BUCKET_SERVICIOS, url)
             if path:
-                eliminar_archivo(Config.STORAGE_BUCKET_SERVICIOS, path)
+                await eliminar_archivo(Config.STORAGE_BUCKET_SERVICIOS, path)
             raise HTTPException(status_code=400, detail="El archivo subido no es una imagen válida")
     
     def eliminar_imagen(self, imagen_id:UUID, proveedor_id:UUID):

@@ -114,7 +114,7 @@ async def signed_url_imagen(request: Request, servicio_id: UUID, current_user=De
     if not servicio or str(servicio.proveedor_id) != str(perfil.id):
         raise HTTPException(status_code=404, detail="Servicio no encontrado o sin permisos")
     path = f"{perfil.id}/{servicio_id}/imagen"
-    return generar_signed_upload_url(Config.STORAGE_BUCKET_SERVICIOS, path)
+    return await generar_signed_upload_url(Config.STORAGE_BUCKET_SERVICIOS, path)
 
 @router.post("/{servicio_id}/imagenes/signed-url")
 @limiter.limit("10/minute")
@@ -125,7 +125,7 @@ async def signed_url_imagenes(request: Request, servicio_id: UUID, current_user=
     if not servicio or str(servicio.proveedor_id) != str(perfil.id):
         raise HTTPException(status_code=404, detail="Servicio no encontrado o sin permisos")
     path = f"{perfil.id}/{servicio_id}/{uuid.uuid4()}"
-    return generar_signed_upload_url(Config.STORAGE_BUCKET_SERVICIOS, path)
+    return await generar_signed_upload_url(Config.STORAGE_BUCKET_SERVICIOS, path)
 
 @router.post("/{servicio_id}/imagenes")
 @limiter.limit("10/minute")
