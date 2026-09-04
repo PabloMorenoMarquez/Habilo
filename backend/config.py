@@ -45,3 +45,6 @@ class Config:
     
     RESEND_API_KEY = os.getenv("RESEND_API_KEY")
     EMAIL_FROM = os.getenv("EMAIL_FROM")
+    
+    PAGOS_HABILITADOS = os.getenv("PAGOS_HABILITADOS", "false").lower() == "true"
+    VERIFICACION_IDENTIDAD_HABILITADA = os.getenv("VERIFICACION_IDENTIDAD_HABILITADA", "false").lower() == "true"   

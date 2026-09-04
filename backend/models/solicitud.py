@@ -17,3 +17,5 @@ class Solicitud(base):
     motivo_cancelacion = Column(Text, nullable=True)
     ultima_actividad = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     fecha_completada = Column(DateTime, nullable=True)
+    visto_por_cliente_en = Column(DateTime, nullable=True)
+    visto_por_proveedor_en = Column(DateTime, nullable=True)

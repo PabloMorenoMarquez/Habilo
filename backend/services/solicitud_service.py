@@ -6,7 +6,7 @@ from repositories.bloqueo_repository import BloqueoRepository
 from services.notificacion_push_service import NotificacionPushService
 from fastapi import HTTPException
 from datetime import datetime, timezone
-
+from config import Config
 import logging
 
 logger = logging.getLogger(__name__)
@@ -118,17 +118,22 @@ class SolicitudService:
         if nuevo_estado == "cancelada" and motivo is None:
             raise HTTPException(status_code=400, detail="No ha especificado el motivo de la cancelación")
         
+        self.solicitud_repository.actualizar_ultima_actividad(solicitud_id)
+        
         if solicitud.estado == "pendiente" and nuevo_estado == "aceptada":
-            from services.pago_service import PagoService
-            await PagoService().capturar_pago_de_solicitud(solicitud_id)
+            if Config.PAGOS_HABILITADOS:
+                from services.pago_service import PagoService
+                await PagoService().capturar_pago_de_solicitud(solicitud_id)
 
         if solicitud.estado == "pendiente" and nuevo_estado in ("rechazada", "cancelada"):
-            from services.pago_service import PagoService
-            await PagoService().cancelar_pago_de_solicitud(solicitud_id)
+            if Config.PAGOS_HABILITADOS:
+                from services.pago_service import PagoService
+                await PagoService().cancelar_pago_de_solicitud(solicitud_id)
             
         if solicitud.estado == "aceptada" and nuevo_estado == "cancelada":
-            from services.pago_service import PagoService
-            await PagoService().reembolsar_pago_de_solicitud(solicitud_id)     
+            if Config.PAGOS_HABILITADOS:
+                from services.pago_service import PagoService
+                await PagoService().reembolsar_pago_de_solicitud(solicitud_id)     
         
         if nuevo_estado == "completada":
             self.solicitud_repository.marcar_fecha_completada(solicitud_id)

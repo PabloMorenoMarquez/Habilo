@@ -32,6 +32,9 @@ import {
   confirmarEntrega
 } from "@/lib/api"
 
+import { useFeatureFlags } from "@/context/feature-flags-context"
+
+
 const POLL_INTERVAL = 15000 // refresco de la lista lateral, en ms
 
 function formatHora(fecha: string | null) {
@@ -81,6 +84,8 @@ function ChatsPageInner() {
   const [errorValoracion, setErrorValoracion] = useState<string | null>(null)
   const [errorReporte, setErrorReporte] = useState<string | null>(null)
   const [errorBloqueo, setErrorBloqueo] = useState<string | null>(null)
+
+  const { pagosHabilitados } = useFeatureFlags()
 
   useEffect(() => {
     if (isLoading) return
@@ -352,11 +357,13 @@ function ChatsPageInner() {
                         {conv.ultimo_mensaje || "Sin mensajes todavía"}
                       </p>
                     </div>
-                    {conv.no_leidos > 0 && (
+                    {conv.no_leidos > 0 ? (
                       <Badge className="h-5 w-5 p-0 flex items-center justify-center text-xs shrink-0 bg-primary text-primary-foreground rounded-full">
                         {conv.no_leidos}
                       </Badge>
-                    )}
+                    ) : conv.tiene_notificacion ? (
+                      <span className="h-2.5 w-2.5 rounded-full bg-primary shrink-0" />
+                    ) : null}
                   </button>
                 ))
               )}
@@ -499,7 +506,7 @@ function ChatsPageInner() {
                         </div>
                       )}
 
-                      {activeConv.estado === "completada" && esCliente && activeConv.pago_estado === "capturado" && (
+                      {activeConv.estado === "completada" && esCliente && pagosHabilitados && activeConv.pago_estado === "capturado" && (
                         <div className="flex justify-center py-2">
                           <div className="bg-secondary rounded-2xl px-5 py-4 text-center space-y-3 max-w-xs">
                             <p className="text-sm text-foreground">¿Todo correcto? Al confirmar, se libera el pago al profesional.</p>
@@ -588,7 +595,6 @@ function ChatsPageInner() {
               rows={3}
             />
             {errorValoracion && <p className="text-xs text-destructive">{errorValoracion}</p>}
-            <Button className="w-full" disabled={puntuacion === 0 || enviandoValoracion} onClick={handleEnviarValoracion}></Button>
             <Button className="w-full" disabled={puntuacion === 0 || enviandoValoracion} onClick={handleEnviarValoracion}>
               {enviandoValoracion ? <Loader size={16} className="animate-spin" /> : "Enviar valoración"}
             </Button>
@@ -614,7 +620,6 @@ function ChatsPageInner() {
               </button>
             ))}
             {errorCancelar && <p className="text-xs text-destructive">{errorCancelar}</p>}
-            <Button className="w-full mt-2" disabled={!motivoCancelacion || procesandoEstado} onClick={handleCancelar}></Button>
             <Button className="w-full mt-2" disabled={!motivoCancelacion || procesandoEstado} onClick={handleCancelar}>
               Confirmar cancelación
             </Button>
@@ -646,7 +651,6 @@ function ChatsPageInner() {
               rows={3}
             />
             {errorReporte && <p className="text-xs text-destructive">{errorReporte}</p>}
-            <Button className="w-full" disabled={!motivoReporte || enviandoReporte} onClick={handleEnviarReporte}></Button>
             <Button className="w-full" disabled={!motivoReporte || enviandoReporte} onClick={handleEnviarReporte}>
               {enviandoReporte ? <Loader size={16} className="animate-spin" /> : "Enviar reporte"}
             </Button>

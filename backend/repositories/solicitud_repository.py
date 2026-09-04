@@ -124,6 +124,10 @@ class SolicitudRepository:
             for row in rows:
                 solicitud = row[0]
                 soy_cliente = str(row.cliente_id) == str(usuario_id)
+                visto_en = solicitud.visto_por_cliente_en if soy_cliente else solicitud.visto_por_proveedor_en
+                tiene_notificacion = visto_en is None or (
+                    solicitud.ultima_actividad is not None and solicitud.ultima_actividad > visto_en
+                )
                 resultado.append({
                     "id": solicitud.id,
                     "servicio_id": solicitud.servicio_id,
@@ -137,7 +141,8 @@ class SolicitudRepository:
                     "otro_usuario_id": row.proveedor_usuario_id if soy_cliente else row.cliente_id,
                     "otro_usuario_nombre": row.proveedor_nombre if soy_cliente else row.cliente_nombre,
                     "otro_usuario_avatar": row.proveedor_avatar if soy_cliente else row.cliente_avatar,
-                    "pago_estado": row.pago_estado
+                    "pago_estado": row.pago_estado,
+                    "tiene_notificacion": tiene_notificacion,
                 })
             return resultado
         finally:
@@ -190,6 +195,27 @@ class SolicitudRepository:
             if not solicitud:
                 return None
             solicitud.ultima_actividad = datetime.now(timezone.utc)
+            session.commit()
+            session.refresh(solicitud)
+            return solicitud
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.close()
+    
+    def marcar_visto(self, solicitud_id: UUID, quien: str):
+        session = SessionLocal()
+        try:
+            stmt = select(Solicitud).where(Solicitud.id == solicitud_id)
+            solicitud = session.scalar(stmt)
+            if not solicitud:
+                return None
+            ahora = datetime.now(timezone.utc)
+            if quien == "cliente":
+                solicitud.visto_por_cliente_en = ahora
+            elif quien == "proveedor":
+                solicitud.visto_por_proveedor_en = ahora
             session.commit()
             session.refresh(solicitud)
             return solicitud

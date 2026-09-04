@@ -60,6 +60,8 @@ async def obtener_perfil_proveedor(perfil_id: UUID):
 @router.post("/documento/signed-url")
 @limiter.limit("5/minute")
 async def signed_url_documento(request: Request, current_user=Depends(get_current_user)):
+    if not Config.VERIFICACION_IDENTIDAD_HABILITADA:
+        raise HTTPException(status_code=403, detail="La verificación de identidad no está disponible en esta fase")
     usuario_id = current_user["user_id"]
     service = ProveedorService()
     perfil = service.obtener_por_usuario(usuario_id)
@@ -72,6 +74,8 @@ async def signed_url_documento(request: Request, current_user=Depends(get_curren
 @router.patch("/documento/confirmar")
 @limiter.limit("10/minute")
 async def confirmar_documento(request: Request, datos: ConfirmarDocumento, current_user=Depends(get_current_user)):
+    if not Config.VERIFICACION_IDENTIDAD_HABILITADA:
+        raise HTTPException(status_code=403, detail="La verificación de identidad no está disponible en esta fase")
     usuario_id = current_user["user_id"]
 
     path_esperado = f"{usuario_id}/documento"
@@ -105,6 +109,8 @@ async def crear_link_onboarding(request: Request, current_user=Depends(get_curre
 @router.post("/verificacion-identidad")
 @limiter.limit("5/minute")
 async def iniciar_verificacion_identidad(request: Request, current_user=Depends(get_current_user)):
+    if not Config.VERIFICACION_IDENTIDAD_HABILITADA:
+        raise HTTPException(status_code=403, detail="La verificación de identidad no está disponible en esta fase")
     service = ProveedorService()
     client_secret = await service.iniciar_verificacion_identidad(current_user["user_id"])
     return {"client_secret": client_secret}

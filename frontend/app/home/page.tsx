@@ -14,6 +14,7 @@ import { Search, SlidersHorizontal, X, MapPin, Navigation, Loader } from "lucide
 import { buscarServicios, getCategorias, ServicioBackend, Categoria } from "@/lib/api"
 import { geocodeCiudad, getBrowserLocation } from "@/lib/geocode"
 import { usePaginacion } from "@/hooks/use-paginacion"
+import { OnboardingModal } from "@/components/onboarding-modal"
 
 const RADIO_KM = 50 // radio de búsqueda por defecto
 const LOCATION_KEY = "serviclick_location"
@@ -192,6 +193,7 @@ export default function ClientHomePage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <OnboardingModal role="cliente" />
       <Navbar />
 
       <section className="bg-primary text-primary-foreground py-12 px-4">
