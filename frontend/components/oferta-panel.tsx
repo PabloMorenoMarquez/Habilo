@@ -20,6 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import StripeProvider from "@/components/stripe-provider"
 import PaymentForm from "@/components/payment-form"
 import { Loader, Tag, Check, X, Clock } from "lucide-react"
+import { useFeatureFlags } from "@/context/feature-flags-context"
 
 interface OfertaPanelProps {
   solicitudId: string
@@ -51,6 +52,8 @@ export default function OfertaPanel({
 
   const [pagoOpen, setPagoOpen] = useState(false)
   const [clientSecret, setClientSecret] = useState<string | null>(null)
+
+  const { pagosHabilitados } = useFeatureFlags()
 
   const cargar = useCallback(async () => {
     try {
@@ -214,7 +217,7 @@ export default function OfertaPanel({
               <p className="text-xs text-muted-foreground">Esperando respuesta a tu oferta</p>
             )}
 
-            {ofertaActiva.estado === "aceptada" && esCliente && (
+            {ofertaActiva.estado === "aceptada" && esCliente && pagosHabilitados && (
               <Button size="sm" disabled={procesando} onClick={handleAbrirPago} className="w-full">
                 Confirmar y pagar
               </Button>

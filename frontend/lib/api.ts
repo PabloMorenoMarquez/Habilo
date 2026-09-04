@@ -361,6 +361,7 @@ export interface Conversacion {
   ya_valorada: boolean
   motivo_cancelacion: string | null
   pago_estado: string | null
+  tiene_notificacion: boolean
 }
 
 export function getConversaciones(limit = 20, offset = 0) {

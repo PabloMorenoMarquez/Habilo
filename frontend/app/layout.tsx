@@ -4,6 +4,8 @@ import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 import { AuthProvider } from '@/context/auth-context'
 import { ServiceWorkerRegister } from '@/components/sw-register'
+import { FeatureFlagsProvider } from '@/context/feature-flags-context'
+import { PilotoBanner } from '@/components/piloto-banner'
 
 const inter = Inter({
   subsets: ["latin"],
@@ -41,9 +43,12 @@ export default function RootLayout({
     <html lang="es" className={`${inter.variable} ${jakarta.variable}`}>
       <body suppressHydrationWarning className="font-sans antialiased bg-background text-foreground">
         <GoogleOAuthProvider clientId="942976025153-ogog1r1e33lh9dr5gmamtb10dk67rtsf.apps.googleusercontent.com">
-          <AuthProvider>
-            {children}
-          </AuthProvider>
+          <FeatureFlagsProvider>
+            <AuthProvider>
+              <PilotoBanner />
+              {children}
+            </AuthProvider>
+          </FeatureFlagsProvider>
         </GoogleOAuthProvider>
         <Analytics />
         <ServiceWorkerRegister/>

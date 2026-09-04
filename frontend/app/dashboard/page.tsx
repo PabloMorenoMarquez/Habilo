@@ -41,6 +41,8 @@ import { subirImagenServicio } from "@/lib/storage"
 import { geocodeCiudad, getBrowserLocation } from "@/lib/geocode"
 import GaleriaImagenes from "@/components/galeria-imagenes"
 import HorarioDisponibilidad from "@/components/horario-disponibilidad"
+import { useFeatureFlags } from "@/context/feature-flags-context"
+import { OnboardingModal } from "@/components/onboarding-modal"
 
 // loadStripe se llama UNA vez fuera del componente (mismo patrón que stripe-provider.tsx)
 //const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
@@ -77,6 +79,8 @@ export default function DashboardPage() {
   const [editFormCoords, setEditFormCoords] = useState<{ lat: number; lng: number } | null>(null)
 
   const [errorAcciones, setErrorAcciones] = useState<string | null>(null)
+
+  const { verificacionIdentidadHabilitada } = useFeatureFlags()
 
   const [form, setForm] = useState({
     title: "",
@@ -356,6 +360,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <OnboardingModal role="profesional" />
       <Navbar />
       <main className="max-w-7xl mx-auto px-4 py-8 space-y-8">
         <div className="flex items-center justify-between">
@@ -605,7 +610,7 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {perfilProveedor && (
+        {perfilProveedor && verificacionIdentidadHabilitada && (
           <Card>
             <CardContent className="p-5">
               <DocumentoIdentidad

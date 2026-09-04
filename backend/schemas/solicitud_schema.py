@@ -67,3 +67,4 @@ class ConversacionOut(BaseModel):
     servicio_tipo_precio: str
     servicio_precio: Decimal
     pago_estado: Optional[str] = None
+    tiene_notificacion: bool = False

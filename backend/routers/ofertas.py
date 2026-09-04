@@ -52,6 +52,8 @@ async def rechazar_oferta(request: Request, oferta_id:UUID, current_user=Depends
 @router.post("/ofertas/{oferta_id}/pago", response_model=PagoConClientSecret)
 @limiter.limit("10/minute")
 async def crear_pago(request: Request, oferta_id: UUID, current_user=Depends(get_current_user)):
+    if not Config.PAGOS_HABILITADOS:
+        raise HTTPException(status_code=403, detail="Los pagos no están disponibles en esta fase")
     service = PagoService()
     return await service.crear_pago_desde_oferta(oferta_id, current_user["user_id"])
 

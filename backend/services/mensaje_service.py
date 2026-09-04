@@ -89,5 +89,8 @@ class MensajeService:
         return self._verificar_acceso(solicitud_id, usuario_id)
     
     def marcar_leidos(self, solicitud_id: UUID, usuario_id: UUID):
-        self._verificar_acceso(solicitud_id, usuario_id)
+        solicitud = self._verificar_acceso(solicitud_id, usuario_id)
         self.mensaje_repository.marcar_leidos(solicitud_id, usuario_id)
+
+        quien = "cliente" if str(solicitud.cliente_id) == str(usuario_id) else "proveedor"
+        self.solicitud_repository.marcar_visto(solicitud_id, quien)

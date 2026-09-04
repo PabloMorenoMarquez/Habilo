@@ -7,6 +7,8 @@ from repositories.solicitud_repository import SolicitudRepository
 from services.notificacion_push_service import NotificacionPushService
 from decimal import Decimal, ROUND_HALF_UP
 from datetime import datetime, timezone
+from services.solicitud_service import SolicitudService
+from config import Config
 
 import logging
 
@@ -19,6 +21,7 @@ class OfertaService:
         self.servicio_repository = ServicioRepository()
         self.solicitud_repository = SolicitudRepository()
         self.notificacion_push_service = NotificacionPushService()
+        self.solicitud_service = SolicitudService()
         
     def _validar_fecha_propuesta(self, fecha_hora_propuesta):
         if fecha_hora_propuesta and fecha_hora_propuesta < datetime.now(timezone.utc):
@@ -80,6 +83,9 @@ class OfertaService:
         
         self.solicitud_repository.actualizar_ultima_actividad(solicitud_id)
         
+        if not Config.PAGOS_HABILITADOS:
+            self.solicitud_service.marcar_pendiente_por_pago(solicitud_id)
+        
         return self.oferta_repository.actualizar_estado(oferta_nueva.id, "aceptada")
     
     def aceptar_oferta(self, oferta_id:UUID, usuario_id:UUID):
@@ -98,6 +104,10 @@ class OfertaService:
             raise HTTPException(status_code=403, detail="No puedes aceptar tu propia oferta")
         
         oferta_aceptada = self.oferta_repository.actualizar_estado(oferta_id, "aceptada")
+        self.solicitud_repository.actualizar_ultima_actividad(solicitud.id)
+        
+        if not Config.PAGOS_HABILITADOS:
+            self.solicitud_service.marcar_pendiente_por_pago(solicitud.id)
 
         servicio = self.servicio_repository.get_by_id(solicitud.servicio_id)
         
@@ -124,6 +134,8 @@ class OfertaService:
         solicitud = self.solicitud_repository.get_by_id(oferta.solicitud_id)
         
         self.mensaje_service._verificar_acceso(solicitud.id, usuario_id)
+        
+        self.solicitud_repository.actualizar_ultima_actividad(solicitud.id)
         
         return self.oferta_repository.actualizar_estado(oferta_id, "rechazada")
     

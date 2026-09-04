@@ -92,7 +92,7 @@ function LoginPageInner() {
           </div>
         </div>
         <div className="text-primary-foreground/50 text-sm">
-          +12.000 profesionales · +48.000 servicios realizados
+          En fase piloto — sé de los primeros en unirte
         </div>
       </div>
 
