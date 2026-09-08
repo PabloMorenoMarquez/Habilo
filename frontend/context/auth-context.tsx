@@ -1,6 +1,7 @@
 "use client"
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react"
+import posthog from "posthog-js"
 import { getToken, setToken, clearToken, getMe } from "@/lib/api"
 
 export type UserRole = "cliente" | "profesional" | null
@@ -82,6 +83,20 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
+const isPostHogConfigured = Boolean(
+  process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST
+)
+
+function identifyUser(user: User) {
+  if (!isPostHogConfigured) return
+
+  posthog.identify(user.id, {
+    email: user.email,
+    name: user.name,
+    ...(user.role ? { role: user.role } : {}),
+    is_admin: user.es_admin ?? false,
+  })
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -95,7 +110,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchAndSetUser = useCallback(async () => {
     const usuarioBackend = (await getMe()) as UsuarioBackend
-    setUser(mapUsuarioBackend(usuarioBackend, getStoredRole()))
+    const mappedUser = mapUsuarioBackend(usuarioBackend, getStoredRole())
+    setUser(mappedUser)
+    return mappedUser
   }, [])
 
   useEffect(() => {
@@ -105,6 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return
     }
     fetchAndSetUser()
+      .then(identifyUser)
       .catch((err) => {
         console.error("No se pudo restaurar la sesión:", err)
         clearToken()
@@ -115,10 +133,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loginWithToken = useCallback(async (token: string) => {
     setToken(token)
-    await fetchAndSetUser()
-  }, [fetchAndSetUser])
+    const loggedInUser = await fetchAndSetUser()
+
+    if (user && user.id !== loggedInUser.id && isPostHogConfigured) {
+      posthog.reset()
+    }
+    identifyUser(loggedInUser)
+    if (isPostHogConfigured) {
+      posthog.capture("login_completed")
+    }
+  }, [fetchAndSetUser, user])
 
   const logout = useCallback(() => {
+    if (isPostHogConfigured) {
+      posthog.capture("logout_completed")
+      posthog.reset()
+    }
     clearToken()
     localStorage.removeItem(ROLE_KEY)
     setUser(null)
@@ -127,6 +157,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const selectRole = useCallback((role: "cliente" | "profesional") => {
     localStorage.setItem(ROLE_KEY, role)
     setUser((prev) => (prev ? { ...prev, role } : null))
+    if (isPostHogConfigured) {
+      posthog.capture("role_selected", { role })
+    }
   }, [])
 
   const refreshUser = useCallback(async () => {

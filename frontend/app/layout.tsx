@@ -18,13 +18,13 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'ServiMarket — Marketplace de Servicios',
-  description: 'Encuentra y contrata profesionales de confianza o publica tus servicios en ServiMarket.',
+  title: 'Habilo — Marketplace de Servicios',
+  description: 'Encuentra y contrata profesionales de confianza o publica tus servicios en Habilo.',
   generator: 'v0.app',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'ServiClick',
+    title: 'Habilo',
   },
 }
 

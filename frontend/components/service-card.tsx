@@ -7,6 +7,11 @@ import { Star, Clock, MapPin, Heart } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { marcarServicioFavorito, desmarcarServicioFavorito } from "@/lib/api"
+import posthog from "posthog-js"
+
+const isPostHogConfigured = Boolean(
+  process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST
+)
 
 interface ServiceCardProps {
   service: {
@@ -61,6 +66,12 @@ export default function ServiceCard({ service, onFavoritoChange }: ServiceCardPr
         await desmarcarServicioFavorito(service.id)
       } else {
         await marcarServicioFavorito(service.id)
+      }
+      if (isPostHogConfigured) {
+        posthog.capture("service_favorite_changed", {
+          service_id: service.id,
+          is_favorited: !previo,
+        })
       }
       onFavoritoChange?.(!previo)
     } catch (err) {
