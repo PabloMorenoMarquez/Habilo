@@ -21,6 +21,11 @@ import StripeProvider from "@/components/stripe-provider"
 import PaymentForm from "@/components/payment-form"
 import { Loader, Tag, Check, X, Clock } from "lucide-react"
 import { useFeatureFlags } from "@/context/feature-flags-context"
+import posthog from "posthog-js"
+
+const isPostHogConfigured = Boolean(
+  process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST
+)
 
 interface OfertaPanelProps {
   solicitudId: string
@@ -85,6 +90,12 @@ export default function OfertaPanel({
         if (!precioNum || precioNum <= 0) return
         await crearOferta(solicitudId, precioNum, descripcion || undefined, fechaIso)
       }
+      if (isPostHogConfigured) {
+        posthog.capture("offer_created", {
+          request_id: solicitudId,
+          price_type: tipoPrecioServicio,
+        })
+      }
       setNuevaOfertaOpen(false)
       setPrecio("")
       setHoras("")
@@ -116,6 +127,12 @@ export default function OfertaPanel({
     setError(null)
     try {
       await aceptarOferta(ofertaId)
+      if (isPostHogConfigured) {
+        posthog.capture("offer_status_changed", {
+          offer_id: ofertaId,
+          status: "accepted",
+        })
+      }
       await cargar()
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo aceptar la oferta")
@@ -129,6 +146,12 @@ export default function OfertaPanel({
     setError(null)
     try {
       await rechazarOferta(ofertaId)
+      if (isPostHogConfigured) {
+        posthog.capture("offer_status_changed", {
+          offer_id: ofertaId,
+          status: "rejected",
+        })
+      }
       await cargar()
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo rechazar la oferta")

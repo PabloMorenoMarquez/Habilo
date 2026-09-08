@@ -75,7 +75,7 @@ export function InstallPrompt() {
 
       {showIosHint ? (
         <div className="pr-6 text-sm">
-          <p className="font-medium">Instala ServiClick en tu iPhone</p>
+          <p className="font-medium">Instala Habilo en tu iPhone</p>
           <p className="mt-1 text-muted-foreground">
             Toca <Share className="mx-1 inline h-3.5 w-3.5" /> y luego{' '}
             <PlusSquare className="mx-1 inline h-3.5 w-3.5" /> "Añadir a pantalla de inicio".
@@ -83,7 +83,7 @@ export function InstallPrompt() {
         </div>
       ) : (
         <div className="pr-6">
-          <p className="text-sm font-medium">Instala ServiClick</p>
+          <p className="text-sm font-medium">Instala Habilo</p>
           <p className="mt-1 text-sm text-muted-foreground">
             Acceso más rápido y notificaciones de tus solicitudes.
           </p>

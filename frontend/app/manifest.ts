@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'ServiClick — Marketplace de Servicios',
-    short_name: 'ServiClick',
+    name: 'Habilo — Marketplace de Servicios',
+    short_name: 'Habilo',
     description: 'Encuentra y contrata profesionales de confianza cerca de ti.',
     start_url: '/',
     display: 'standalone',

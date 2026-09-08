@@ -9,6 +9,11 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Search, Briefcase, ArrowRight, CheckCircle, Loader } from "lucide-react"
 import { getMiPerfilProveedor, crearPerfilProveedor, ApiError } from "@/lib/api"
+import posthog from "posthog-js"
+
+const isPostHogConfigured = Boolean(
+  process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST
+)
 
 export default function SelectRolePage() {
   const { isAuthenticated, isLoading, role, selectRole } = useAuth()
@@ -74,6 +79,9 @@ export default function SelectRolePage() {
     setFormError(null)
     try {
       await crearPerfilProveedor({ descripcion, radio_km_disponible: radio })
+      if (isPostHogConfigured) {
+        posthog.capture("provider_profile_created", { service_radius_km: radio })
+      }
       goToProfesional()
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "No se pudo crear tu perfil de proveedor."
@@ -143,9 +151,9 @@ export default function SelectRolePage() {
     <main className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-2xl space-y-10">
         <div className="text-center space-y-3">
-          <span className="text-2xl font-bold text-primary tracking-tight">ServiMarket</span>
+          <span className="text-2xl font-bold text-primary tracking-tight">Habilo</span>
           <h1 className="text-3xl font-bold text-foreground">
-            ¿Cómo quieres usar ServiMarket?
+            ¿Cómo quieres usar Habilo?
           </h1>
           <p className="text-muted-foreground text-lg">
             Puedes cambiar esto en cualquier momento desde tu perfil.

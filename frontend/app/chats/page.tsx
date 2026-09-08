@@ -33,6 +33,11 @@ import {
 } from "@/lib/api"
 
 import { useFeatureFlags } from "@/context/feature-flags-context"
+import posthog from "posthog-js"
+
+const isPostHogConfigured = Boolean(
+  process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST
+)
 
 
 const POLL_INTERVAL = 15000 // refresco de la lista lateral, en ms
@@ -178,6 +183,9 @@ function ChatsPageInner() {
     const texto = newMessage.trim()
     if (!texto || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return
     wsRef.current.send(JSON.stringify({ contenido: texto }))
+    if (isPostHogConfigured) {
+      posthog.capture("message_sent", { request_id: activeId })
+    }
     setNewMessage("")
   }
 
@@ -202,6 +210,13 @@ function ChatsPageInner() {
     setErrorCancelar(null)
     try {
       await cambiarEstadoSolicitud(activeId, "cancelada", motivoCancelacion)
+      if (isPostHogConfigured) {
+        posthog.capture("service_request_status_changed", {
+          request_id: activeId,
+          status: "cancelada",
+          cancellation_reason: motivoCancelacion,
+        })
+      }
       setConversaciones((prev) => prev.map((c) => (c.id === activeId ? { ...c, estado: "cancelada" } : c)))
       setCancelarOpen(false)
       setMotivoCancelacion("")
@@ -218,6 +233,12 @@ function ChatsPageInner() {
     setErrorEstado(null)
     try {
       await cambiarEstadoSolicitud(activeId, estado)
+      if (isPostHogConfigured) {
+        posthog.capture("service_request_status_changed", {
+          request_id: activeId,
+          status: estado,
+        })
+      }
       setConversaciones((prev) => prev.map((c) => (c.id === activeId ? { ...c, estado } : c)))
     } catch (err) {
       setErrorEstado(err instanceof ApiError ? err.message : "No se pudo actualizar la solicitud")
@@ -236,6 +257,12 @@ function ChatsPageInner() {
         puntuacion,
         comentario: comentario.trim() || undefined,
       })
+      if (isPostHogConfigured) {
+        posthog.capture("review_submitted", {
+          request_id: activeConv.id,
+          rating: puntuacion,
+        })
+      }
       setConversaciones((prev) => prev.map((c) => (c.id === activeConv.id ? { ...c, ya_valorada: true } : c)))
       setValorarOpen(false)
       setPuntuacion(0)
@@ -514,6 +541,9 @@ function ChatsPageInner() {
                               size="sm"
                               onClick={async () => {
                                 await confirmarEntrega(activeConv.id)
+                                if (isPostHogConfigured) {
+                                  posthog.capture("delivery_confirmed", { request_id: activeConv.id })
+                                }
                                 setConversaciones((prev) =>
                                   prev.map((c) => (c.id === activeConv.id ? { ...c, pago_estado: "transferido" } : c))
                                 )

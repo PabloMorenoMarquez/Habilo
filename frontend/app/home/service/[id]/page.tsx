@@ -25,6 +25,11 @@ import {
   getPerfilProveedorPublico,
   PerfilProveedorPublico,
 } from "@/lib/api"
+import posthog from "posthog-js"
+
+const isPostHogConfigured = Boolean(
+  process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST
+)
 
 function formatPrice(price: number, type: string) {
   if (type === "hora") return `${price}€/hora`
@@ -111,6 +116,12 @@ export default function ServiceDetailPage() {
     try {
       if (previo) await desmarcarServicioFavorito(servicio.id)
       else await marcarServicioFavorito(servicio.id)
+      if (isPostHogConfigured) {
+        posthog.capture("service_favorite_changed", {
+          service_id: servicio.id,
+          is_favorited: !previo,
+        })
+      }
     } catch (err) {
       setLiked(previo)
       console.error("No se pudo actualizar el favorito:", err)
@@ -127,6 +138,12 @@ export default function ServiceDetailPage() {
     try {
       if (previo) await desmarcarProveedorFavorito(servicio.proveedor_id)
       else await marcarProveedorFavorito(servicio.proveedor_id)
+      if (isPostHogConfigured) {
+        posthog.capture("provider_follow_changed", {
+          provider_id: servicio.proveedor_id,
+          is_following: !previo,
+        })
+      }
     } catch (err) {
       setSiguiendoProveedor(previo)
       console.error("No se pudo actualizar el seguimiento:", err)
@@ -141,6 +158,12 @@ export default function ServiceDetailPage() {
     setContactoError(null)
     try {
       const solicitud = await crearSolicitud(servicio.id) 
+      if (isPostHogConfigured) {
+        posthog.capture("service_request_created", {
+          service_id: servicio.id,
+          request_id: solicitud.id,
+        })
+      }
       router.push(`/chats?solicitud=${solicitud.id}`)
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
