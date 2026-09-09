@@ -6,6 +6,7 @@ import { AuthProvider } from '@/context/auth-context'
 import { ServiceWorkerRegister } from '@/components/sw-register'
 import { FeatureFlagsProvider } from '@/context/feature-flags-context'
 import { PilotoBanner } from '@/components/piloto-banner'
+import { FeedbackButton } from '@/components/feedback-button'
 
 const inter = Inter({
   subsets: ["latin"],
@@ -47,6 +48,7 @@ export default function RootLayout({
             <AuthProvider>
               <PilotoBanner />
               {children}
+              <FeedbackButton />
             </AuthProvider>
           </FeatureFlagsProvider>
         </GoogleOAuthProvider>

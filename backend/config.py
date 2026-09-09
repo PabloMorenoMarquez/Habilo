@@ -47,4 +47,6 @@ class Config:
     EMAIL_FROM = os.getenv("EMAIL_FROM")
     
     PAGOS_HABILITADOS = os.getenv("PAGOS_HABILITADOS", "false").lower() == "true"
-    VERIFICACION_IDENTIDAD_HABILITADA = os.getenv("VERIFICACION_IDENTIDAD_HABILITADA", "false").lower() == "true"   
+    VERIFICACION_IDENTIDAD_HABILITADA = os.getenv("VERIFICACION_IDENTIDAD_HABILITADA", "false").lower() == "true"
+    
+    FEEDBACK_EMAIL_DESTINO = os.getenv("FEEDBACK_EMAIL_DESTINO")   
