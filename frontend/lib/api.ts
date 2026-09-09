@@ -709,3 +709,10 @@ export interface Paginado<T> {
   limit: number
   offset: number
 }
+
+export function enviarFeedback(datos: { tipo: "sugerencia" | "bug" | "otro"; mensaje: string; pagina?: string }) {
+  return apiFetch("/feedback/", {
+    method: "POST",
+    body: JSON.stringify(datos),
+  })
+}

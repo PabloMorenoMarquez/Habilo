@@ -42,6 +42,16 @@ export default function GaleriaImagenes({
     if (!file) return
     e.target.value = "" // permite volver a seleccionar el mismo archivo si hace falta
     setError(null)
+    //Aviso si la resolución es baja (no bloqueamos la subida, solo avisamos)
+    const dimensiones = await new Promise<{ w: number; h: number }>((resolve) => {
+      const img = new Image()
+      img.onload = () => resolve({ w: img.width, h: img.height })
+      img.src = URL.createObjectURL(file)
+    })
+    if (dimensiones.w < 800) {
+      setError("Esta foto tiene poca resolución y puede verse borrosa. Te recomendamos subir una imagen de al menos 800px de ancho.")
+      // seguimos con la subida igualmente, es solo un aviso
+    }
     setSubiendo(true)
     try {
       const { path, token } = await getSignedUploadUrlGaleria(servicioId)

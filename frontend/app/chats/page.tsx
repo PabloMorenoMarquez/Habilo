@@ -34,6 +34,7 @@ import {
 
 import { useFeatureFlags } from "@/context/feature-flags-context"
 import posthog from "posthog-js"
+import ResumenAcuerdo from "@/components/resumen-acuerdo"
 
 const isPostHogConfigured = Boolean(
   process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST
@@ -64,6 +65,7 @@ function ChatsPageInner() {
   const [wsConectadoAlgunaVez, setWsConectadoAlgunaVez] = useState(false)
 
   const [procesandoEstado, setProcesandoEstado] = useState(false)
+  const [accionEnCurso, setAccionEnCurso] = useState<string | null>(null)
   const [valorarOpen, setValorarOpen] = useState(false)
   const [puntuacion, setPuntuacion] = useState(0)
   const [comentario, setComentario] = useState("")
@@ -89,6 +91,7 @@ function ChatsPageInner() {
   const [errorValoracion, setErrorValoracion] = useState<string | null>(null)
   const [errorReporte, setErrorReporte] = useState<string | null>(null)
   const [errorBloqueo, setErrorBloqueo] = useState<string | null>(null)
+  const [errorLista, setErrorLista] = useState<string | null>(null)
 
   const { pagosHabilitados } = useFeatureFlags()
 
@@ -99,8 +102,14 @@ function ChatsPageInner() {
 
   const cargarConversaciones = useCallback(() => {
     getConversaciones(50)
-      .then((data) => setConversaciones(data.items))
-      .catch((err) => console.error("No se pudieron cargar las conversaciones:", err))
+      .then((data) => {
+        setConversaciones(data.items)
+        setErrorLista(null)
+      })
+      .catch((err) => {
+        console.error("No se pudieron cargar las conversaciones:", err)
+        setErrorLista("No se pudieron cargar tus conversaciones. Inténtalo de nuevo.")
+      })
       .finally(() => setCargandoLista(false))
   }, [])
 
@@ -230,20 +239,16 @@ function ChatsPageInner() {
   const handleCambiarEstado = async (estado: "aceptada" | "rechazada" | "completada") => {
     if (!activeId) return
     setProcesandoEstado(true)
+    setAccionEnCurso(estado)
     setErrorEstado(null)
     try {
       await cambiarEstadoSolicitud(activeId, estado)
-      if (isPostHogConfigured) {
-        posthog.capture("service_request_status_changed", {
-          request_id: activeId,
-          status: estado,
-        })
-      }
       setConversaciones((prev) => prev.map((c) => (c.id === activeId ? { ...c, estado } : c)))
     } catch (err) {
       setErrorEstado(err instanceof ApiError ? err.message : "No se pudo actualizar la solicitud")
     } finally {
       setProcesandoEstado(false)
+      setAccionEnCurso(null)
     }
   }
 
@@ -352,6 +357,7 @@ function ChatsPageInner() {
               </div>
             </div>
             <div className="flex-1 overflow-y-auto divide-y divide-border">
+              {errorLista && <p className="text-xs text-destructive px-4 py-2">{errorLista}</p>}
               {cargandoLista ? (
                 <div className="py-16 flex justify-center">
                   <Loader className="animate-spin text-muted-foreground" size={20} />
@@ -418,6 +424,7 @@ function ChatsPageInner() {
                   </div>
                   {!esCliente && activeConv.estado === "aceptada" && (
                     <Button size="sm" variant="outline" disabled={procesandoEstado} onClick={() => handleCambiarEstado("completada")}>
+                      {accionEnCurso === "completada" && <Loader size={14} className="animate-spin mr-1" />}
                       Marcar como completado
                     </Button>
                   )}
@@ -447,8 +454,8 @@ function ChatsPageInner() {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
-                {errorEstado && (
-                  <div className="px-5 py-2 bg-destructive/10 border-b border-border">
+                {errorEstado && activeConv.estado === "aceptada" && (
+                  <div className="px-5 pb-2">
                     <p className="text-xs text-destructive">{errorEstado}</p>
                   </div>
                 )}
@@ -488,6 +495,9 @@ function ChatsPageInner() {
                           
                         )
                       })}
+                      {["pendiente", "aceptada", "completada"].includes(activeConv.estado) && (
+                        <ResumenAcuerdo solicitudId={activeConv.id} refreshSignal={ofertasVersion} />
+                      )}
                       {activeConv.estado === "negociando" && (
                         <div className="flex justify-center py-2 w-full">
                           <div className="w-full max-w-sm">
@@ -512,12 +522,15 @@ function ChatsPageInner() {
                             <p className="text-sm text-foreground">Tienes una nueva solicitud para este servicio</p>
                             <div className="flex gap-2 justify-center">
                               <Button size="sm" disabled={procesandoEstado} onClick={() => handleCambiarEstado("aceptada")}>
+                                {accionEnCurso === "aceptada" && <Loader size={14} className="animate-spin mr-1" />}
                                 Aceptar
                               </Button>
                               <Button size="sm" variant="outline" disabled={procesandoEstado} onClick={() => handleCambiarEstado("rechazada")}>
+                                {accionEnCurso === "rechazada" && <Loader size={14} className="animate-spin mr-1" />}
                                 Rechazar
                               </Button>
                             </div>
+                            {errorEstado && <p className="text-xs text-destructive">{errorEstado}</p>}
                           </div>
                         </div>
                       )}
@@ -651,6 +664,7 @@ function ChatsPageInner() {
             ))}
             {errorCancelar && <p className="text-xs text-destructive">{errorCancelar}</p>}
             <Button className="w-full mt-2" disabled={!motivoCancelacion || procesandoEstado} onClick={handleCancelar}>
+              {procesandoEstado && <Loader size={16} className="animate-spin mr-2" />}
               Confirmar cancelación
             </Button>
           </div>

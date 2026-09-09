@@ -26,6 +26,7 @@ from routers.ofertas import router as ofertas_router
 from routers.favoritos import router as favoritos_router
 from routers.suscripcion_push import router as suscripcion_push_router
 from routers.config import router as config_router
+from routers.feedback import router as feedback_router
 from utils.google_oauth import google_configure_oauth
 from utils.facebook_oauth import facebook_configure_oauth
 from utils.scheduler import iniciar_jobs
@@ -106,6 +107,7 @@ app.include_router(ofertas_router)
 app.include_router(favoritos_router)
 app.include_router(suscripcion_push_router)
 app.include_router(config_router)
+app.include_router(feedback_router)
 @app.get("/health")
 async def health_check():
     try:

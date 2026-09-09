@@ -4,6 +4,7 @@ from jose import jwt, JWTError
 from config import Config
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme_opcional = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
 
 
 def get_current_user(token: str = Depends(oauth2_scheme)):
@@ -38,6 +39,14 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
     payload["es_admin"] = usuario.es_admin
     return payload
 
+def get_current_user_opcional(token: str = Depends(oauth2_scheme_opcional)):
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, Config.JWT_SECRET_KEY, algorithms=[Config.JWT_ALGORITH])
+        return payload
+    except JWTError:
+        return None
 
 def get_current_admin(current_user: dict = Depends(get_current_user)):
     if not current_user.get("es_admin"):
