@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 
 class SolicitudRepository:
     
-    def _sin_timezone(dt):
+    def _sin_timezone(self, dt):
         if dt is not None and dt.tzinfo is not None:
             return dt.replace(tzinfo=None)
         return dt
