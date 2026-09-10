@@ -37,6 +37,8 @@ from slowapi.middleware import SlowAPIMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 import sentry_sdk
 load_dotenv()
+import logging
+logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -55,6 +57,7 @@ sentry_sdk.init(
 app = FastAPI(lifespan=lifespan)
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Excepción no controlada en {request.url}: {exc}", exc_info=True)
     sentry_sdk.capture_exception(exc)
 
     return JSONResponse(

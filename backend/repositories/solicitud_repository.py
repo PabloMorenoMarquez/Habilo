@@ -6,6 +6,11 @@ from uuid import UUID
 from datetime import datetime, timezone
 
 class SolicitudRepository:
+    
+    def _sin_timezone(dt):
+        if dt is not None and dt.tzinfo is not None:
+            return dt.replace(tzinfo=None)
+        return dt
 
     def crear(self, servicio_id:UUID, cliente_id:UUID):
         session = SessionLocal()
@@ -124,9 +129,10 @@ class SolicitudRepository:
             for row in rows:
                 solicitud = row[0]
                 soy_cliente = str(row.cliente_id) == str(usuario_id)
-                visto_en = solicitud.visto_por_cliente_en if soy_cliente else solicitud.visto_por_proveedor_en
+                visto_en = self._sin_timezone(solicitud.visto_por_cliente_en if soy_cliente else solicitud.visto_por_proveedor_en)
+                ultima_actividad = self._sin_timezone(solicitud.ultima_actividad)
                 tiene_notificacion = visto_en is None or (
-                    solicitud.ultima_actividad is not None and solicitud.ultima_actividad > visto_en
+                    ultima_actividad is not None and ultima_actividad > visto_en
                 )
                 resultado.append({
                     "id": solicitud.id,
