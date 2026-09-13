@@ -68,8 +68,7 @@ export default function ClientHomePage() {
 
   useEffect(() => {
     if (isLoading) return
-    if (!isAuthenticated) router.replace("/")
-    else if (role === "profesional") router.replace("/dashboard")
+    if (isAuthenticated && role === "profesional") router.replace("/dashboard")
   }, [isAuthenticated, isLoading, role, router])
 
   // Cargar categorías reales una vez
