@@ -8,7 +8,7 @@ import Image from "next/image"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Star, Clock, MapPin, CheckCircle, MessageCircle, Share2, Heart, ArrowLeft, Loader } from "lucide-react"
+import { Star, Clock, MapPin, MessageCircle, Share2, Heart, ArrowLeft, Loader } from "lucide-react"
 import Link from "next/link"
 import {
   getServicioDetalle,
@@ -25,6 +25,7 @@ import {
   getPerfilProveedorPublico,
   PerfilProveedorPublico,
 } from "@/lib/api"
+import { AuthRequiredDialog } from "@/components/auth-required-dialog"
 import posthog from "posthog-js"
 
 const isPostHogConfigured = Boolean(
@@ -70,10 +71,10 @@ export default function ServiceDetailPage() {
   const [contactando, setContactando] = useState(false)
   const [contactoError, setContactoError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (isLoading) return
-    if (!isAuthenticated) router.replace("/")
-  }, [isAuthenticated, isLoading, router])
+  const [authDialogOpen, setAuthDialogOpen] = useState(false)
+  const [authDialogMensaje, setAuthDialogMensaje] = useState<string>()
+
+  // Ya NO redirige a anónimos — la página es pública.
 
   useEffect(() => {
     const id = params.id as string
@@ -99,17 +100,30 @@ export default function ServiceDetailPage() {
 
   useEffect(() => {
     if (!servicio) return
-    listarProveedoresFavoritos()
-      .then((favs) => setSiguiendoProveedor(favs.some((p) => p.id === servicio.proveedor_id)))
-      .catch((err) => console.error("No se pudo comprobar si sigues a este profesional:", err))
 
     getPerfilProveedorPublico(servicio.proveedor_id)
       .then(setPerfilProveedor)
       .catch((err) => console.error("No se pudo cargar el perfil del profesional:", err))
-  }, [servicio?.proveedor_id])
+
+    // Solo comprobamos "sigo a este proveedor" si hay sesión — para anónimos no tiene sentido
+    if (isAuthenticated) {
+      listarProveedoresFavoritos()
+        .then((favs) => setSiguiendoProveedor(favs.some((p) => p.id === servicio.proveedor_id)))
+        .catch((err) => console.error("No se pudo comprobar si sigues a este profesional:", err))
+    }
+  }, [servicio?.proveedor_id, isAuthenticated])
+
+  const requireAuth = (mensaje: string) => {
+    setAuthDialogMensaje(mensaje)
+    setAuthDialogOpen(true)
+  }
 
   const handleToggleLike = async () => {
     if (!servicio) return
+    if (!isAuthenticated) {
+      requireAuth("Inicia sesión para guardar servicios en tus favoritos.")
+      return
+    }
     const previo = liked
     setLiked(!previo)
     setCargandoLike(true)
@@ -132,6 +146,10 @@ export default function ServiceDetailPage() {
 
   const handleToggleSeguir = async () => {
     if (!servicio) return
+    if (!isAuthenticated) {
+      requireAuth("Inicia sesión para seguir a este profesional.")
+      return
+    }
     const previo = siguiendoProveedor
     setSiguiendoProveedor(!previo)
     setCargandoSeguir(true)
@@ -154,10 +172,14 @@ export default function ServiceDetailPage() {
 
   const handleContactar = async () => {
     if (!servicio) return
+    if (!isAuthenticated) {
+      requireAuth("Inicia sesión para contactar con este profesional.")
+      return
+    }
     setContactando(true)
     setContactoError(null)
     try {
-      const solicitud = await crearSolicitud(servicio.id) 
+      const solicitud = await crearSolicitud(servicio.id)
       if (isPostHogConfigured) {
         posthog.capture("service_request_created", {
           service_id: servicio.id,
@@ -375,6 +397,12 @@ export default function ServiceDetailPage() {
           </div>
         </div>
       </main>
+
+      <AuthRequiredDialog
+        open={authDialogOpen}
+        onOpenChange={setAuthDialogOpen}
+        mensaje={authDialogMensaje}
+      />
     </div>
   )
 }

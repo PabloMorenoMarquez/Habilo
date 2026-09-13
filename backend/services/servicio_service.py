@@ -40,22 +40,22 @@ class ServicioService:
         
         servicios, has_more = paginar(servicios, limit)
         
-        favoritos = self.favorito_repository.listar_ids_favoritos_servicio(usuario_id)
+        favoritos = self.favorito_repository.listar_ids_favoritos_servicio(usuario_id) if usuario_id else set()
 
         for servicio in servicios:
             servicio["es_favorito"] = servicio["id"] in favoritos
 
         return servicios, has_more
     
-    def obtener_detalle_publico(self, servicio_id:UUID, usuario_id:UUID):
+    def obtener_detalle_publico(self, servicio_id:UUID, usuario_id:UUID=None):
         servicio = self.servicio_repository.obtener_detalle_publico(servicio_id)
 
         if not servicio:
             return None
 
-        servicio["es_favorito"] = self.favorito_repository.es_favorito_servicio(
-            usuario_id,
-            servicio_id
+        servicio["es_favorito"] = (
+            self.favorito_repository.es_favorito_servicio(usuario_id, servicio_id)
+            if usuario_id else False
         )
 
         return servicio

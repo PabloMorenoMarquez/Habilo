@@ -11,6 +11,7 @@ from config import Config
 import uuid
 from utils.rate_limiter import limiter
 from schemas.paginacion_schema import PaginatedResponse
+from utils.auth_middleware import get_current_user_opcional
 
 router = APIRouter(prefix="/servicio", tags=["servicio"])
 
@@ -34,11 +35,12 @@ async def buscar_servicios(
     texto: Optional[str] = Query(None, description="Texto a buscar en el título"),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user_opcional)
 ):
     service = ServicioService()
+    usuario_id = current_user["user_id"] if current_user else None
     servicios, has_more = service.buscar(
-        lat, lng, radio_km, categoria_id, texto, current_user["user_id"],
+        lat, lng, radio_km, categoria_id, texto, usuario_id,
         limit=limit, offset=offset
     )
     return PaginatedResponse(
@@ -77,9 +79,10 @@ async def listar_mis_servicios(limit: int = Query(20, ge=1, le=100),
 
 @router.get("/{servicio_id}", response_model=ServicioBusquedaOut)
 @limiter.limit("60/minute")
-async def obtener_servicio(request: Request, servicio_id: UUID, current_user=Depends(get_current_user)):
+async def obtener_servicio(request: Request, servicio_id: UUID, current_user=Depends(get_current_user_opcional)):
     service = ServicioService()
-    servicio = service.obtener_detalle_publico(servicio_id, current_user["user_id"])
+    usuario_id = current_user["user_id"] if current_user else None
+    servicio = service.obtener_detalle_publico(servicio_id, usuario_id)
     if not servicio:
         raise HTTPException(status_code=404, detail="Servicio no encontrado")
     return servicio
