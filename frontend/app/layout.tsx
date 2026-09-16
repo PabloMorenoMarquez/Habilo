@@ -19,8 +19,17 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'Habilo — Marketplace de Servicios',
+  title: {
+    default: 'Habilo — Marketplace de Servicios',
+    template: '%s',
+  },
   description: 'Encuentra y contrata profesionales de confianza o publica tus servicios en Habilo.',
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://habilo.es'),
+  openGraph: {
+    siteName: 'Habilo',
+    type: 'website',
+    locale: 'es_ES',
+  },
   generator: 'v0.app',
   appleWebApp: {
     capable: true,
