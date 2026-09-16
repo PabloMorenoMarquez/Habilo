@@ -174,7 +174,7 @@ class SolicitudRepository:
         finally:
             session.close()
             
-    def listar_activas_de_usuario(usuario_id: UUID):
+    def listar_activas_de_usuario(self, usuario_id: UUID):
         from models.servicio import Servicio
         from models.perfil_proveedor import Perfil_Proveedor
 

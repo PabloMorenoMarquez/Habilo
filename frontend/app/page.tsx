@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
 import { useEffect, useState, Suspense } from "react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Search, Star, Shield, Loader } from "lucide-react"
 import { API_URL } from "@/lib/api"
@@ -149,9 +150,11 @@ function LoginPageInner() {
 
           <p className="text-center text-sm text-muted-foreground">
             Al continuar, aceptas nuestros{" "}
-            <span className="text-primary cursor-pointer hover:underline">Términos de servicio</span>{" "}
+            <Link href="/legal/terminos-y-condiciones" className="text-primary hover:underline">Términos de servicio</Link>{" "}
             y{" "}
-            <span className="text-primary cursor-pointer hover:underline">Política de privacidad</span>.
+            <Link href="/legal/privacidad" className="text-primary hover:underline">Política de privacidad</Link>{" "}
+            y el{" "}
+            <Link href="/legal/aviso-legal" className="text-primary hover:underline">Aviso legal</Link>.
           </p>
         </div>
       </div>
