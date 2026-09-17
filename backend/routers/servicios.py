@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, Query, Request
 from uuid import UUID
 from typing import List, Optional
 from utils.auth_middleware import get_current_user
-from schemas.servicio_schema import CrearServicio, ActualizarServicio, ServicioOut, ServicioBusquedaOut, CrearImagenServicio, ReordenarImagenes
+from schemas.servicio_schema import CrearServicio, ActualizarServicio, ServicioOut, ServicioBusquedaOut, ServicioSitemapOut, CrearImagenServicio, ReordenarImagenes
 from services.servicio_service import ServicioService
 from services.proveedor_service import ProveedorService
 from services.imagen_servicio_service import ImagenServicioService
@@ -49,6 +49,14 @@ async def buscar_servicios(
         limit=limit,
         offset=offset,
     )
+
+
+@router.get("/sitemap", response_model=List[ServicioSitemapOut])
+async def listar_servicios_para_sitemap():
+    return [
+        {"id": servicio_id, "fecha_creacion": fecha_creacion}
+        for servicio_id, fecha_creacion in ServicioService().listar_para_sitemap()
+    ]
 
 
 @router.post("/", response_model=ServicioOut)
