@@ -56,6 +56,14 @@ class ServicioBusquedaOut(ServicioBase):
     proveedor_num_valoraciones: Optional[int] = None
     categoria_nombre: Optional[str] = None
     es_favorito: bool = False
+
+
+class ServicioSitemapOut(BaseModel):
+    id: UUID
+    fecha_creacion: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
     
 class ImagenServicioOut(BaseModel):
     id: UUID

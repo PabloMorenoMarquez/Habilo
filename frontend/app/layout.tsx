@@ -20,17 +20,20 @@ const jakarta = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Habilo — Marketplace de Servicios',
+    default: 'Habilo | Profesionales y servicios cerca de ti',
     template: '%s',
   },
-  description: 'Encuentra y contrata profesionales de confianza o publica tus servicios en Habilo.',
+  description: 'Encuentra fontaneros, electricistas, reformas y otros profesionales cerca de ti. Compara servicios y contacta con proveedores en España.',
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://habilo.es'),
+  alternates: { canonical: '/' },
+  keywords: ['servicios cerca de mí', 'profesionales en España', 'fontaneros', 'electricistas', 'reformas'],
   openGraph: {
+    title: 'Habilo | Profesionales y servicios cerca de ti',
+    description: 'Encuentra profesionales de confianza cerca de ti en España.',
     siteName: 'Habilo',
     type: 'website',
     locale: 'es_ES',
   },
-  generator: 'v0.app',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',

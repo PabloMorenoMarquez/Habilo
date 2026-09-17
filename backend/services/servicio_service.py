@@ -23,6 +23,9 @@ class ServicioService:
         servicios, has_more = paginar(servicios, limit)
         return servicios, has_more
 
+    def listar_para_sitemap(self):
+        return self.servicio_repository.listar_para_sitemap()
+
     def actualizar(self, servicio_id:UUID, proveedor_id:UUID, **campos):
         servicio = self.servicio_repository.get_by_id(servicio_id)
         if not servicio or str(servicio.proveedor_id) != str(proveedor_id):

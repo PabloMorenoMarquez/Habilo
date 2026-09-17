@@ -57,6 +57,18 @@ class ServicioRepository:
         finally:
             session.close()
 
+    def listar_para_sitemap(self):
+        session = SessionLocal()
+        try:
+            stmt = (
+                select(Servicio.id, Servicio.fecha_creacion)
+                .where(Servicio.activo == True)
+                .order_by(Servicio.fecha_creacion.desc())
+            )
+            return list(session.execute(stmt).all())
+        finally:
+            session.close()
+
     def actualizar(self, servicio_id:UUID, **campos):
         session = SessionLocal()
         try:
