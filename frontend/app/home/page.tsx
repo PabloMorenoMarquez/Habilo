@@ -15,6 +15,7 @@ import { buscarServicios, getCategorias, ServicioBackend, Categoria } from "@/li
 import { geocodeCiudad, getBrowserLocation } from "@/lib/geocode"
 import { usePaginacion } from "@/hooks/use-paginacion"
 import { OnboardingModal } from "@/components/onboarding-modal"
+import { formatCategoryName } from "@/lib/category"
 
 const RADIO_KM = 50 // radio de búsqueda por defecto
 const LOCATION_KEY = "serviclick_location"
@@ -24,7 +25,7 @@ function mapServicioParaTarjeta(s: ServicioBackend) {
   return {
     id: s.id,
     title: s.titulo,
-    category: s.categoria_nombre || "General",
+    category: formatCategoryName(s.categoria_nombre),
     description: s.descripcion || "",
     price: parseFloat(s.precio),
     priceType: s.tipo_precio,
@@ -304,7 +305,7 @@ export default function ClientHomePage() {
                 : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                 }`}
             >
-              {cat.nombre}
+              {formatCategoryName(cat.nombre)}
             </button>
           ))}
 

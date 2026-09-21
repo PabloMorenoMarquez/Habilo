@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import Navbar from "@/components/navbar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -43,6 +43,7 @@ import GaleriaImagenes from "@/components/galeria-imagenes"
 import HorarioDisponibilidad from "@/components/horario-disponibilidad"
 import { useFeatureFlags } from "@/context/feature-flags-context"
 import { OnboardingModal } from "@/components/onboarding-modal"
+import { formatCategoryName } from "@/lib/category"
 import posthog from "posthog-js"
 
 const isPostHogConfigured = Boolean(
@@ -87,6 +88,8 @@ export default function DashboardPage() {
 
   const { verificacionIdentidadHabilitada } = useFeatureFlags()
 
+  const yaSugerido = useRef(false)
+
   const [form, setForm] = useState({
     title: "",
     categoriaId: "",
@@ -127,7 +130,13 @@ export default function DashboardPage() {
   const cargarMisServicios = () => {
     setCargandoServicios(true)
     getMisServicios()
-      .then(setMisServicios)
+      .then((servicios) => {
+        setMisServicios(servicios)
+        if (servicios.length === 0 && !yaSugerido.current) {
+          yaSugerido.current = true
+          setDialogOpen(true)
+        }
+      })
       .catch((err) => console.error("No se pudieron cargar tus servicios:", err))
       .finally(() => setCargandoServicios(false))
   }
@@ -385,7 +394,7 @@ export default function DashboardPage() {
     }
   }
 
-  const nombreCategoria = (id: string | null) => categorias.find((c) => c.id === id)?.nombre || "General"
+  const nombreCategoria = (id: string | null) => formatCategoryName(categorias.find((c) => c.id === id)?.nombre)
 
   return (
     <div className="min-h-screen bg-background">
@@ -462,7 +471,7 @@ export default function DashboardPage() {
                     <Select value={form.categoriaId} onValueChange={(v) => setForm((f) => ({ ...f, categoriaId: v }))}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {categorias.map((c) => <SelectItem key={c.id} value={c.id} className="capitalize">{c.nombre}</SelectItem>)}
+                        {categorias.map((c) => <SelectItem key={c.id} value={c.id}>{formatCategoryName(c.nombre)}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -560,7 +569,7 @@ export default function DashboardPage() {
                     <Select value={editForm.categoriaId} onValueChange={(v) => setEditForm((f) => ({ ...f, categoriaId: v }))}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {categorias.map((c) => <SelectItem key={c.id} value={c.id} className="capitalize">{c.nombre}</SelectItem>)}
+                        {categorias.map((c) => <SelectItem key={c.id} value={c.id}>{formatCategoryName(c.nombre)}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -700,7 +709,7 @@ export default function DashboardPage() {
                         </Badge>
                       </div>
                       <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-                        <span className="capitalize">{nombreCategoria(service.categoria_id)}</span>
+                        <span>{nombreCategoria(service.categoria_id)}</span>
                         <span>·</span>
                         <span className="font-medium text-primary">{service.precio}€/{service.tipo_precio}</span>
                       </div>

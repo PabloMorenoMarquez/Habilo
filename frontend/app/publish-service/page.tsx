@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { crearServicio, getCategorias, ApiError, type Categoria } from "@/lib/api"
 import { getBrowserLocation } from "@/lib/geocode"
+import { formatCategoryName } from "@/lib/category"
 
 export default function PublishServicePage() {
   const router = useRouter()
@@ -98,7 +99,7 @@ export default function PublishServicePage() {
             <option value="">Selecciona una categoría</option>
             {categorias.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.nombre}
+                {formatCategoryName(c.nombre)}
               </option>
             ))}
           </select>
