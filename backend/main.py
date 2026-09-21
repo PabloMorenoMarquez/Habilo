@@ -75,7 +75,9 @@ if not session_secret:
 
 app.add_middleware(
     SessionMiddleware,
-    secret_key=session_secret
+    secret_key=session_secret,
+    same_site="lax",
+    https_only=os.getenv("ENVIRONMENT", "development").lower() == "production",
 )
 app.add_middleware(
     CORSMiddleware,

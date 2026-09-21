@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import ServiceDetailClient from './service-detail-client'
+import { formatCategoryName } from '@/lib/category'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -10,7 +11,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
     const servicio = await res.json()
 
     const titulo = `${servicio.titulo} — Habilo`
-    const descripcion = servicio.descripcion?.slice(0, 155) || `Servicio de ${servicio.categoria_nombre || 'confianza'} en Habilo.`
+    const descripcion = servicio.descripcion?.slice(0, 155) || `Servicio de ${formatCategoryName(servicio.categoria_nombre).toLowerCase()} en Habilo.`
 
     return {
       title: titulo,
@@ -67,8 +68,8 @@ export default async function ServiceDetailPage({ params }: { params: { id: stri
         '@context': 'https://schema.org',
         '@type': 'Service',
         name: servicio.titulo,
-        description: servicio.descripcion || `Servicio de ${servicio.categoria_nombre || 'profesional'} en España.`,
-        serviceType: servicio.categoria_nombre || 'Servicios profesionales',
+        description: servicio.descripcion || `Servicio de ${formatCategoryName(servicio.categoria_nombre).toLowerCase()} en España.`,
+        serviceType: formatCategoryName(servicio.categoria_nombre),
         url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://habilo.es'}/home/service/${servicio.id}`,
         ...(servicio.imagen_url ? { image: servicio.imagen_url } : {}),
         provider: {

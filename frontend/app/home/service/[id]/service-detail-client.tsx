@@ -26,6 +26,7 @@ import {
   PerfilProveedorPublico,
 } from "@/lib/api"
 import { AuthRequiredDialog } from "@/components/auth-required-dialog"
+import { formatCategoryName } from "@/lib/category"
 import posthog from "posthog-js"
 
 const isPostHogConfigured = Boolean(
@@ -267,7 +268,7 @@ export default function ServiceDetailPage() {
             <div className="space-y-3">
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
-                  <Badge variant="secondary" className="text-xs capitalize">{servicio.categoria_nombre || "General"}</Badge>
+                  <Badge variant="secondary" className="text-xs">{formatCategoryName(servicio.categoria_nombre)}</Badge>
                   <h1 className="text-2xl md:text-3xl font-bold text-foreground leading-tight">{servicio.titulo}</h1>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">

@@ -17,13 +17,14 @@ import {
   ServicioBackend,
   ProveedorFavorito,
 } from "@/lib/api"
+import { formatCategoryName } from "@/lib/category"
 
 // Mismo mapeo que usa la home para pasarle los datos a ServiceCard
 function mapServicioParaTarjeta(s: ServicioBackend) {
   return {
     id: s.id,
     title: s.titulo,
-    category: s.categoria_nombre || "General",
+    category: formatCategoryName(s.categoria_nombre),
     description: s.descripcion || "",
     price: parseFloat(s.precio),
     priceType: s.tipo_precio,
