@@ -78,7 +78,13 @@ export default function SelectRolePage() {
     setSubmitting(true)
     setFormError(null)
     try {
-      await crearPerfilProveedor({ descripcion, radio_km_disponible: radio })
+      const codigoReferido = localStorage.getItem("habilo_referido_codigo") || undefined
+      await crearPerfilProveedor({
+        descripcion,
+        radio_km_disponible: radio,
+        codigo_referido: codigoReferido,
+      })
+      if (codigoReferido) localStorage.removeItem("habilo_referido_codigo")
       if (isPostHogConfigured) {
         posthog.capture("provider_profile_created", { service_radius_km: radio })
       }

@@ -56,6 +56,13 @@ function LoginPageInner() {
     }
   }, [isAuthenticated, role, isLoading, isProcessingToken, router])
 
+  useEffect(() => {
+    const ref = searchParams.get("ref")
+    if (ref) {
+      localStorage.setItem("habilo_referido_codigo", ref)
+    }
+  }, [searchParams])
+
   const handleGoogleLogin = () => {
     window.location.href = `${API_URL}/auth/google/login`
   }

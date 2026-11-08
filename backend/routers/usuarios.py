@@ -7,6 +7,8 @@ from services.bloqueo_service import BloqueoService
 from uuid import UUID
 from typing import List
 from utils.rate_limiter import limiter
+from utils.storage import generar_signed_upload_url
+from config import Config
 
 router = APIRouter(prefix="/usuarios", tags=["usuarios"])
 
@@ -30,6 +32,13 @@ async def actualizar_perfil(request: Request, datos: ActualizarUsuario, current_
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     return usuario
+
+@router.post("/me/foto/signed-url")
+@limiter.limit("10/minute")
+async def signed_url_foto_perfil(request: Request, current_user=Depends(get_current_user)):
+    usuario_id = current_user["user_id"]
+    path = f"avatares/{usuario_id}/foto"
+    return await generar_signed_upload_url(Config.STORAGE_BUCKET_SERVICIOS, path)
 
 @router.post("/bloquear")
 @limiter.limit("10/minute")

@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Label } from "@/components/ui/label"
 import { Search, SlidersHorizontal, X, MapPin, Navigation, Loader } from "lucide-react"
-import { buscarServicios, getCategorias, ServicioBackend, Categoria } from "@/lib/api"
+import { buscarServicios, getCategorias, ServicioBackend, Categoria, esDestacado } from "@/lib/api"
 import { geocodeCiudad, getBrowserLocation } from "@/lib/geocode"
 import { usePaginacion } from "@/hooks/use-paginacion"
 import { OnboardingModal } from "@/components/onboarding-modal"
@@ -41,7 +41,7 @@ function mapServicioParaTarjeta(s: ServicioBackend) {
       location: s.distancia_km != null ? `a ${s.distancia_km.toFixed(1)} km` : "",
     },
     tags: [] as string[],
-    featured: false,
+    featured: esDestacado(s.proveedor_destacado_hasta),
   }
 }
 

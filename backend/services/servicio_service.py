@@ -4,16 +4,29 @@ from repositories.servicio_repository import ServicioRepository
 from repositories.favorito_repository import FavoritoRepository
 from datetime import datetime, timezone
 from utils.paginacion import paginar
+from repositories.referido_repository import ReferidoRepository
+
+DIAS_DESTACADO_REFERIDO = 15
 class ServicioService:
     def __init__(self):
         self.servicio_repository = ServicioRepository()
         self.favorito_repository = FavoritoRepository()
+        self.referido_repository = ReferidoRepository()
 
     def crear(self, proveedor_id:UUID, categoria_id:UUID, titulo:str, descripcion:str,
               precio:Decimal, tipo_precio:str, latitud:float=None, longitud:float=None):
-        return self.servicio_repository.crear(
+        es_primer_servicio = self.servicio_repository.contar_por_proveedor(proveedor_id) == 0
+
+        servicio = self.servicio_repository.crear(
             proveedor_id, categoria_id, titulo, descripcion, precio, tipo_precio, latitud, longitud
         )
+
+        if es_primer_servicio:
+            referido = self.referido_repository.obtener_por_referido(proveedor_id)
+            if referido:
+                self.proveedor_repository.aplicar_destacado(referido.referidor_perfil_id, DIAS_DESTACADO_REFERIDO)
+
+        return servicio
 
     def obtener(self, servicio_id:UUID):
         return self.servicio_repository.get_by_id(servicio_id)

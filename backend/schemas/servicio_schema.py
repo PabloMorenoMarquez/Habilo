@@ -56,6 +56,7 @@ class ServicioBusquedaOut(ServicioBase):
     proveedor_num_valoraciones: Optional[int] = None
     categoria_nombre: Optional[str] = None
     es_favorito: bool = False
+    proveedor_destacado_hasta: Optional[datetime] = None
 
 
 class ServicioSitemapOut(BaseModel):

@@ -12,9 +12,10 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { MapPin, Calendar, Star, Edit, Mail, Briefcase, UserCheck, Loader, Phone } from "lucide-react"
-import { getMiPerfilProveedor, getMisServicios, actualizarMe, ApiError, ServicioDetalle, getBloqueados, desbloquearUsuario, UsuarioBloqueado } from "@/lib/api"
+import { getMiPerfilProveedor, getMisServicios, actualizarMe, ApiError, ServicioDetalle, getBloqueados, desbloquearUsuario, UsuarioBloqueado, getSignedUrlAvatar } from "@/lib/api"
 import { suscribirseAPush } from "@/lib/push"
 import posthog from "posthog-js"
+import { subirAvatarUsuario } from "@/lib/storage"
 
 const isPostHogConfigured = Boolean(
   process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST
@@ -44,6 +45,9 @@ export default function ProfilePage() {
   const [pushActivado, setPushActivado] = useState(false)
   const [pushDenegado, setPushDenegado] = useState(false)
   const [activandoPush, setActivandoPush] = useState(false)
+
+  const [subiendoAvatar, setSubiendoAvatar] = useState(false)
+  const [errorAvatar, setErrorAvatar] = useState<string | null>(null)
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return
@@ -124,6 +128,29 @@ export default function ProfilePage() {
     }
   }
 
+  const handleCambiarAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ""
+    if (!file) return
+
+    setErrorAvatar(null)
+    setSubiendoAvatar(true)
+    try {
+      const { path, token } = await getSignedUrlAvatar()
+      const url = await subirAvatarUsuario(path, token, file)
+      if (!url) {
+        setErrorAvatar("No se pudo subir la foto. Inténtalo de nuevo.")
+        return
+      }
+      await actualizarMe({ foto_url: url })
+      await refreshUser()
+    } catch (err) {
+      setErrorAvatar(err instanceof ApiError ? err.message : "No se pudo actualizar la foto")
+    } finally {
+      setSubiendoAvatar(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -132,7 +159,7 @@ export default function ProfilePage() {
         <Card>
           <CardContent className="p-6 md:p-8">
             <div className="flex flex-col sm:flex-row gap-6">
-              <div className="relative shrink-0 self-start">
+              <div className="relative shrink-0 self-start group">
                 <Avatar className="h-20 w-20 md:h-24 md:w-24 border-4 border-background shadow-md">
                   <AvatarImage src={user?.avatar} alt={user?.name} />
                   <AvatarFallback className="text-2xl">{user?.name?.charAt(0)}</AvatarFallback>
@@ -141,6 +168,17 @@ export default function ProfilePage() {
                   <div className="absolute -bottom-1 -right-1 p-1 rounded-full bg-primary text-primary-foreground">
                     <UserCheck size={12} />
                   </div>
+                )}
+                <label className="absolute inset-0 flex items-center justify-center rounded-full bg-black/0 group-hover:bg-black/40 transition-colors cursor-pointer">
+                  {subiendoAvatar ? (
+                    <Loader size={18} className="animate-spin text-white" />
+                  ) : (
+                    <Edit size={16} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                  )}
+                  <input type="file" accept="image/*" onChange={handleCambiarAvatar} disabled={subiendoAvatar} className="hidden" />
+                </label>
+                {errorAvatar && (
+                  <p className="absolute top-full mt-1 left-0 text-xs text-destructive whitespace-nowrap z-10">{errorAvatar}</p>
                 )}
               </div>
 

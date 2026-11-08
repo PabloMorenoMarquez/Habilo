@@ -80,7 +80,7 @@ export function getMe() {
   return apiFetch("/usuarios/me")
 }
 
-export function actualizarMe(datos: { ciudad?: string; telefono?: string; nombre?: string }) {
+export function actualizarMe(datos: { ciudad?: string; telefono?: string; nombre?: string; foto_url?: string }) {
   return apiFetch("/usuarios/me", {
     method: "PATCH",
     body: JSON.stringify(datos),
@@ -119,6 +119,7 @@ export function crearPerfilProveedor(datos: {
   descripcion: string
   radio_km_disponible: number
   experiencia_años?: number
+  codigo_referido?: string
 }) {
   return apiFetch("/proveedor/", {
     method: "POST",
@@ -146,6 +147,7 @@ export interface ServicioBackend {
   proveedor_num_valoraciones: number | null
   categoria_nombre: string | null
   es_favorito: boolean
+  proveedor_destacado_hasta: string | null
 }
 
 let busquedaServiciosCache: { key: string; data: ServicioBackend[]; timestamp: number } | null = null
@@ -715,4 +717,16 @@ export function enviarFeedback(datos: { tipo: "sugerencia" | "bug" | "otro"; men
     method: "POST",
     body: JSON.stringify(datos),
   })
+}
+
+export function esDestacado(destacadoHasta: string | null | undefined): boolean {
+  if (!destacadoHasta) return false
+  return new Date(destacadoHasta) > new Date()
+}
+
+export function getSignedUrlAvatar() {
+  return apiFetch<{ signed_url: string; path: string; token: string }>(
+    "/usuarios/me/foto/signed-url",
+    { method: "POST" }
+  )
 }

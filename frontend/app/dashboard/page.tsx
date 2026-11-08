@@ -45,6 +45,7 @@ import { useFeatureFlags } from "@/context/feature-flags-context"
 import { OnboardingModal } from "@/components/onboarding-modal"
 import { formatCategoryName } from "@/lib/category"
 import posthog from "posthog-js"
+import { InviteProviderDialog } from "@/components/invite-provider-dialog"
 
 const isPostHogConfigured = Boolean(
   process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST
@@ -87,6 +88,8 @@ export default function DashboardPage() {
   const [errorAcciones, setErrorAcciones] = useState<string | null>(null)
 
   const { verificacionIdentidadHabilitada } = useFeatureFlags()
+
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
 
   const yaSugerido = useRef(false)
 
@@ -195,6 +198,8 @@ export default function DashboardPage() {
   const handleCreate = async () => {
     if (!form.title || !form.description || !form.price || !form.categoriaId) return
 
+    const esPrimerServicio = misServicios.length === 0
+
     setCreando(true)
     setCreateError(null)
     try {
@@ -252,6 +257,10 @@ export default function DashboardPage() {
 
       if (fallosImagenes > 0) {
         setErrorAcciones(`El servicio se creó, pero ${fallosImagenes} imagen(es) no se pudieron subir. Puedes añadirlas editando el servicio.`)
+      }
+
+      if (esPrimerServicio) {
+        setInviteDialogOpen(true)
       }
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "No se pudo publicar el servicio."
@@ -747,6 +756,11 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </main>
+      <InviteProviderDialog
+        open={inviteDialogOpen}
+        onOpenChange={setInviteDialogOpen}
+        codigoReferido={perfilProveedor?.codigo_referido}
+      />
     </div>
   )
 }

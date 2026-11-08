@@ -16,6 +16,7 @@ import {
   desmarcarProveedorFavorito,
   ServicioBackend,
   ProveedorFavorito,
+  esDestacado
 } from "@/lib/api"
 import { formatCategoryName } from "@/lib/category"
 
@@ -40,7 +41,7 @@ function mapServicioParaTarjeta(s: ServicioBackend) {
       location: s.distancia_km != null ? `a ${s.distancia_km.toFixed(1)} km` : "",
     },
     tags: [] as string[],
-    featured: false,
+    featured: esDestacado(s.proveedor_destacado_hasta),
   }
 }
 

@@ -12,6 +12,7 @@ class CrearPerfilProveedor(BaseModel):
     dias_disponibles: Optional[str] = Field(None, max_length=20)
     hora_inicio: Optional[str] = Field(None, max_length=5)
     hora_fin: Optional[str] = Field(None, max_length=5)
+    codigo_referido: Optional[str] = Field(None, max_length=20)
 
 
 class PerfilProveedorPublico(BaseModel):
@@ -27,6 +28,7 @@ class PerfilProveedorPublico(BaseModel):
     dias_disponibles: Optional[str] = None
     hora_inicio: Optional[str] = None
     hora_fin: Optional[str] = None
+    destacado_hasta: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -35,6 +37,7 @@ class PerfilProveedorPublico(BaseModel):
 class PerfilProveedorOut(PerfilProveedorPublico):
     url_documento: Optional[str] = None
     motivo_rechazo: Optional[str] = None
+    codigo_referido: Optional[str] = None
         
 class RechazarDocumento(BaseModel):
     motivo: str

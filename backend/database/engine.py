@@ -9,6 +9,7 @@ engine = create_engine(
     echo=False,
     pool_timeout=10,      
     pool_recycle=1800,    
+    pool_pre_ping=True,
     connect_args={
         "options": "-c statement_timeout=15000"  
     },

@@ -2,17 +2,21 @@ from sqlalchemy import select
 from models.perfil_proveedor import Perfil_Proveedor
 from database.session import SessionLocal
 from uuid import UUID
+import secrets
+from datetime import datetime, timezone, timedelta
 
 class ProveedorRepository:
 
     def crear_perfil(self, usuario_id:UUID, descripcion:str, radio_km_disponible:int, experiencia_años:int=None):
         session = SessionLocal()
         try:
+            codigo = self._generar_codigo_referido(session)
             perfil = Perfil_Proveedor(
                 usuario_id=usuario_id,
                 descripcion=descripcion,
                 radio_km_disponible=radio_km_disponible,
-                experiencia_años=experiencia_años
+                experiencia_años=experiencia_años,
+                codigo_referido=codigo,
             )
             session.add(perfil)
             session.commit()
@@ -23,6 +27,14 @@ class ProveedorRepository:
             raise e
         finally:
             session.close()
+    
+    def _generar_codigo_referido(self, session) -> str:
+        # 8 caracteres alfanuméricos en mayúsculas; comprueba colisión y reintenta
+        while True:
+            codigo = secrets.token_urlsafe(6).replace("_", "").replace("-", "").upper()[:8]
+            existe = session.scalar(select(Perfil_Proveedor).where(Perfil_Proveedor.codigo_referido == codigo))
+            if not existe:
+                return codigo
             
     def actualizar(self, perfil_id: UUID, **campos):
         session = SessionLocal()
@@ -206,6 +218,40 @@ class ProveedorRepository:
                 return None
             perfil.verificado = verificado
             perfil.motivo_rechazo = motivo_rechazo
+            session.commit()
+            session.refresh(perfil)
+            return perfil
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.close()
+    
+    def get_by_codigo_referido(self, codigo: str):
+        session = SessionLocal()
+        try:
+            stmt = select(Perfil_Proveedor).where(Perfil_Proveedor.codigo_referido == codigo)
+            return session.scalar(stmt)
+        finally:
+            session.close()
+    
+    def aplicar_destacado(self, perfil_id: UUID, dias: int):
+        session = SessionLocal()
+        try:
+            stmt = select(Perfil_Proveedor).where(Perfil_Proveedor.id == perfil_id)
+            perfil = session.scalar(stmt)
+            if not perfil:
+                return None
+
+            ahora = datetime.now(timezone.utc)
+            base_fecha = perfil.destacado_hasta
+            if base_fecha and base_fecha.tzinfo is None:
+                base_fecha = base_fecha.replace(tzinfo=timezone.utc)
+
+            # Si ya tenía destacado vigente, suma desde ahí; si no, suma desde ahora
+            punto_partida = base_fecha if base_fecha and base_fecha > ahora else ahora
+            perfil.destacado_hasta = punto_partida + timedelta(days=dias)
+
             session.commit()
             session.refresh(perfil)
             return perfil

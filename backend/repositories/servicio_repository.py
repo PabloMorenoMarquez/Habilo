@@ -130,7 +130,8 @@ class ServicioRepository:
                           Perfil_Proveedor.valoracion_media.label("proveedor_valoracion_media"),
                           Perfil_Proveedor.num_valoraciones.label("proveedor_num_valoraciones"),
                           Categoria.nombre.label("categoria_nombre"),
-                          (ST_Distance(Servicio.ubicacion, punto) / 1000).label("distancia_km"))
+                          (ST_Distance(Servicio.ubicacion, punto) / 1000).label("distancia_km"),
+                          Perfil_Proveedor.destacado_hasta.label("proveedor_destacado_hasta"),)
                     .join(Perfil_Proveedor, Servicio.proveedor_id == Perfil_Proveedor.id)
                     .join(Usuario, Perfil_Proveedor.usuario_id == Usuario.id).
                     outerjoin(Categoria, Servicio.categoria_id == Categoria.id)
@@ -171,7 +172,8 @@ class ServicioRepository:
                     "proveedor_avatar": row.proveedor_avatar,
                     "proveedor_valoracion_media": row.proveedor_valoracion_media,
                     "proveedor_num_valoraciones": row.proveedor_num_valoraciones,
-                    "categoria_nombre": row.categoria_nombre
+                    "categoria_nombre": row.categoria_nombre,
+                    "proveedor_destacado_hasta": row.proveedor_destacado_hasta,
                 })
                 
             return resultado
@@ -193,6 +195,7 @@ class ServicioRepository:
                     Perfil_Proveedor.valoracion_media.label("proveedor_valoracion_media"),
                     Perfil_Proveedor.num_valoraciones.label("proveedor_num_valoraciones"),
                     Categoria.nombre.label("categoria_nombre"),
+                    Perfil_Proveedor.destacado_hasta.label("proveedor_destacado_hasta"),
                 )
                 .join(Perfil_Proveedor, Servicio.proveedor_id == Perfil_Proveedor.id)
                 .join(Usuario, Perfil_Proveedor.usuario_id == Usuario.id)
@@ -223,6 +226,15 @@ class ServicioRepository:
                 "proveedor_valoracion_media": row.proveedor_valoracion_media,
                 "proveedor_num_valoraciones": row.proveedor_num_valoraciones,
                 "categoria_nombre": row.categoria_nombre,
+                "proveedor_destacado_hasta": row.proveedor_destacado_hasta,
             }
+        finally:
+            session.close()
+            
+    def contar_por_proveedor(self, proveedor_id: UUID):
+        session = SessionLocal()
+        try:
+            stmt = select(func.count(Servicio.id)).where(Servicio.proveedor_id == proveedor_id)
+            return session.scalar(stmt)
         finally:
             session.close()

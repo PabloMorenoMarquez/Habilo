@@ -26,3 +26,5 @@ class Perfil_Proveedor(base):
     dias_disponibles = Column(Text, nullable=True)
     hora_inicio = Column(Text, nullable=True)
     hora_fin = Column(Text, nullable=True)
+    codigo_referido = Column(Text, unique=True, nullable=False)
+    destacado_hasta = Column(DateTime, nullable=True)

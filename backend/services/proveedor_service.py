@@ -6,15 +6,28 @@ from utils.storage import generar_signed_download_url
 from cachetools import TTLCache
 from starlette.concurrency import run_in_threadpool
 from utils.paginacion import paginar
+from repositories.referido_repository import ReferidoRepository
 
 _perfil_publico_cache = TTLCache(maxsize=200, ttl=60)
 class ProveedorService:
     def __init__(self):
         self.proveedor_repository = ProveedorRepository()
         self.stripe = get_stripe()
+        self.referido_repository = ReferidoRepository()
 
-    def create_or_update(self, usuario_id:UUID, descripcion:str, radio_km_disponible:int, experiencia_años:int=None):
-        return self.proveedor_repository.crear_perfil(usuario_id, descripcion, radio_km_disponible, experiencia_años)
+    def create_or_update(self, usuario_id:UUID, descripcion:str, radio_km_disponible:int, experiencia_años:int=None, codigo_referido:str=None):
+        perfil = self.proveedor_repository.crear_perfil(usuario_id, descripcion, radio_km_disponible, experiencia_años)
+
+        if codigo_referido:
+            referidor = self.proveedor_repository.get_by_codigo_referido(codigo_referido)
+            # Nunca auto-referido, y el código debe existir de verdad
+            if referidor and str(referidor.usuario_id) != str(usuario_id):
+                try:
+                    self.referido_repository.crear(referidor.id, perfil.id)
+                except Exception:
+                    pass 
+
+        return perfil
 
     def actualizar_perfil(self, perfil_id: UUID, **campos):
         return self.proveedor_repository.actualizar(perfil_id, **campos)
