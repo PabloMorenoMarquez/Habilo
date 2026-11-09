@@ -20,9 +20,10 @@ test("home anónimo muestra iniciar sesión", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Iniciar sesión" })).toBeVisible()
 })
 
-test("/ con ref redirige a /login y conserva el ref", async ({ page }) => {
+test("/ con ref muestra la landing y conserva la atribución", async ({ page }) => {
   await page.goto("/?ref=ABC123")
-  await expect(page).toHaveURL(/\/login\?ref=ABC123/)
+  await expect(page.getByRole("heading", { name: /clases particulares en talavera/i })).toBeVisible()
+  await expect(page).not.toHaveURL(/\/login/)
 })
 
 test("/ con token y ref conserva ambos parámetros", async ({ page }) => {

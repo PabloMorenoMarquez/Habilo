@@ -11,39 +11,15 @@ import { Badge } from "@/components/ui/badge"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Label } from "@/components/ui/label"
 import { Search, SlidersHorizontal, X, MapPin, Navigation, Loader } from "lucide-react"
-import { buscarServicios, getCategorias, ServicioBackend, Categoria, esDestacado } from "@/lib/api"
+import { buscarServicios, getCategorias, ServicioBackend, Categoria } from "@/lib/api"
 import { geocodeCiudad, getBrowserLocation } from "@/lib/geocode"
 import { usePaginacion } from "@/hooks/use-paginacion"
 import { OnboardingModal } from "@/components/onboarding-modal"
 import { formatCategoryName } from "@/lib/category"
+import { mapServicioParaTarjeta } from "@/lib/service-mapper"
 
 const RADIO_KM = 50 // radio de búsqueda por defecto
 const LOCATION_KEY = "serviclick_location"
-
-// Convierte el servicio tal y como lo devuelve el backend a la forma que espera ServiceCard
-function mapServicioParaTarjeta(s: ServicioBackend) {
-  return {
-    id: s.id,
-    title: s.titulo,
-    category: formatCategoryName(s.categoria_nombre),
-    description: s.descripcion || "",
-    price: parseFloat(s.precio),
-    priceType: s.tipo_precio,
-    rating: s.proveedor_valoracion_media ?? 0,
-    reviewCount: s.proveedor_num_valoraciones ?? 0,
-    deliveryDays: null,
-    image: s.imagen_url || "/placeholder.jpg",
-    favorito: s.es_favorito,
-    professional: {
-      id: s.proveedor_id,
-      name: s.proveedor_nombre || "Profesional",
-      avatar: s.proveedor_avatar || "/placeholder-user.jpg",
-      location: s.distancia_km != null ? `a ${s.distancia_km.toFixed(1)} km` : "",
-    },
-    tags: [] as string[],
-    featured: esDestacado(s.proveedor_destacado_hasta),
-  }
-}
 
 export default function ClientHomePage() {
   const { isAuthenticated, isLoading, role, user } = useAuth()
@@ -202,7 +178,7 @@ export default function ClientHomePage() {
             ¿Qué servicio necesitas hoy?
           </h1>
           <p className="text-primary-foreground/75 text-lg">
-            Miles de profesionales listos para ayudarte
+            Profesionales cerca de ti, listos para ayudarte
           </p>
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
