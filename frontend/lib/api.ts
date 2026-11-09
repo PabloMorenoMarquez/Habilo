@@ -662,6 +662,70 @@ export function getPerfilProveedorPublico(perfilId: string) {
   return apiFetch<PerfilProveedorPublico>(`/proveedor/${perfilId}`)
 }
 
+export interface CrearLeadInput {
+  servicio_id?: string
+  perfil_id?: string
+  nombre: string
+  contacto: string
+  canal_contacto: "whatsapp" | "email"
+  mensaje: string
+  consentimiento: boolean
+  website?: string
+  ref?: string
+  utm_source?: string
+  utm_medium?: string
+  utm_campaign?: string
+  utm_content?: string
+  utm_term?: string
+  pagina_origen?: string
+}
+
+export function crearLead(datos: CrearLeadInput) {
+  return apiFetch<{ ok: true }>("/leads/", {
+    method: "POST",
+    body: JSON.stringify(datos),
+  })
+}
+
+export interface ResenaPublica {
+  puntuacion: number
+  comentario: string | null
+  fecha: string | null
+  autor_nombre: string
+}
+
+export interface ServicioResumen {
+  id: string
+  titulo: string
+  descripcion: string | null
+  precio: string
+  tipo_precio: string
+  imagen_url: string | null
+  categoria_nombre: string | null
+}
+
+export interface PerfilPublicoCompleto {
+  id: string
+  nombre_publico: string
+  avatar_publico: string | null
+  descripcion: string | null
+  experiencia_años: number | null
+  radio_km_disponible: number
+  ciudad: string | null
+  zona: string | null
+  materias: string[]
+  niveles: string[]
+  valoracion_media: string | null
+  num_valoraciones: number
+  verificado: boolean | null
+  dias_disponibles: string | null
+  hora_inicio: string | null
+  hora_fin: string | null
+  perfil_publico: boolean
+  servicios: ServicioResumen[]
+  resenas: ResenaPublica[]
+}
+
 export function actualizarPerfilProveedor(datos: {
   descripcion?: string
   experiencia_años?: number

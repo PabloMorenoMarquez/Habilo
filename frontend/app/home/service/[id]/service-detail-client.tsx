@@ -26,6 +26,7 @@ import {
   PerfilProveedorPublico,
 } from "@/lib/api"
 import { AuthRequiredDialog } from "@/components/auth-required-dialog"
+import { LeadContactDialog } from "@/components/lead-contact-dialog"
 import { formatCategoryName } from "@/lib/category"
 import posthog from "posthog-js"
 
@@ -74,6 +75,8 @@ export default function ServiceDetailPage() {
 
   const [authDialogOpen, setAuthDialogOpen] = useState(false)
   const [authDialogMensaje, setAuthDialogMensaje] = useState<string>()
+
+  const [leadOpen, setLeadOpen] = useState(false)
 
   // Ya NO redirige a anónimos — la página es pública.
 
@@ -174,7 +177,7 @@ export default function ServiceDetailPage() {
   const handleContactar = async () => {
     if (!servicio) return
     if (!isAuthenticated) {
-      requireAuth("Inicia sesión para contactar con este profesional.")
+      setLeadOpen(true)
       return
     }
     setContactando(true)
@@ -403,6 +406,13 @@ export default function ServiceDetailPage() {
         open={authDialogOpen}
         onOpenChange={setAuthDialogOpen}
         mensaje={authDialogMensaje}
+      />
+
+      <LeadContactDialog
+        open={leadOpen}
+        onOpenChange={setLeadOpen}
+        servicioId={servicio.id}
+        profesionalNombre={servicio.proveedor_nombre || "Profesional"}
       />
     </div>
   )
