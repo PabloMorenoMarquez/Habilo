@@ -19,7 +19,7 @@ import { getConversaciones } from "@/lib/api"
 const POLL_INTERVAL = 15000 // mismo intervalo que la lista de chats, en ms
 
 export default function Navbar() {
-  const { user, role, logout, selectRole, isAuthenticated } = useAuth()
+  const { user, role, logout, selectRole, isAuthenticated, isLoading } = useAuth()
   const router = useRouter()
   const [noLeidos, setNoLeidos] = useState(0)
 
@@ -63,7 +63,7 @@ export default function Navbar() {
         </Link>
 
         {/* Role badge */}
-        {isAuthenticated && (
+        {!isLoading && isAuthenticated && (
           <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground text-xs font-medium">
             <span className="w-1.5 h-1.5 rounded-full bg-primary" />
             {role === "profesional" ? "Modo Profesional" : "Modo Cliente"}
@@ -72,7 +72,7 @@ export default function Navbar() {
 
         {/* Right actions */}
         <div className="flex items-center gap-2 ml-auto">
-          {isAuthenticated ? (
+          {isLoading ? null : isAuthenticated ? (
             <>
               <Link href="/chats">
                 <Button variant="ghost" size="icon" className="relative">

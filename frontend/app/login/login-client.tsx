@@ -6,7 +6,7 @@ import { useEffect, useState, Suspense } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Search, Star, Shield, Loader } from "lucide-react"
-import { API_URL } from "@/lib/api"
+import { API_URL, clearToken } from "@/lib/api"
 import posthog from "posthog-js"
 
 const isPostHogConfigured = Boolean(
@@ -44,8 +44,10 @@ function LoginPageInner() {
 
     setIsProcessingToken(true)
     loginWithToken(token)
+      .then(() => router.replace("/login"))
       .catch((err) => {
         console.error("Error al iniciar sesión:", err)
+        clearToken()
         setLoginError("No se pudo iniciar sesión. Inténtalo de nuevo.")
       })
       .finally(() => setIsProcessingToken(false))

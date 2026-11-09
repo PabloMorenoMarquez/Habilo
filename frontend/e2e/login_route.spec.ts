@@ -19,3 +19,13 @@ test("home anónimo muestra iniciar sesión", async ({ page }) => {
   await page.goto("/home")
   await expect(page.getByRole("link", { name: "Iniciar sesión" })).toBeVisible()
 })
+
+test("/ con ref redirige a /login y conserva el ref", async ({ page }) => {
+  await page.goto("/?ref=ABC123")
+  await expect(page).toHaveURL(/\/login\?ref=ABC123/)
+})
+
+test("/ con token y ref conserva ambos parámetros", async ({ page }) => {
+  await page.goto("/?token=abc123&ref=ABC123")
+  await expect(page).toHaveURL(/\/login\?token=abc123&ref=ABC123/)
+})
