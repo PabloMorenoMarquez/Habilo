@@ -79,6 +79,47 @@ class ProveedorRepository:
         finally:
             session.close()
 
+    def get_publico(self, perfil_id: UUID):
+        from models.usuario import Usuario
+        session = SessionLocal()
+        try:
+            stmt = (
+                select(
+                    Perfil_Proveedor,
+                    Usuario.nombre.label("usuario_nombre"),
+                    Usuario.foto_url.label("usuario_avatar"),
+                )
+                .join(Usuario, Perfil_Proveedor.usuario_id == Usuario.id)
+                .where(Perfil_Proveedor.id == perfil_id)
+            )
+            row = session.execute(stmt).first()
+            if not row:
+                return None
+            perfil = row[0]
+            return {
+                "perfil": perfil,
+                "usuario_nombre": row.usuario_nombre,
+                "usuario_avatar": row.usuario_avatar,
+                "fecha_creacion": perfil.fecha_creacion,
+            }
+        finally:
+            session.close()
+
+    def listar_para_sitemap(self):
+        session = SessionLocal()
+        try:
+            stmt = (
+                select(Perfil_Proveedor.id, Perfil_Proveedor.fecha_creacion)
+                .where(Perfil_Proveedor.perfil_publico.is_(True))
+                .order_by(Perfil_Proveedor.fecha_creacion.desc())
+            )
+            return [
+                {"id": row.id, "fecha_creacion": row.fecha_creacion}
+                for row in session.execute(stmt).all()
+            ]
+        finally:
+            session.close()
+
     def actualizar_documento(self, perfil_id:UUID, url_documento:str):
         session = SessionLocal()
         try:

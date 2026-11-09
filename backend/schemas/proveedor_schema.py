@@ -57,6 +57,45 @@ class PerfilProveedorOut(PerfilProveedorPublico):
         return valor or []
 
 
+class ServicioResumenOut(BaseModel):
+    id: UUID
+    titulo: str
+    descripcion: Optional[str] = None
+    precio: Decimal
+    tipo_precio: str
+    imagen_url: Optional[str] = None
+    categoria_nombre: Optional[str] = None
+
+
+class ResenaPublicaOut(BaseModel):
+    puntuacion: int
+    comentario: Optional[str] = None
+    fecha: Optional[datetime] = None
+    autor_nombre: str
+
+
+class PerfilProveedorPublicoOut(BaseModel):
+    id: UUID
+    nombre_publico: str
+    avatar_publico: Optional[str] = None
+    descripcion: Optional[str] = None
+    experiencia_años: Optional[int] = None
+    radio_km_disponible: int
+    ciudad: Optional[str] = None
+    zona: Optional[str] = None
+    materias: list[str] = Field(default_factory=list)
+    niveles: list[str] = Field(default_factory=list)
+    valoracion_media: Optional[Decimal] = None
+    num_valoraciones: int
+    verificado: Optional[bool] = None
+    dias_disponibles: Optional[str] = None
+    hora_inicio: Optional[str] = None
+    hora_fin: Optional[str] = None
+    perfil_publico: bool
+    servicios: list[ServicioResumenOut] = Field(default_factory=list)
+    resenas: list[ResenaPublicaOut] = Field(default_factory=list)
+
+
 class RechazarDocumento(BaseModel):
     motivo: str
 

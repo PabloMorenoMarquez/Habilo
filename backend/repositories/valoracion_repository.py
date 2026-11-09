@@ -45,6 +45,34 @@ class ValoracionRepository:
         finally:
             session.close()
 
+    def listar_publicas_por_destinatario(self, destinatario_id:UUID, limit: int = 10):
+        from models.usuario import Usuario
+        session = SessionLocal()
+        try:
+            stmt = (
+                select(
+                    Valoracion.puntuacion,
+                    Valoracion.comentario,
+                    Valoracion.fecha,
+                    Usuario.nombre.label("autor_nombre"),
+                )
+                .join(Usuario, Valoracion.autor_id == Usuario.id)
+                .where(Valoracion.destinatario_id == destinatario_id)
+                .order_by(Valoracion.fecha.desc())
+                .limit(limit)
+            )
+            return [
+                {
+                    "puntuacion": row.puntuacion,
+                    "comentario": row.comentario,
+                    "fecha": row.fecha,
+                    "autor_nombre": row.autor_nombre,
+                }
+                for row in session.execute(stmt).all()
+            ]
+        finally:
+            session.close()
+
     def obtener_solicitudes_valoradas(self, solicitud_ids: list) -> set:
         session = SessionLocal()
         try:

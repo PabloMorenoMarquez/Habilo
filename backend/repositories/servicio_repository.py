@@ -63,6 +63,42 @@ class ServicioRepository:
         finally:
             session.close()
 
+    def listar_por_proveedor_publico(self, proveedor_id: UUID):
+        from models.categoria import Categoria
+        session = SessionLocal()
+        try:
+            stmt = (
+                select(
+                    Servicio.id,
+                    Servicio.titulo,
+                    Servicio.descripcion,
+                    Servicio.precio,
+                    Servicio.tipo_precio,
+                    Servicio.imagen_url,
+                    Categoria.nombre.label("categoria_nombre"),
+                )
+                .outerjoin(Categoria, Servicio.categoria_id == Categoria.id)
+                .where(
+                    Servicio.proveedor_id == proveedor_id,
+                    Servicio.activo.isnot(False),
+                )
+                .order_by(Servicio.fecha_creacion.desc())
+            )
+            return [
+                {
+                    "id": row.id,
+                    "titulo": row.titulo,
+                    "descripcion": row.descripcion,
+                    "precio": row.precio,
+                    "tipo_precio": row.tipo_precio,
+                    "imagen_url": row.imagen_url,
+                    "categoria_nombre": row.categoria_nombre,
+                }
+                for row in session.execute(stmt).all()
+            ]
+        finally:
+            session.close()
+
     def listar_para_sitemap(self):
         session = SessionLocal()
         try:
@@ -135,6 +171,8 @@ class ServicioRepository:
                 Servicio,
                 Usuario.nombre.label("proveedor_nombre"),
                 Usuario.foto_url.label("proveedor_avatar"),
+                Perfil_Proveedor.ciudad.label("proveedor_ciudad"),
+                Perfil_Proveedor.perfil_publico.label("proveedor_perfil_publico"),
                 Perfil_Proveedor.valoracion_media.label("proveedor_valoracion_media"),
                 Perfil_Proveedor.num_valoraciones.label("proveedor_num_valoraciones"),
                 Categoria.nombre.label("categoria_nombre"),
@@ -184,6 +222,7 @@ class ServicioRepository:
             resultado = []
             for row in rows:
                 servicio = row[0]
+                es_publico = bool(row.proveedor_perfil_publico)
                 resultado.append({
                     "id": servicio.id,
                     "proveedor_id": servicio.proveedor_id,
@@ -200,8 +239,10 @@ class ServicioRepository:
                     "materias": servicio.materias or [],
                     "niveles": servicio.niveles or [],
                     "distancia_km": row.distancia_km if punto is not None else None,
-                    "proveedor_nombre": row.proveedor_nombre,
-                    "proveedor_avatar": row.proveedor_avatar,
+                    "proveedor_nombre": row.proveedor_nombre if es_publico else "Profesional de Habilo",
+                    "proveedor_avatar": row.proveedor_avatar if es_publico else None,
+                    "proveedor_ciudad": row.proveedor_ciudad if es_publico else None,
+                    "proveedor_perfil_publico": es_publico,
                     "proveedor_valoracion_media": row.proveedor_valoracion_media,
                     "proveedor_num_valoraciones": row.proveedor_num_valoraciones,
                     "categoria_nombre": row.categoria_nombre,
@@ -245,6 +286,8 @@ class ServicioRepository:
                     Servicio,
                     Usuario.nombre.label("proveedor_nombre"),
                     Usuario.foto_url.label("proveedor_avatar"),
+                    Perfil_Proveedor.ciudad.label("proveedor_ciudad"),
+                    Perfil_Proveedor.perfil_publico.label("proveedor_perfil_publico"),
                     Perfil_Proveedor.valoracion_media.label("proveedor_valoracion_media"),
                     Perfil_Proveedor.num_valoraciones.label("proveedor_num_valoraciones"),
                     Categoria.nombre.label("categoria_nombre"),
@@ -253,13 +296,14 @@ class ServicioRepository:
                 .join(Perfil_Proveedor, Servicio.proveedor_id == Perfil_Proveedor.id)
                 .join(Usuario, Perfil_Proveedor.usuario_id == Usuario.id)
                 .outerjoin(Categoria, Servicio.categoria_id == Categoria.id)
-                .where(Servicio.id == servicio_id)
+                .where(Servicio.id == servicio_id, Servicio.activo.isnot(False))
             )
             row = session.execute(stmt).first()
             if not row:
                 return None
 
             servicio = row[0]
+            es_publico = bool(row.proveedor_perfil_publico)
             return {
                 "id": servicio.id,
                 "proveedor_id": servicio.proveedor_id,
@@ -278,8 +322,10 @@ class ServicioRepository:
                 "latitud": to_shape(servicio.ubicacion).y if servicio.ubicacion is not None else None,
                 "longitud": to_shape(servicio.ubicacion).x if servicio.ubicacion is not None else None,
                 "distancia_km": None,
-                "proveedor_nombre": row.proveedor_nombre,
-                "proveedor_avatar": row.proveedor_avatar,
+                "proveedor_nombre": row.proveedor_nombre if es_publico else "Profesional de Habilo",
+                "proveedor_avatar": row.proveedor_avatar if es_publico else None,
+                "proveedor_ciudad": row.proveedor_ciudad if es_publico else None,
+                "proveedor_perfil_publico": es_publico,
                 "proveedor_valoracion_media": row.proveedor_valoracion_media,
                 "proveedor_num_valoraciones": row.proveedor_num_valoraciones,
                 "categoria_nombre": row.categoria_nombre,

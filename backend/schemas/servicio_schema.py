@@ -69,6 +69,8 @@ class ServicioBusquedaOut(ServicioBase):
     distancia_km: Optional[float] = None
     proveedor_nombre: Optional[str] = None
     proveedor_avatar: Optional[str] = None
+    proveedor_ciudad: Optional[str] = None
+    proveedor_perfil_publico: bool = False
     proveedor_valoracion_media: Optional[float] = None
     proveedor_num_valoraciones: Optional[int] = None
     categoria_nombre: Optional[str] = None
