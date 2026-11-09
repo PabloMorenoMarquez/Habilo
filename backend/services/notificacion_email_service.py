@@ -26,6 +26,20 @@ class NotificacionEmailService:
     def enviar(self, usuario_id: UUID, asunto: str, cuerpo_html: str):
         ejecutar_en_segundo_plano(self._enviar_sincrono, usuario_id, asunto, cuerpo_html)
 
+    def enviar_a_email(self, destinatario: str, asunto: str, cuerpo_html: str):
+        ejecutar_en_segundo_plano(self._enviar_a_email_sincrono, destinatario, asunto, cuerpo_html)
+
+    def _enviar_a_email_sincrono(self, destinatario: str, asunto: str, cuerpo_html: str):
+        try:
+            _enviar_resend({
+                "from": Config.EMAIL_FROM,
+                "to": destinatario,
+                "subject": asunto,
+                "html": cuerpo_html,
+            })
+        except Exception as e:
+            logger.error(f"Error enviando email a {destinatario}: {e}", exc_info=True)
+
     def _enviar_sincrono(self, usuario_id: UUID, asunto: str, cuerpo_html: str):
         try:
             usuario = self.user_repository.get_by_id(usuario_id)
