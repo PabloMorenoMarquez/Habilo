@@ -14,7 +14,7 @@ export default function LandingTracker() {
 
     const ref = new URLSearchParams(window.location.search).get("ref")
     if (ref && isPostHogConfigured) {
-      posthog.capture("referral_visit", { code: ref })
+      posthog.capture("referral_visit", { code: ref.slice(0, 100) })
     }
   }, [])
 

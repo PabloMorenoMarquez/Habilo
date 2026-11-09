@@ -58,6 +58,7 @@ export default function RootLayout({
         <GoogleOAuthProvider clientId="942976025153-ogog1r1e33lh9dr5gmamtb10dk67rtsf.apps.googleusercontent.com">
           <FeatureFlagsProvider>
             <AuthProvider>
+              {/* Global a propósito: el ?ref= sobrevive al redirect con token hacia /login y queda en habilo_utm_v1. */}
               <LandingTracker />
               <PilotoBanner />
               {children}

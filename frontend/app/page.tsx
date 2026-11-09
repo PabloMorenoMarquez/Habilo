@@ -4,7 +4,6 @@ import { redirect } from "next/navigation"
 import {
   BookOpen,
   GraduationCap,
-  MapPin,
   MessageCircle,
   Search,
   ShieldCheck,
@@ -48,7 +47,7 @@ interface ResumenPublico {
 const PASOS = [
   {
     titulo: "Busca lo que necesitas",
-    texto: "Escribe la materia o el servicio y revisa los profesores disponibles en Talavera de la Reina.",
+    texto: "Escribe la materia o el servicio y revisa los profesores disponibles.",
     icono: Search,
   },
   {
@@ -88,6 +87,9 @@ export default async function LandingPage({
   const serviciosActivos = resumen?.servicios_activos ?? 0
   const profesoresActivos = resumen?.profesores_activos ?? 0
   const resenas = resumen?.resenas ?? 0
+  const datosDisponibles = resumen !== null && serviciosData !== null
+  const catalogoVacio = serviciosData !== null && serviciosData.items.length === 0
+  const sinServicios = datosDisponibles && serviciosActivos === 0
 
   return (
     <div className="min-h-screen bg-background">
@@ -145,14 +147,23 @@ export default async function LandingPage({
 
         <section aria-label="Datos reales de Habilo" className="border-b border-border bg-card px-4 py-10">
           <div className="mx-auto max-w-5xl">
-            {serviciosActivos === 0 ? (
+            {!datosDisponibles ? (
+              <div className="text-center">
+                <h2 className="text-xl font-semibold text-foreground">
+                  No pudimos cargar los servicios ahora mismo
+                </h2>
+                <p className="mx-auto mt-2 max-w-xl text-muted-foreground">
+                  Inténtalo de nuevo en unos minutos.
+                </p>
+              </div>
+            ) : sinServicios ? (
               <div className="text-center">
                 <h2 className="text-xl font-semibold text-foreground">
                   Estamos incorporando los primeros profesores
                 </h2>
                 <p className="mx-auto mt-2 max-w-xl text-muted-foreground">
-                  Todavía no hay servicios publicados en Talavera de la Reina. Si das clases, puedes
-                  crear tu perfil y empezar a recibir alumnos.
+                  Todavía no hay clases publicadas. Si das clases, puedes crear tu perfil y
+                  empezar a recibir alumnos.
                 </p>
               </div>
             ) : (
@@ -160,7 +171,7 @@ export default async function LandingPage({
                 <div>
                   <p className="text-3xl font-bold text-foreground">{profesoresActivos}</p>
                   <p className="text-sm text-muted-foreground">
-                    {profesoresActivos === 1 ? "profesor local" : "profesores locales"}
+                    {profesoresActivos === 1 ? "profesor activo" : "profesores activos"}
                   </p>
                 </div>
                 <div>
@@ -182,9 +193,6 @@ export default async function LandingPage({
 
             <div className="mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-muted-foreground">
               <span className="flex items-center gap-2">
-                <MapPin size={16} /> Talavera de la Reina
-              </span>
-              <span className="flex items-center gap-2">
                 <Wallet size={16} /> Pago directo al profesor
               </span>
               <span className="flex items-center gap-2">
@@ -205,31 +213,45 @@ export default async function LandingPage({
                   Una muestra de las clases que puedes encontrar hoy en Habilo.
                 </p>
               </div>
-              {servicios.length > 0 && (
+              {datosDisponibles && servicios.length > 0 && (
                 <Button asChild variant="outline">
                   <Link href="/home">Ver todos los servicios</Link>
                 </Button>
               )}
             </div>
 
-            {servicios.length > 0 ? (
+            {datosDisponibles && servicios.length > 0 ? (
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {servicios.map((servicio) => (
                   <ServiceCard key={servicio.id} service={servicio} />
                 ))}
               </div>
-            ) : (
+            ) : datosDisponibles && catalogoVacio && sinServicios ? (
               <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center">
                 <GraduationCap size={40} className="mx-auto text-muted-foreground/50" />
                 <h3 className="mt-4 text-xl font-semibold text-foreground">
-                  Aún no hay clases publicadas
+                  Todavía no hay clases publicadas
                 </h3>
                 <p className="mx-auto mt-2 max-w-md text-muted-foreground">
-                  Si das clases en Talavera de la Reina, publica tu perfil gratis y empieza a
-                  recibir alumnos.
+                  Si das clases, publica tu perfil gratis y empieza a recibir alumnos.
                 </p>
                 <div className="mt-6 flex justify-center">
                   <LandingTeacherCta />
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center">
+                <BookOpen size={40} className="mx-auto text-muted-foreground/50" />
+                <h3 className="mt-4 text-xl font-semibold text-foreground">
+                  Catálogo no disponible
+                </h3>
+                <p className="mx-auto mt-2 max-w-md text-muted-foreground">
+                  No pudimos cargar los servicios ahora mismo. Inténtalo de nuevo en unos minutos.
+                </p>
+                <div className="mt-6 flex justify-center">
+                  <Button asChild variant="outline">
+                    <Link href="/home">Buscar profesor</Link>
+                  </Button>
                 </div>
               </div>
             )}
@@ -264,7 +286,7 @@ export default async function LandingPage({
         <section id="soy-profesor" className="px-4 py-16">
           <div className="mx-auto flex max-w-5xl flex-col items-center gap-6 rounded-3xl bg-primary px-6 py-12 text-center text-primary-foreground">
             <h2 className="text-2xl font-bold text-balance md:text-3xl">
-              ¿Das clases en Talavera de la Reina?
+              ¿Das clases particulares?
             </h2>
             <p className="max-w-2xl text-primary-foreground/80">
               Publica tus clases, muestra tu experiencia y recibe alumnos de tu zona. Crear el
@@ -281,7 +303,7 @@ export default async function LandingPage({
             <div>
               <p className="text-lg font-bold text-primary">Habilo</p>
               <p className="text-sm text-muted-foreground">
-                Clases particulares en Talavera de la Reina.
+                Clases particulares con profesores reales.
               </p>
             </div>
             <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">

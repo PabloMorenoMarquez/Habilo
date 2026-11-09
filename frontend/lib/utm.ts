@@ -18,7 +18,11 @@ export function storeUtmFromUrl(search: string) {
     if (valor) datos[campo] = valor.slice(0, 100)
   }
   if (Object.keys(datos).length > 0) {
-    sessionStorage.setItem(UTM_KEY, JSON.stringify(datos))
+    try {
+      sessionStorage.setItem(UTM_KEY, JSON.stringify(datos))
+    } catch {
+      // sessionStorage puede estar bloqueado o lleno; la atribución es best-effort.
+    }
   }
 }
 

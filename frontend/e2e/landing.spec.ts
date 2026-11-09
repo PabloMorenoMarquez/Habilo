@@ -36,8 +36,16 @@ test("la landing conserva la atribución por ref sin redirigir", async ({ page }
   await expect(page.getByRole("heading", { name: H1 })).toBeVisible()
   await expect(page).not.toHaveURL(/\/login/)
 
-  const stored = await page.evaluate(() => sessionStorage.getItem("habilo_utm_v1"))
-  expect(stored).toContain('"ref":"CODIGO123"')
+  await expect
+    .poll(() => page.evaluate(() => sessionStorage.getItem("habilo_utm_v1")))
+    .toContain('"ref":"CODIGO123"')
+})
+
+test("la landing guarda el ref decodificado", async ({ page }) => {
+  await page.goto("/?ref=ABC%20123")
+  await expect
+    .poll(() => page.evaluate(() => sessionStorage.getItem("habilo_utm_v1")))
+    .toContain('"ref":"ABC 123"')
 })
 
 test("el token con ref conserva ambos parámetros en /login", async ({ page }) => {
