@@ -14,6 +14,11 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+
+def _url_redirect_token(token: str) -> str:
+    return f"{Config.FRONTEND_URL.rstrip('/')}/login?token={token}"
+
+
 @router.get("/google/login")
 @limiter.limit("10/minute")
 async def google_login(request: Request):
@@ -47,7 +52,7 @@ async def google_callback(request: Request):
 
         jwt_token = create_access_token(user_data)
 
-        return RedirectResponse(f"{Config.FRONTEND_URL}?token={jwt_token}")
+        return RedirectResponse(_url_redirect_token(jwt_token))
 
     except HTTPException:
         raise
@@ -97,7 +102,7 @@ async def facebook_callback(request: Request):
 
         jwt_token = create_access_token(user_data)
 
-        return RedirectResponse(f"{Config.FRONTEND_URL}?token={jwt_token}")
+        return RedirectResponse(_url_redirect_token(jwt_token))
 
     except HTTPException:
         raise

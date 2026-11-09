@@ -27,7 +27,7 @@ export function AuthRequiredDialog({ open, onOpenChange, mensaje }: AuthRequired
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-2 pt-2">
-          <Button onClick={() => router.push("/")} className="w-full">
+          <Button onClick={() => router.push("/login")} className="w-full">
             Iniciar sesión
           </Button>
           <Button variant="ghost" onClick={() => onOpenChange(false)} className="w-full">

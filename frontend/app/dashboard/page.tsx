@@ -104,7 +104,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (isLoading) return
-    if (!isAuthenticated) router.replace("/")
+    if (!isAuthenticated) router.replace("/login")
     else if (role === "cliente") router.replace("/home")
   }, [isAuthenticated, isLoading, role, router])
 

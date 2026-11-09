@@ -57,7 +57,7 @@ export default function FavoritosPage() {
 
   useEffect(() => {
     if (isLoading) return
-    if (!isAuthenticated) router.replace("/")
+    if (!isAuthenticated) router.replace("/login")
   }, [isAuthenticated, isLoading, router])
 
   useEffect(() => {

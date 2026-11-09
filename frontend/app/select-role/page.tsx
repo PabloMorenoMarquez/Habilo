@@ -29,7 +29,7 @@ export default function SelectRolePage() {
   useEffect(() => {
     if (isLoading) return
     if (!isAuthenticated) {
-      router.replace("/")
+      router.replace("/login")
     } else if (role) {
       router.replace(role === "cliente" ? "/home" : "/dashboard")
     }

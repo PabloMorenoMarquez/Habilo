@@ -22,7 +22,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     if (isLoading) return
     if (!isAuthenticated) {
-      router.replace("/")
+      router.replace("/login")
       return
     }
     if (!user?.es_admin) {
