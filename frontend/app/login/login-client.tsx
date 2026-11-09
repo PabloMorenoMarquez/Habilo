@@ -97,12 +97,12 @@ function LoginPageInner() {
             El marketplace de servicios que conecta talento con oportunidad
           </h1>
           <p className="text-primary-foreground/70 text-lg leading-relaxed">
-            Miles de profesionales verificados esperan para ayudarte. Encuentra al experto perfecto o publica tus servicios hoy.
+            Profesionales de tu zona, listos para ayudarte. Encuentra al experto que necesitas o publica tus servicios hoy.
           </p>
           <div className="grid grid-cols-1 gap-4">
             {[
               { icon: <Search size={20} />, label: "Encuentra servicios en segundos" },
-              { icon: <Shield size={20} />, label: "Profesionales verificados" },
+              { icon: <Shield size={20} />, label: "Perfiles claros y contacto directo" },
               { icon: <Star size={20} />, label: "Valoraciones reales de clientes" },
             ].map(({ icon, label }) => (
               <div key={label} className="flex items-center gap-3 text-primary-foreground/85">
