@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from uuid import UUID
 from typing import Optional
 from decimal import Decimal
@@ -13,6 +13,12 @@ class CrearPerfilProveedor(BaseModel):
     hora_inicio: Optional[str] = Field(None, max_length=5)
     hora_fin: Optional[str] = Field(None, max_length=5)
     codigo_referido: Optional[str] = Field(None, max_length=20)
+    ciudad: Optional[str] = None
+    zona: Optional[str] = None
+    materias: list[str] = Field(default_factory=list)
+    niveles: list[str] = Field(default_factory=list)
+    perfil_publico: bool = False
+    consentimiento_marketing: bool = False
 
 
 class PerfilProveedorPublico(BaseModel):
@@ -38,7 +44,19 @@ class PerfilProveedorOut(PerfilProveedorPublico):
     url_documento: Optional[str] = None
     motivo_rechazo: Optional[str] = None
     codigo_referido: Optional[str] = None
-        
+    ciudad: Optional[str] = None
+    zona: Optional[str] = None
+    materias: list[str] = Field(default_factory=list)
+    niveles: list[str] = Field(default_factory=list)
+    perfil_publico: bool = False
+    consentimiento_marketing: bool = False
+
+    @field_validator("materias", "niveles", mode="before")
+    @classmethod
+    def normalizar_listas(cls, valor):
+        return valor or []
+
+
 class RechazarDocumento(BaseModel):
     motivo: str
 
@@ -64,6 +82,12 @@ class ActualizarPerfilProveedor(BaseModel):
     dias_disponibles: Optional[str] = Field(None, max_length=100)
     hora_inicio: Optional[str] = Field(None, max_length=5)
     hora_fin: Optional[str] = Field(None, max_length=5)
+    ciudad: Optional[str] = None
+    zona: Optional[str] = None
+    materias: Optional[list[str]] = None
+    niveles: Optional[list[str]] = None
+    perfil_publico: Optional[bool] = None
+    consentimiento_marketing: Optional[bool] = None
     
 class ConfirmarDocumento(BaseModel):
     path: str

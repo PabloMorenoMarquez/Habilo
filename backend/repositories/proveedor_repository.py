@@ -7,7 +7,9 @@ from datetime import datetime, timezone, timedelta
 
 class ProveedorRepository:
 
-    def crear_perfil(self, usuario_id:UUID, descripcion:str, radio_km_disponible:int, experiencia_años:int=None):
+    def crear_perfil(self, usuario_id:UUID, descripcion:str, radio_km_disponible:int, experiencia_años:int=None,
+                     ciudad:str=None, zona:str=None, materias:list[str]=[], niveles:list[str]=[],
+                     perfil_publico:bool=False, consentimiento_marketing:bool=False):
         session = SessionLocal()
         try:
             codigo = self._generar_codigo_referido(session)
@@ -17,6 +19,12 @@ class ProveedorRepository:
                 radio_km_disponible=radio_km_disponible,
                 experiencia_años=experiencia_años,
                 codigo_referido=codigo,
+                ciudad=ciudad,
+                zona=zona,
+                materias=materias,
+                niveles=niveles,
+                perfil_publico=perfil_publico,
+                consentimiento_marketing=consentimiento_marketing,
             )
             session.add(perfil)
             session.commit()

@@ -15,7 +15,19 @@ router = APIRouter(prefix="/proveedor", tags=["proveedor"])
 async def crear_proveedor(request: Request, perfil: CrearPerfilProveedor, current_user=Depends(get_current_user)):
     user_id = current_user["user_id"]
     service = ProveedorService()
-    resultado = service.create_or_update(user_id, perfil.descripcion, perfil.radio_km_disponible, perfil.experiencia_años, perfil.codigo_referido)
+    resultado = service.create_or_update(
+        usuario_id=user_id,
+        descripcion=perfil.descripcion,
+        radio_km_disponible=perfil.radio_km_disponible,
+        experiencia_años=perfil.experiencia_años,
+        codigo_referido=perfil.codigo_referido,
+        ciudad=perfil.ciudad,
+        zona=perfil.zona,
+        materias=perfil.materias,
+        niveles=perfil.niveles,
+        perfil_publico=perfil.perfil_publico,
+        consentimiento_marketing=perfil.consentimiento_marketing,
+    )
     return resultado
 
 @router.patch("/", response_model=PerfilProveedorOut)

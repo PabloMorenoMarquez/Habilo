@@ -1,5 +1,5 @@
-from sqlalchemy import Column, Text, Boolean, DateTime,ForeignKey, Numeric
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, Text, Boolean, DateTime,ForeignKey, Numeric, text
+from sqlalchemy.dialects.postgresql import ARRAY, UUID
 import uuid
 from datetime import datetime, timezone
 from geoalchemy2 import Geography
@@ -23,6 +23,10 @@ class Servicio(base):
     activo = Column(Boolean, default=True)
     fecha_creacion = Column(DateTime, nullable=True, default=lambda: datetime.now(timezone.utc))
     imagen_url = Column(Text, nullable=True)
+    ciudad = Column(Text, nullable=True)
+    zona = Column(Text, nullable=True)
+    materias = Column(ARRAY(Text), nullable=False, default=list, server_default=text("'{}'::text[]"))
+    niveles = Column(ARRAY(Text), nullable=False, default=list, server_default=text("'{}'::text[]"))
     
     @property
     def latitud(self):

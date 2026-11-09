@@ -15,8 +15,14 @@ class ProveedorService:
         self.stripe = get_stripe()
         self.referido_repository = ReferidoRepository()
 
-    def create_or_update(self, usuario_id:UUID, descripcion:str, radio_km_disponible:int, experiencia_años:int=None, codigo_referido:str=None):
-        perfil = self.proveedor_repository.crear_perfil(usuario_id, descripcion, radio_km_disponible, experiencia_años)
+    def create_or_update(self, usuario_id:UUID, descripcion:str, radio_km_disponible:int, experiencia_años:int=None, codigo_referido:str=None,
+                         ciudad:str=None, zona:str=None, materias:list[str]=[], niveles:list[str]=[],
+                         perfil_publico:bool=False, consentimiento_marketing:bool=False):
+        perfil = self.proveedor_repository.crear_perfil(
+            usuario_id, descripcion, radio_km_disponible, experiencia_años,
+            ciudad=ciudad, zona=zona, materias=materias, niveles=niveles,
+            perfil_publico=perfil_publico, consentimiento_marketing=consentimiento_marketing,
+        )
 
         if codigo_referido:
             referidor = self.proveedor_repository.get_by_codigo_referido(codigo_referido)

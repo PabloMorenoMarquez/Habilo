@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from uuid import UUID
 from decimal import Decimal
 from typing import Optional, Literal
@@ -13,6 +13,10 @@ class CrearServicio(BaseModel):
     tipo_precio: Literal["fijo", "hora"]
     latitud: Optional[float] = Field(default=None, ge=-90, le=90)
     longitud: Optional[float] = Field(default=None, ge=-180, le=180) 
+    ciudad: Optional[str] = None
+    zona: Optional[str] = None
+    materias: list[str] = Field(default_factory=list)
+    niveles: list[str] = Field(default_factory=list)
 
 
 class ActualizarServicio(BaseModel):
@@ -25,6 +29,10 @@ class ActualizarServicio(BaseModel):
     longitud: Optional[float] = Field(default=None, ge=-180, le=180) 
     activo: Optional[bool] = None
     imagen_url: Optional[str] = None
+    ciudad: Optional[str] = None
+    zona: Optional[str] = None
+    materias: Optional[list[str]] = None
+    niveles: Optional[list[str]] = None
 
 
 class ServicioBase(BaseModel):
@@ -38,6 +46,15 @@ class ServicioBase(BaseModel):
     activo: bool
     fecha_creacion: Optional[datetime] = None
     imagen_url: Optional[str] = None
+    ciudad: Optional[str] = None
+    zona: Optional[str] = None
+    materias: list[str] = Field(default_factory=list)
+    niveles: list[str] = Field(default_factory=list)
+
+    @field_validator("materias", "niveles", mode="before")
+    @classmethod
+    def normalizar_listas(cls, valor):
+        return valor or []
 
     class Config:
         from_attributes = True

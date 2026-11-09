@@ -5,6 +5,7 @@ from .servicio import Servicio
 from .solicitud import Solicitud
 from .mensaje import Mensaje
 from .valoracion import Valoracion
+from .lead import Lead
 
 __all__ = [
     "Usuario",
@@ -14,4 +15,5 @@ __all__ = [
     "Solicitud",
     "Mensaje",
     "Valoracion",
+    "Lead",
 ]

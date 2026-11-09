@@ -12,7 +12,8 @@ class ServicioRepository:
         self.session = SessionLocal()
 
     def crear(self, proveedor_id:UUID, categoria_id:UUID, titulo:str, descripcion:str,
-              precio:Decimal, tipo_precio:str, latitud:float=None, longitud:float=None):
+              precio:Decimal, tipo_precio:str, latitud:float=None, longitud:float=None,
+              ciudad:str=None, zona:str=None, materias:list[str]=[], niveles:list[str]=[]):
         session = SessionLocal()
         try:
             ubicacion = None
@@ -25,7 +26,11 @@ class ServicioRepository:
                 descripcion=descripcion,
                 precio=precio,
                 tipo_precio=tipo_precio,
-                ubicacion=ubicacion
+                ubicacion=ubicacion,
+                ciudad=ciudad,
+                zona=zona,
+                materias=materias,
+                niveles=niveles,
             )
             session.add(servicio)
             session.commit()
@@ -167,6 +172,10 @@ class ServicioRepository:
                     "activo": servicio.activo,
                     "fecha_creacion": servicio.fecha_creacion,
                     "imagen_url": servicio.imagen_url,
+                    "ciudad": servicio.ciudad,
+                    "zona": servicio.zona,
+                    "materias": servicio.materias or [],
+                    "niveles": servicio.niveles or [],
                     "distancia_km": row.distancia_km,
                     "proveedor_nombre": row.proveedor_nombre,
                     "proveedor_avatar": row.proveedor_avatar,
@@ -218,6 +227,10 @@ class ServicioRepository:
                 "activo": servicio.activo,
                 "fecha_creacion": servicio.fecha_creacion,
                 "imagen_url": servicio.imagen_url,
+                "ciudad": servicio.ciudad,
+                "zona": servicio.zona,
+                "materias": servicio.materias or [],
+                "niveles": servicio.niveles or [],
                 "latitud": to_shape(servicio.ubicacion).y if servicio.ubicacion is not None else None,
                 "longitud": to_shape(servicio.ubicacion).x if servicio.ubicacion is not None else None,
                 "distancia_km": None,

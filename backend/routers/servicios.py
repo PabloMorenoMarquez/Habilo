@@ -72,7 +72,11 @@ async def crear_servicio(request: Request, servicio: CrearServicio, current_user
         precio=servicio.precio,
         tipo_precio=servicio.tipo_precio,
         latitud=servicio.latitud,
-        longitud=servicio.longitud
+        longitud=servicio.longitud,
+        ciudad=servicio.ciudad,
+        zona=servicio.zona,
+        materias=servicio.materias,
+        niveles=servicio.niveles,
     )
 
 

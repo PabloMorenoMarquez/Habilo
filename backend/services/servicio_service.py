@@ -1,6 +1,7 @@
 from uuid import UUID
 from decimal import Decimal
 from repositories.servicio_repository import ServicioRepository
+from repositories.proveedor_repository import ProveedorRepository
 from repositories.favorito_repository import FavoritoRepository
 from datetime import datetime, timezone
 from utils.paginacion import paginar
@@ -12,13 +13,16 @@ class ServicioService:
         self.servicio_repository = ServicioRepository()
         self.favorito_repository = FavoritoRepository()
         self.referido_repository = ReferidoRepository()
+        self.proveedor_repository = ProveedorRepository()
 
     def crear(self, proveedor_id:UUID, categoria_id:UUID, titulo:str, descripcion:str,
-              precio:Decimal, tipo_precio:str, latitud:float=None, longitud:float=None):
+              precio:Decimal, tipo_precio:str, latitud:float=None, longitud:float=None,
+              ciudad:str=None, zona:str=None, materias:list[str]=[], niveles:list[str]=[]):
         es_primer_servicio = self.servicio_repository.contar_por_proveedor(proveedor_id) == 0
 
         servicio = self.servicio_repository.crear(
-            proveedor_id, categoria_id, titulo, descripcion, precio, tipo_precio, latitud, longitud
+            proveedor_id, categoria_id, titulo, descripcion, precio, tipo_precio, latitud, longitud,
+            ciudad=ciudad, zona=zona, materias=materias, niveles=niveles,
         )
 
         if es_primer_servicio:
