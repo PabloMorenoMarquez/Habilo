@@ -1,91 +1,106 @@
 import type { Metadata } from 'next'
+import { notFound } from 'next/navigation'
 import ServiceDetailClient from './service-detail-client'
+import { fetchPublicResponse } from '@/lib/server-api'
 import { formatCategoryName } from '@/lib/category'
+import type { ServicioBackend } from '@/lib/api'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://habilo.es'
 
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-  try {
-    const res = await fetch(`${API_URL}/servicio/${params.id}`, { next: { revalidate: 300 } })
-    if (!res.ok) throw new Error('not found')
-    const servicio = await res.json()
+type ServiceDetailPageProps = {
+  params: Promise<{ id: string }>
+}
 
-    const titulo = `${servicio.titulo} — Habilo`
-    const descripcion = servicio.descripcion?.slice(0, 155) || `Servicio de ${formatCategoryName(servicio.categoria_nombre).toLowerCase()} en Habilo.`
+async function getServicio(id: string) {
+  return fetchPublicResponse<ServicioBackend>(`/servicio/${id}`)
+}
 
+export async function generateMetadata({ params }: ServiceDetailPageProps): Promise<Metadata> {
+  const { id } = await params
+  const { data: servicio } = await getServicio(id)
+  const canonical = `/home/service/${id}`
+
+  if (!servicio) {
     return {
+      title: 'Servicio | Habilo',
+      description: 'Consulta los detalles de este servicio y contacta con el profesional en Habilo.',
+      alternates: { canonical },
+      robots: { index: false, follow: true },
+    }
+  }
+
+  const titulo = `${servicio.titulo} | Habilo`
+  const descripcion =
+    servicio.descripcion?.slice(0, 155) ||
+    (servicio.categoria_nombre
+      ? `Servicio de ${formatCategoryName(servicio.categoria_nombre).toLowerCase()} en Habilo.`
+      : 'Consulta los detalles de este servicio y contacta con el profesional en Habilo.')
+
+  return {
+    title: titulo,
+    description: descripcion,
+    alternates: { canonical },
+    openGraph: {
       title: titulo,
       description: descripcion,
-      alternates: { canonical: `/home/service/${params.id}` },
-      openGraph: {
-        title: titulo,
-        description: descripcion,
-        images: servicio.imagen_url ? [{ url: servicio.imagen_url }] : undefined,
-        type: 'website',
-      },
-      twitter: {
-        card: 'summary_large_image',
-        title: titulo,
-        description: descripcion,
-        images: servicio.imagen_url ? [servicio.imagen_url] : undefined,
-      },
-    }
-  } catch {
-    return { title: 'Servicio — Habilo' }
+      images: servicio.imagen_url ? [{ url: servicio.imagen_url }] : undefined,
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: titulo,
+      description: descripcion,
+      images: servicio.imagen_url ? [servicio.imagen_url] : undefined,
+    },
   }
 }
 
-type ServiceStructuredData = {
-  id: string
-  titulo: string
-  descripcion?: string | null
-  categoria_nombre?: string | null
-  precio?: string | number | null
-  tipo_precio?: string | null
-  imagen_url?: string | null
-  proveedor_nombre?: string | null
-  proveedor_valoracion_media?: number | null
-  proveedor_num_valoraciones?: number | null
-  latitud?: number | null
-  longitud?: number | null
-}
+export default async function ServiceDetailPage({ params }: ServiceDetailPageProps) {
+  const { id } = await params
+  const { status, data } = await getServicio(id)
 
-async function getServiceStructuredData(id: string): Promise<ServiceStructuredData | null> {
-  try {
-    const res = await fetch(`${API_URL}/servicio/${id}`, { next: { revalidate: 300 } })
-    if (!res.ok) return null
-    return res.json()
-  } catch {
-    return null
+  if (status === 404) {
+    notFound()
   }
-}
 
-export default async function ServiceDetailPage({ params }: { params: { id: string } }) {
-  const servicio = await getServiceStructuredData(params.id)
+  // Un fallo de red o del servidor no debe romper el SSR: el cliente muestra
+  // su estado de error y puede reintentar la carga.
+  const servicio = status >= 200 && status < 300 ? data : null
+
   const ratingCount = servicio?.proveedor_num_valoraciones ?? 0
   const structuredData = servicio
     ? {
         '@context': 'https://schema.org',
         '@type': 'Service',
         name: servicio.titulo,
-        description: servicio.descripcion || `Servicio de ${formatCategoryName(servicio.categoria_nombre).toLowerCase()} en España.`,
-        serviceType: formatCategoryName(servicio.categoria_nombre),
-        url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://habilo.es'}/home/service/${servicio.id}`,
+        description:
+          servicio.descripcion ||
+          (servicio.categoria_nombre
+            ? `Servicio de ${formatCategoryName(servicio.categoria_nombre).toLowerCase()} en España.`
+            : 'Servicio publicado en Habilo.'),
+        ...(servicio.categoria_nombre
+          ? { serviceType: formatCategoryName(servicio.categoria_nombre) }
+          : {}),
+        url: `${SITE_URL}/home/service/${servicio.id}`,
         ...(servicio.imagen_url ? { image: servicio.imagen_url } : {}),
         provider: {
           '@type': 'LocalBusiness',
-          name: servicio.proveedor_nombre || 'Profesional en Habilo',
+          name: servicio.proveedor_nombre || 'Profesional de Habilo',
           ...(servicio.latitud != null && servicio.longitud != null
             ? { geo: { '@type': 'GeoCoordinates', latitude: servicio.latitud, longitude: servicio.longitud } }
             : {}),
         },
+        ...(servicio.proveedor_ciudad ? { areaServed: { '@type': 'City', name: servicio.proveedor_ciudad } } : {}),
         ...(servicio.precio
           ? {
               offers: {
                 '@type': 'Offer',
                 price: servicio.precio,
                 priceCurrency: 'EUR',
-                priceSpecification: servicio.tipo_precio === 'hora' ? { '@type': 'UnitPriceSpecification', unitText: 'hora' } : undefined,
+                priceSpecification:
+                  servicio.tipo_precio === 'hora'
+                    ? { '@type': 'UnitPriceSpecification', unitText: 'hora' }
+                    : undefined,
               },
             }
           : {}),
@@ -97,19 +112,19 @@ export default async function ServiceDetailPage({ params }: { params: { id: stri
                 reviewCount: ratingCount,
               },
             }
-            : {}),
-          }
-        : null
+          : {}),
+      }
+    : null
 
   return (
     <>
       {structuredData && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, '\\u003c') }}
         />
       )}
-      <ServiceDetailClient />
+      <ServiceDetailClient key={servicio?.id ?? id} initialServicio={servicio} />
     </>
   )
 }

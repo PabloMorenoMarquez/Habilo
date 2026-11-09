@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Navbar from "@/components/navbar"
 import Image from "next/image"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -23,7 +23,7 @@ import {
   desmarcarProveedorFavorito,
   listarProveedoresFavoritos,
   getPerfilProveedorPublico,
-  PerfilProveedorPublico,
+  PerfilPublicoCompleto,
 } from "@/lib/api"
 import { AuthRequiredDialog } from "@/components/auth-required-dialog"
 import { LeadContactDialog } from "@/components/lead-contact-dialog"
@@ -51,21 +51,26 @@ function formatearDiasDisponibles(csv: string | null | undefined): string {
   return dias.map((d) => DIAS_LABELS[d] || "").join(", ")
 }
 
-export default function ServiceDetailPage() {
+interface ServiceDetailClientProps {
+  initialServicio: ServicioBackend | null
+}
+
+export default function ServiceDetailClient({ initialServicio }: ServiceDetailClientProps) {
   const params = useParams()
   const router = useRouter()
   const { isAuthenticated, isLoading } = useAuth()
+  const id = (params?.id as string) || initialServicio?.id || ""
+
   const [liked, setLiked] = useState(false)
   const [cargandoLike, setCargandoLike] = useState(false)
 
   const [siguiendoProveedor, setSiguiendoProveedor] = useState(false)
   const [cargandoSeguir, setCargandoSeguir] = useState(false)
 
-  const [perfilProveedor, setPerfilProveedor] = useState<PerfilProveedorPublico | null>(null)
+  const [perfilProveedor, setPerfilProveedor] = useState<PerfilPublicoCompleto | null>(null)
 
-  const [servicio, setServicio] = useState<ServicioBackend | null>(null)
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [servicio, setServicio] = useState<ServicioBackend | null>(initialServicio)
+  const [cargando, setCargando] = useState(!initialServicio)
 
   const [imagenes, setImagenes] = useState<ImagenServicio[]>([])
   const [imagenActiva, setImagenActiva] = useState(0)
@@ -78,25 +83,62 @@ export default function ServiceDetailPage() {
 
   const [leadOpen, setLeadOpen] = useState(false)
 
-  // Ya NO redirige a anónimos — la página es pública.
+  const servicioVistoRef = useRef<string | null>(null)
 
   useEffect(() => {
-    const id = params.id as string
     if (!id) return
-    setCargando(true)
-    getServicioDetalle(id)
-      .then(setServicio)
-      .catch((err) => {
-        console.error(err)
-        setError("No se pudo cargar el servicio.")
-      })
-      .finally(() => setCargando(false))
-
     setImagenActiva(0)
     listarImagenesServicio(id)
       .then(setImagenes)
       .catch((err) => console.error("No se pudo cargar la galería:", err))
-  }, [params.id])
+  }, [id])
+
+  useEffect(() => {
+    if (!id) {
+      setCargando(false)
+      return
+    }
+
+    let activo = true
+
+    if (!initialServicio) {
+      // Sin datos SSR (fallo de red o del backend): cargamos en cliente y, si
+      // vuelve a fallar, mostramos el estado de error de la página.
+      setCargando(true)
+      getServicioDetalle(id)
+        .then((data) => {
+          if (activo) setServicio(data)
+        })
+        .catch((err) => console.error(err))
+        .finally(() => {
+          if (activo) setCargando(false)
+        })
+    } else if (!isLoading && isAuthenticated) {
+      // El HTML SSR es anónimo. Con sesión refrescamos una vez para recuperar
+      // el estado real de favorito; los anónimos no repiten la petición.
+      getServicioDetalle(id)
+        .then((data) => {
+          if (activo) setServicio(data)
+        })
+        .catch((err) => console.error("No se pudo refrescar el servicio:", err))
+    }
+
+    return () => {
+      activo = false
+    }
+  }, [id, initialServicio, isAuthenticated, isLoading])
+
+  useEffect(() => {
+    if (!servicio || servicioVistoRef.current === servicio.id) return
+    servicioVistoRef.current = servicio.id
+    if (isPostHogConfigured) {
+      posthog.capture("service_viewed", {
+        service_id: servicio.id,
+        category: servicio.categoria_nombre ?? null,
+        city: servicio.proveedor_ciudad ?? null,
+      })
+    }
+  }, [servicio])
 
   useEffect(() => {
     if (servicio) setLiked(servicio.es_favorito)
@@ -202,6 +244,34 @@ export default function ServiceDetailPage() {
     }
   }
 
+  const handleShare = async () => {
+    if (!servicio) return
+    const url = `${window.location.origin}/home/service/${servicio.id}`
+    const texto = `${servicio.titulo} en Habilo`
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: servicio.titulo, text: texto, url })
+      } catch {
+        // El usuario puede cancelar el diálogo nativo; no es un fallo.
+        return
+      }
+      if (isPostHogConfigured) {
+        posthog.capture("share_clicked", { channel: "native", service_id: servicio.id })
+      }
+      return
+    }
+
+    window.open(
+      `https://wa.me/?text=${encodeURIComponent(`${texto}: ${url}`)}`,
+      "_blank",
+      "noopener,noreferrer"
+    )
+    if (isPostHogConfigured) {
+      posthog.capture("share_clicked", { channel: "whatsapp", service_id: servicio.id })
+    }
+  }
+
   if (cargando) {
     return (
       <div className="min-h-screen bg-background">
@@ -213,12 +283,15 @@ export default function ServiceDetailPage() {
     )
   }
 
-  if (error || !servicio) {
+  if (!servicio) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
         <main className="max-w-4xl mx-auto px-4 py-20 text-center">
-          <h1 className="text-2xl font-bold text-foreground mb-4">Servicio no encontrado</h1>
+          <h1 className="text-2xl font-bold text-foreground mb-2">No se pudo cargar el servicio</h1>
+          <p className="text-muted-foreground mb-6">
+            Ha ocurrido un problema al cargar este servicio. Inténtalo de nuevo en unos minutos.
+          </p>
           <Button asChild variant="outline"><Link href="/home">Volver al inicio</Link></Button>
         </main>
       </div>
@@ -229,6 +302,12 @@ export default function ServiceDetailPage() {
   const reviewCount = servicio.proveedor_num_valoraciones ?? 0
   const precio = parseFloat(servicio.precio)
   const fotos = imagenes.length > 0 ? imagenes.map((img) => img.url) : servicio.imagen_url ? [servicio.imagen_url] : []
+  const ciudad = perfilProveedor?.ciudad || servicio.proveedor_ciudad
+  // La API devuelve el perfil privado anonimizado; no lo usamos para completar
+  // materias y niveles en la ficha pública del servicio.
+  const perfilVisible = perfilProveedor?.perfil_publico === true
+  const materias = perfilVisible ? perfilProveedor?.materias ?? [] : []
+  const niveles = perfilVisible ? perfilProveedor?.niveles ?? [] : []
 
   return (
     <div className="min-h-screen bg-background">
@@ -284,19 +363,27 @@ export default function ServiceDetailPage() {
                   >
                     <Heart size={20} fill={liked ? "currentColor" : "none"} />
                   </Button>
-                  <Button variant="ghost" size="icon" className="text-muted-foreground">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleShare}
+                    className="text-muted-foreground"
+                    aria-label="Compartir servicio"
+                  >
                     <Share2 size={20} />
                   </Button>
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-4 text-sm">
-                <div className="flex items-center gap-1">
-                  <Star size={16} className="fill-amber-400 text-amber-400" />
-                  <span className="font-semibold">{rating.toFixed(1)}</span>
-                  <span className="text-muted-foreground">({reviewCount} valoraciones)</span>
+              {reviewCount > 0 && (
+                <div className="flex flex-wrap items-center gap-4 text-sm">
+                  <div className="flex items-center gap-1">
+                    <Star size={16} className="fill-amber-400 text-amber-400" />
+                    <span className="font-semibold">{rating.toFixed(1)}</span>
+                    <span className="text-muted-foreground">({reviewCount} valoraciones)</span>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             <div className="space-y-3">
@@ -315,7 +402,18 @@ export default function ServiceDetailPage() {
                     <AvatarFallback>{(servicio.proveedor_nombre || "?").charAt(0)}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-semibold text-foreground">{servicio.proveedor_nombre}</p>
+                    <Link
+                      href={`/profesores/${servicio.proveedor_id}`}
+                      className="font-semibold text-foreground hover:underline"
+                    >
+                      {servicio.proveedor_nombre || "Profesional de Habilo"}
+                    </Link>
+                    {ciudad && (
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <MapPin size={12} />
+                        <span>{ciudad}</span>
+                      </div>
+                    )}
                     {servicio.distancia_km != null && (
                       <div className="flex items-center gap-1 text-sm text-muted-foreground">
                         <MapPin size={12} />
@@ -365,6 +463,35 @@ export default function ServiceDetailPage() {
                       )}
                     </div>
                   </div>
+                </div>
+              )}
+
+              {(materias.length > 0 || niveles.length > 0) && (
+                <div className="space-y-3">
+                  {materias.length > 0 && (
+                    <div className="space-y-1.5">
+                      <span className="text-xs font-medium text-muted-foreground">Materias</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {materias.map((materia) => (
+                          <Badge key={materia} variant="outline" className="font-normal">
+                            {materia}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {niveles.length > 0 && (
+                    <div className="space-y-1.5">
+                      <span className="text-xs font-medium text-muted-foreground">Niveles</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {niveles.map((nivel) => (
+                          <Badge key={nivel} variant="secondary" className="font-normal">
+                            {nivel}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

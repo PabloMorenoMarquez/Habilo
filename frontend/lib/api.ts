@@ -143,6 +143,8 @@ export interface ServicioBackend {
   distancia_km: number | null
   proveedor_nombre: string | null
   proveedor_avatar: string | null
+  proveedor_ciudad?: string | null
+  proveedor_perfil_publico?: boolean
   proveedor_valoracion_media: number | null
   proveedor_num_valoraciones: number | null
   categoria_nombre: string | null
@@ -659,7 +661,7 @@ export interface PerfilProveedorPublico {
 }
 
 export function getPerfilProveedorPublico(perfilId: string) {
-  return apiFetch<PerfilProveedorPublico>(`/proveedor/${perfilId}`)
+  return apiFetch<PerfilPublicoCompleto>(`/proveedor/${perfilId}`)
 }
 
 export interface CrearLeadInput {
