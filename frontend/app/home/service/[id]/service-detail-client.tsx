@@ -395,7 +395,7 @@ export default function ServiceDetailPage() {
                 )}
               </div>
               <p className="text-center text-xs text-muted-foreground">
-                Se enviará una solicitud al profesional
+                El profesional recibirá tu mensaje y podrá contactarte.
               </p>
             </div>
           </div>

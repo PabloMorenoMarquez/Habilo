@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import posthog from "posthog-js"
 import { Loader } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -59,7 +59,22 @@ export function LeadContactDialog({
   const [enviado, setEnviado] = useState(false)
   const [errorEnvio, setErrorEnvio] = useState<string | null>(null)
 
+  // Cada envío recibe un id. Cerrar o reiniciar el diálogo incrementa el id,
+  // así una respuesta tardía de un envío anterior se descarta y no puede
+  // sobrescribir el formulario limpio al reabrirlo.
+  const intentoRef = useRef(0)
+
+  const limpiarError = (campo: keyof Errores) => {
+    setErrores((previos) => {
+      if (!previos[campo]) return previos
+      const siguientes = { ...previos }
+      delete siguientes[campo]
+      return siguientes
+    })
+  }
+
   const reset = () => {
+    intentoRef.current += 1
     setNombre("")
     setContacto("")
     setCanal("whatsapp")
@@ -102,6 +117,7 @@ export function LeadContactDialog({
     if (Object.keys(nuevosErrores).length > 0) return
 
     setEnviando(true)
+    const intentoId = ++intentoRef.current
     try {
       await crearLead({
         nombre: nombre.trim(),
@@ -115,6 +131,7 @@ export function LeadContactDialog({
         ...getUtm(),
         pagina_origen: window.location.href,
       })
+      if (intentoRef.current !== intentoId) return
       setEnviado(true)
       if (isPostHogConfigured) {
         posthog.capture("lead_submitted", {
@@ -124,22 +141,23 @@ export function LeadContactDialog({
         })
       }
     } catch {
+      if (intentoRef.current !== intentoId) return
       setErrorEnvio("No se pudo enviar. Inténtalo de nuevo.")
     } finally {
-      setEnviando(false)
+      if (intentoRef.current === intentoId) setEnviando(false)
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Contactar con {profesionalNombre}</DialogTitle>
           <DialogDescription>Cuéntale qué necesitas. No hace falta crear cuenta.</DialogDescription>
         </DialogHeader>
 
         {enviado ? (
-          <p className="text-sm text-foreground">
+          <p role="alert" className="text-sm text-foreground">
             Mensaje enviado. El profesional te contactará por WhatsApp o email.
           </p>
         ) : (
@@ -149,13 +167,16 @@ export function LeadContactDialog({
               <Input
                 id="lead-nombre"
                 value={nombre}
-                onChange={(event) => setNombre(event.target.value)}
+                onChange={(event) => {
+                  setNombre(event.target.value)
+                  limpiarError("nombre")
+                }}
                 autoComplete="name"
                 aria-invalid={Boolean(errores.nombre)}
                 aria-describedby={errores.nombre ? "lead-nombre-error" : undefined}
               />
               {errores.nombre && (
-                <p id="lead-nombre-error" className="text-sm text-destructive">
+                <p id="lead-nombre-error" role="alert" className="text-sm text-destructive">
                   {errores.nombre}
                 </p>
               )}
@@ -166,7 +187,10 @@ export function LeadContactDialog({
               <select
                 id="lead-canal"
                 value={canal}
-                onChange={(event) => setCanal(event.target.value as CanalContacto)}
+                onChange={(event) => {
+                  setCanal(event.target.value as CanalContacto)
+                  limpiarError("contacto")
+                }}
                 className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm"
               >
                 <option value="whatsapp">WhatsApp</option>
@@ -179,13 +203,17 @@ export function LeadContactDialog({
               <Input
                 id="lead-contacto"
                 value={contacto}
-                onChange={(event) => setContacto(event.target.value)}
-                autoComplete="email"
+                onChange={(event) => {
+                  setContacto(event.target.value)
+                  limpiarError("contacto")
+                }}
+                autoComplete={canal === "email" ? "email" : "tel"}
+                inputMode={canal === "email" ? "email" : "tel"}
                 aria-invalid={Boolean(errores.contacto)}
                 aria-describedby={errores.contacto ? "lead-contacto-error" : undefined}
               />
               {errores.contacto && (
-                <p id="lead-contacto-error" className="text-sm text-destructive">
+                <p id="lead-contacto-error" role="alert" className="text-sm text-destructive">
                   {errores.contacto}
                 </p>
               )}
@@ -196,13 +224,16 @@ export function LeadContactDialog({
               <Textarea
                 id="lead-mensaje"
                 value={mensaje}
-                onChange={(event) => setMensaje(event.target.value)}
+                onChange={(event) => {
+                  setMensaje(event.target.value)
+                  limpiarError("mensaje")
+                }}
                 rows={4}
                 aria-invalid={Boolean(errores.mensaje)}
                 aria-describedby={errores.mensaje ? "lead-mensaje-error" : undefined}
               />
               {errores.mensaje && (
-                <p id="lead-mensaje-error" className="text-sm text-destructive">
+                <p id="lead-mensaje-error" role="alert" className="text-sm text-destructive">
                   {errores.mensaje}
                 </p>
               )}
@@ -213,7 +244,10 @@ export function LeadContactDialog({
                 <Checkbox
                   id="lead-consentimiento"
                   checked={consentimiento}
-                  onCheckedChange={(valor) => setConsentimiento(valor === true)}
+                  onCheckedChange={(valor) => {
+                    setConsentimiento(valor === true)
+                    limpiarError("consentimiento")
+                  }}
                   aria-invalid={Boolean(errores.consentimiento)}
                   aria-describedby={errores.consentimiento ? "lead-consentimiento-error" : undefined}
                 />
@@ -222,7 +256,7 @@ export function LeadContactDialog({
                 </Label>
               </div>
               {errores.consentimiento && (
-                <p id="lead-consentimiento-error" className="text-sm text-destructive">
+                <p id="lead-consentimiento-error" role="alert" className="text-sm text-destructive">
                   {errores.consentimiento}
                 </p>
               )}
@@ -238,10 +272,21 @@ export function LeadContactDialog({
               />
             </div>
 
-            {errorEnvio && <p className="text-sm text-destructive">{errorEnvio}</p>}
+            {errorEnvio && (
+              <p role="alert" className="text-sm text-destructive">
+                {errorEnvio}
+              </p>
+            )}
 
-            <Button type="submit" className="w-full" disabled={enviando}>
-              {enviando ? <Loader size={18} className="animate-spin" /> : "Enviar mensaje"}
+            <Button type="submit" className="w-full" disabled={enviando} aria-busy={enviando}>
+              {enviando ? (
+                <>
+                  <Loader size={18} className="animate-spin" aria-hidden="true" />
+                  <span className="sr-only">Enviando…</span>
+                </>
+              ) : (
+                "Enviar mensaje"
+              )}
             </Button>
           </form>
         )}
