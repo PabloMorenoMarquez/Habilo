@@ -55,8 +55,18 @@ class ServicioService:
             return False
         return self.servicio_repository.eliminar(servicio_id)
 
-    def buscar(self, lat:float, lng:float, radio_km:float, categoria_id:UUID=None, texto:str=None, usuario_id:UUID=None, limit: int = 20, offset: int = 0):
-        servicios = self.servicio_repository.buscar_por_proximidad(lat, lng, radio_km, categoria_id, texto, usuario_id, limit=limit, offset=offset)
+    def buscar(self, lat:float, lng:float, radio_km:float, categoria_id:UUID=None, texto:str=None, ciudad:str=None, usuario_id:UUID=None, limit: int = 20, offset: int = 0):
+        servicios = self.servicio_repository.buscar_por_proximidad(
+            lat=lat,
+            lng=lng,
+            radio_km=radio_km,
+            categoria_id=categoria_id,
+            texto=texto,
+            ciudad=ciudad,
+            usuario_id=usuario_id,
+            limit=limit,
+            offset=offset,
+        )
         
         servicios, has_more = paginar(servicios, limit)
         
@@ -66,6 +76,9 @@ class ServicioService:
             servicio["es_favorito"] = servicio["id"] in favoritos
 
         return servicios, has_more
+
+    def resumen(self):
+        return self.servicio_repository.resumen()
     
     def obtener_detalle_publico(self, servicio_id:UUID, usuario_id:UUID=None):
         servicio = self.servicio_repository.obtener_detalle_publico(servicio_id)

@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, Query, Request
 from uuid import UUID
 from typing import List, Optional
 from utils.auth_middleware import get_current_user
-from schemas.servicio_schema import CrearServicio, ActualizarServicio, ServicioOut, ServicioBusquedaOut, ServicioSitemapOut, CrearImagenServicio, ReordenarImagenes
+from schemas.servicio_schema import CrearServicio, ActualizarServicio, ServicioOut, ServicioBusquedaOut, ServicioSitemapOut, ResumenPublicoOut, CrearImagenServicio, ReordenarImagenes
 from services.servicio_service import ServicioService
 from services.proveedor_service import ProveedorService
 from services.imagen_servicio_service import ImagenServicioService
@@ -28,20 +28,30 @@ def _get_perfil_proveedor(usuario_id):
 @limiter.limit("60/minute")
 async def buscar_servicios(
     request: Request,
-    lat: float = Query(..., description="Latitud del usuario"),
-    lng: float = Query(..., description="Longitud del usuario"),
-    radio_km: float = Query(10.0, description="Radio de búsqueda en km"),
+    lat: Optional[float] = Query(None, description="Latitud del usuario"),
+    lng: Optional[float] = Query(None, description="Longitud del usuario"),
+    radio_km: float = Query(50.0, gt=0, le=200, description="Radio de búsqueda en km"),
     categoria_id: Optional[UUID] = Query(None),
-    texto: Optional[str] = Query(None, description="Texto a buscar en el título"),
+    texto: Optional[str] = Query(None, description="Texto a buscar en el título o descripción"),
+    ciudad: Optional[str] = Query(None, description="Ciudad a filtrar"),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
     current_user=Depends(get_current_user_opcional)
 ):
+    if (lat is None) != (lng is None):
+        raise HTTPException(status_code=422, detail="lat y lng deben enviarse juntos")
     service = ServicioService()
     usuario_id = current_user["user_id"] if current_user else None
     servicios, has_more = service.buscar(
-        lat, lng, radio_km, categoria_id, texto, usuario_id,
-        limit=limit, offset=offset
+        lat=lat,
+        lng=lng,
+        radio_km=radio_km,
+        categoria_id=categoria_id,
+        texto=texto,
+        ciudad=ciudad,
+        usuario_id=usuario_id,
+        limit=limit,
+        offset=offset,
     )
     return PaginatedResponse(
         items=[ServicioBusquedaOut.model_validate(s) for s in servicios],
@@ -57,6 +67,11 @@ async def listar_servicios_para_sitemap():
         {"id": servicio_id, "fecha_creacion": fecha_creacion}
         for servicio_id, fecha_creacion in ServicioService().listar_para_sitemap()
     ]
+
+
+@router.get("/resumen", response_model=ResumenPublicoOut)
+async def resumen_publico():
+    return ServicioService().resumen()
 
 
 @router.post("/", response_model=ServicioOut)

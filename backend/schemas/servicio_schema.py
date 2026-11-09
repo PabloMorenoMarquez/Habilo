@@ -82,7 +82,14 @@ class ServicioSitemapOut(BaseModel):
 
     class Config:
         from_attributes = True
-    
+
+
+class ResumenPublicoOut(BaseModel):
+    servicios_activos: int
+    profesores_activos: int
+    resenas: int
+
+
 class ImagenServicioOut(BaseModel):
     id: UUID
     url: str

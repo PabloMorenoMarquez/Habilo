@@ -1,6 +1,7 @@
-from sqlalchemy import select, func
+from sqlalchemy import select, func, case, or_
 from geoalchemy2.functions import ST_SetSRID, ST_MakePoint
 from models.servicio import Servicio
+from models.valoracion import Valoracion
 from database.session import SessionLocal
 from uuid import UUID
 from decimal import Decimal
@@ -67,7 +68,7 @@ class ServicioRepository:
         try:
             stmt = (
                 select(Servicio.id, Servicio.fecha_creacion)
-                .where(Servicio.activo == True)
+                .where(Servicio.activo.isnot(False))
                 .order_by(Servicio.fecha_creacion.desc())
             )
             return list(session.execute(stmt).all())
@@ -118,46 +119,68 @@ class ServicioRepository:
             session.close()
 
     def buscar_por_proximidad(self, lat:float, lng:float, radio_km:float,
-                               categoria_id:UUID=None, texto:str=None, usuario_id:UUID = None, limit:int = 20, offset:int = 0):
+                               categoria_id:UUID=None, texto:str=None, ciudad:str=None,
+                               usuario_id:UUID = None, limit:int = 20, offset:int = 0):
         from geoalchemy2.functions import ST_DWithin, ST_Distance, ST_SetSRID, ST_MakePoint
-        from sqlalchemy import cast
-        from geoalchemy2 import Geography
         from models.usuario import Usuario
         from models.categoria import Categoria
         from models.perfil_proveedor import Perfil_Proveedor
         session = SessionLocal()
         try:
-            punto = ST_SetSRID(ST_MakePoint(lng, lat), 4326)
-            radio_m = radio_km * 1000
-            stmt = (select(Servicio, 
-                          Usuario.nombre.label("proveedor_nombre"),
-                          Usuario.foto_url.label("proveedor_avatar"),
-                          Perfil_Proveedor.valoracion_media.label("proveedor_valoracion_media"),
-                          Perfil_Proveedor.num_valoraciones.label("proveedor_num_valoraciones"),
-                          Categoria.nombre.label("categoria_nombre"),
-                          (ST_Distance(Servicio.ubicacion, punto) / 1000).label("distancia_km"),
-                          Perfil_Proveedor.destacado_hasta.label("proveedor_destacado_hasta"),)
-                    .join(Perfil_Proveedor, Servicio.proveedor_id == Perfil_Proveedor.id)
-                    .join(Usuario, Perfil_Proveedor.usuario_id == Usuario.id).
-                    outerjoin(Categoria, Servicio.categoria_id == Categoria.id)
-                    .where(
-                        Servicio.activo == True,
-                        Servicio.ubicacion != None,
-                        ST_DWithin(Servicio.ubicacion, punto, radio_m),
-                    )   
+            punto = None
+            if lat is not None and lng is not None:
+                punto = ST_SetSRID(ST_MakePoint(lng, lat), 4326)
+
+            columnas = [
+                Servicio,
+                Usuario.nombre.label("proveedor_nombre"),
+                Usuario.foto_url.label("proveedor_avatar"),
+                Perfil_Proveedor.valoracion_media.label("proveedor_valoracion_media"),
+                Perfil_Proveedor.num_valoraciones.label("proveedor_num_valoraciones"),
+                Categoria.nombre.label("categoria_nombre"),
+                Perfil_Proveedor.destacado_hasta.label("proveedor_destacado_hasta"),
+            ]
+            if punto is not None:
+                columnas.append((ST_Distance(Servicio.ubicacion, punto) / 1000).label("distancia_km"))
+
+            stmt = (
+                select(*columnas)
+                .join(Perfil_Proveedor, Servicio.proveedor_id == Perfil_Proveedor.id)
+                .join(Usuario, Perfil_Proveedor.usuario_id == Usuario.id)
+                .outerjoin(Categoria, Servicio.categoria_id == Categoria.id)
+                .where(Servicio.activo.isnot(False))
+            )
+            if punto is not None:
+                radio_m = radio_km * 1000
+                stmt = stmt.where(
+                    Servicio.ubicacion.isnot(None),
+                    ST_DWithin(Servicio.ubicacion, punto, radio_m),
                 )
             if categoria_id:
                 stmt = stmt.where(Servicio.categoria_id == categoria_id)
             if texto:
-                stmt = stmt.where(Servicio.titulo.ilike(f"%{texto}%"))
+                stmt = stmt.where(or_(
+                    Servicio.titulo.ilike(f"%{texto}%"),
+                    Servicio.descripcion.ilike(f"%{texto}%"),
+                ))
+            if ciudad:
+                ciudad_expr = func.coalesce(
+                    Servicio.ciudad,
+                    case((Perfil_Proveedor.perfil_publico.is_(True), Perfil_Proveedor.ciudad)),
+                    case((Perfil_Proveedor.perfil_publico.is_(True), Usuario.ciudad)),
+                )
+                stmt = stmt.where(ciudad_expr.ilike(f"%{ciudad}%"))
             if usuario_id:
                 stmt = stmt.where(Usuario.id != usuario_id)
-            stmt = stmt.order_by(ST_Distance(Servicio.ubicacion, punto))
-            
+            if punto is not None:
+                stmt = stmt.order_by(ST_Distance(Servicio.ubicacion, punto))
+            else:
+                stmt = stmt.order_by(Servicio.fecha_creacion.desc())
+
             stmt = stmt.limit(limit+1).offset(offset)
-            
+
             rows = session.execute(stmt).all()
-            
+
             resultado = []
             for row in rows:
                 servicio = row[0]
@@ -176,7 +199,7 @@ class ServicioRepository:
                     "zona": servicio.zona,
                     "materias": servicio.materias or [],
                     "niveles": servicio.niveles or [],
-                    "distancia_km": row.distancia_km,
+                    "distancia_km": row.distancia_km if punto is not None else None,
                     "proveedor_nombre": row.proveedor_nombre,
                     "proveedor_avatar": row.proveedor_avatar,
                     "proveedor_valoracion_media": row.proveedor_valoracion_media,
@@ -184,8 +207,29 @@ class ServicioRepository:
                     "categoria_nombre": row.categoria_nombre,
                     "proveedor_destacado_hasta": row.proveedor_destacado_hasta,
                 })
-                
+
             return resultado
+        finally:
+            session.close()
+
+    def resumen(self):
+        session = SessionLocal()
+        try:
+            stmt = (
+                select(
+                    func.count(Servicio.id).label("servicios_activos"),
+                    func.count(func.distinct(Servicio.proveedor_id)).label("profesores_activos"),
+                )
+                .select_from(Servicio)
+                .where(Servicio.activo.isnot(False))
+            )
+            row = session.execute(stmt).one()
+            resenas = session.scalar(select(func.count(Valoracion.id))) or 0
+            return {
+                "servicios_activos": row.servicios_activos,
+                "profesores_activos": row.profesores_activos,
+                "resenas": resenas,
+            }
         finally:
             session.close()
     
