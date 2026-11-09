@@ -64,6 +64,17 @@ export default function HomeClient({
 
   const [errorBusqueda, setErrorBusqueda] = useState<string | null>(null)
 
+  const busquedaUsuarioRef = useRef(false)
+  const categoriasRef = useRef(initialCategorias)
+  const primeraBusquedaRef = useRef(false)
+  const hidratacionAuthRef = useRef(false)
+
+  // El tracking no debe depender de que las categorías terminen de cargar:
+  // un cambio tardío del array no puede volver a emitir el mismo evento.
+  useEffect(() => {
+    categoriasRef.current = categorias
+  }, [categorias])
+
   useEffect(() => {
     if (isLoading) return
     if (isAuthenticated && role === "profesional") router.replace("/dashboard")
@@ -85,20 +96,23 @@ export default function HomeClient({
       return
     }
 
-    const guardada = localStorage.getItem(LOCATION_KEY)
-    if (!guardada) {
-      setUbicacionInicializada(true)
-      return
-    }
-
     try {
-      const parsed = JSON.parse(guardada)
-      setCoords({ lat: parsed.lat, lng: parsed.lng })
-      setCiudadLabel(parsed.label)
+      const guardada = localStorage.getItem(LOCATION_KEY)
+      if (guardada) {
+        const parsed = JSON.parse(guardada)
+        setCoords({ lat: parsed.lat, lng: parsed.lng })
+        setCiudadLabel(parsed.label)
+      }
     } catch {
-      localStorage.removeItem(LOCATION_KEY)
+      // Almacenamiento bloqueado o JSON corrupto: seguimos sin ubicación guardada.
+      try {
+        localStorage.removeItem(LOCATION_KEY)
+      } catch {
+        // Nada más que hacer: la página debe seguir usable.
+      }
+    } finally {
+      setUbicacionInicializada(true)
     }
-    setUbicacionInicializada(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -106,6 +120,7 @@ export default function HomeClient({
     setLocationOpen(false)
     const ciudad = locationInput.trim()
     if (!ciudad) return
+    busquedaUsuarioRef.current = true
     setLocatingUser(true)
     const loc = await geocodeCiudad(ciudad)
     setLocatingUser(false)
@@ -120,6 +135,7 @@ export default function HomeClient({
 
   const useMyLocation = useCallback(async () => {
     setLocationOpen(false)
+    busquedaUsuarioRef.current = true
     setLocatingUser(true)
     const loc = await getBrowserLocation()
     setLocatingUser(false)
@@ -133,10 +149,15 @@ export default function HomeClient({
   }, [])
 
   const clearLocation = () => {
+    busquedaUsuarioRef.current = true
     setCoords(null)
     setCiudadLabel("")
     setLocationInput("")
-    localStorage.removeItem(LOCATION_KEY)
+    try {
+      localStorage.removeItem(LOCATION_KEY)
+    } catch {
+      // Almacenamiento bloqueado: limpiamos igualmente el estado en memoria.
+    }
   }
 
   // Buscar servicios cada vez que cambian coordenadas, ciudad, categoría o texto
@@ -180,14 +201,31 @@ export default function HomeClient({
       }
     }
 
+    primeraBusquedaRef.current = true
     void cargarServicios(true).finally(() => setCargandoInicial(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ubicacionInicializada, coords, activeCategoriaId, search])
+  }, [ubicacionInicializada, coords, activeCategoriaId, search, ciudadLabel])
 
-  // Capturar la búsqueda cuando el usuario deja de escribir
+  // El SSR no lleva token, así que las tarjetas llegan con es_favorito=false.
+  // Con sesión iniciada refrescamos una sola vez en segundo plano para traer
+  // el estado real de favoritos. El ref evita repetirlo en cada render o
+  // cambio de filtro; si ya hubo una búsqueda normal, esta ya fue autenticada.
   useEffect(() => {
+    if (!ubicacionInicializada || isLoading) return
+    if (!isAuthenticated || initialServicios.length === 0) return
+    if (primeraBusquedaRef.current || hidratacionAuthRef.current) return
+
+    hidratacionAuthRef.current = true
+    void cargarServicios(true)
+  }, [ubicacionInicializada, isLoading, isAuthenticated, initialServicios.length, cargarServicios])
+
+  // Capturar solo búsquedas iniciadas por el usuario. La hidratación inicial
+  // (URL, ubicación guardada o carga tardía de categorías) no debe emitir.
+  useEffect(() => {
+    if (!busquedaUsuarioRef.current) return
+
     const query = search.trim()
-    const category = categorias.find((c) => c.id === activeCategoriaId)?.nombre ?? null
+    const category = categoriasRef.current.find((c) => c.id === activeCategoriaId)?.nombre ?? null
     if (!query && !category && !ciudadLabel) return
 
     const timer = setTimeout(() => {
@@ -201,7 +239,7 @@ export default function HomeClient({
     }, 500)
 
     return () => clearTimeout(timer)
-  }, [search, activeCategoriaId, ciudadLabel, categorias])
+  }, [search, activeCategoriaId, ciudadLabel])
 
   // El precio no lo filtra el backend: se filtra aquí sobre los resultados ya traídos
   const filtered = servicios.filter((s) => {
@@ -240,13 +278,19 @@ export default function HomeClient({
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
             <Input
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                busquedaUsuarioRef.current = true
+                setSearch(e.target.value)
+              }}
               placeholder="Busca un servicio, p. ej. 'fontanería' o 'clases inglés'..."
               className="pl-12 pr-12 h-14 text-base bg-card text-foreground border-border rounded-xl shadow-lg placeholder:text-muted-foreground"
             />
             {search && (
               <button
-                onClick={() => setSearch("")}
+                onClick={() => {
+                  busquedaUsuarioRef.current = true
+                  setSearch("")
+                }}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
                 <X size={18} />
@@ -325,7 +369,10 @@ export default function HomeClient({
       <main className="max-w-7xl mx-auto px-4 py-8 space-y-6">
         <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-none">
           <button
-            onClick={() => setActiveCategoriaId(null)}
+            onClick={() => {
+              busquedaUsuarioRef.current = true
+              setActiveCategoriaId(null)
+            }}
             className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${activeCategoriaId === null
               ? "bg-primary text-primary-foreground"
               : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
@@ -336,7 +383,10 @@ export default function HomeClient({
           {categorias.map((cat) => (
             <button
               key={cat.id}
-              onClick={() => setActiveCategoriaId(cat.id)}
+              onClick={() => {
+                busquedaUsuarioRef.current = true
+                setActiveCategoriaId(cat.id)
+              }}
               className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors capitalize ${activeCategoriaId === cat.id
                 ? "bg-primary text-primary-foreground"
                 : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
@@ -476,6 +526,7 @@ export default function HomeClient({
             <Button
               variant="outline"
               onClick={() => {
+                busquedaUsuarioRef.current = true
                 setSearch("")
                 setActiveCategoriaId(null)
                 clearPriceFilters()
