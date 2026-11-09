@@ -153,15 +153,23 @@ export interface ServicioBackend {
 let busquedaServiciosCache: { key: string; data: ServicioBackend[]; timestamp: number } | null = null
 const BUSQUEDA_TTL_MS = 30 * 1000
 
-function claveBusqueda(params: { lat: number; lng: number; radio_km: number; categoria_id?: string; texto?: string }) {
+function claveBusqueda(params: {
+  lat?: number
+  lng?: number
+  radio_km?: number
+  categoria_id?: string
+  texto?: string
+  ciudad?: string
+}) {
   // Redondeamos lat/lng a 4 decimales (~11m de precisión) para que
   // micro-variaciones del GPS no invaliden el caché sin necesidad.
   return JSON.stringify({
-    lat: params.lat.toFixed(4),
-    lng: params.lng.toFixed(4),
-    radio_km: params.radio_km,
+    lat: params.lat?.toFixed(4) ?? null,
+    lng: params.lng?.toFixed(4) ?? null,
+    radio_km: params.radio_km ?? null,
     categoria_id: params.categoria_id || null,
     texto: params.texto || null,
+    ciudad: params.ciudad || null,
   })
 }
 
@@ -172,9 +180,10 @@ export function invalidarCacheBusquedaServicios() {
 }
 
 export async function buscarServicios(params: {
-  lat: number
-  lng: number
-  radio_km: number
+  lat?: number
+  lng?: number
+  radio_km?: number
+  ciudad?: string
   categoria_id?: string
   texto?: string
   limit?: number
@@ -185,7 +194,7 @@ export async function buscarServicios(params: {
 
   // El caché de 30s solo tiene sentido para la primera página (offset 0);
   // páginas siguientes son "cargar más" y no deben servirse desde caché.
-  const key = claveBusqueda({ ...params, limit } as any)
+  const key = claveBusqueda(params)
   const ahora = Date.now()
   if (
     offset === 0 &&
@@ -197,12 +206,15 @@ export async function buscarServicios(params: {
   }
 
   const query = new URLSearchParams({
-    lat: String(params.lat),
-    lng: String(params.lng),
-    radio_km: String(params.radio_km),
     limit: String(limit),
     offset: String(offset),
   })
+  if (params.lat != null && params.lng != null) {
+    query.set("lat", String(params.lat))
+    query.set("lng", String(params.lng))
+    if (params.radio_km != null) query.set("radio_km", String(params.radio_km))
+  }
+  if (params.ciudad) query.set("ciudad", params.ciudad)
   if (params.categoria_id) query.set("categoria_id", params.categoria_id)
   if (params.texto) query.set("texto", params.texto)
 
