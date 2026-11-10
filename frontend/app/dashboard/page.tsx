@@ -41,6 +41,7 @@ import { subirImagenServicio } from "@/lib/storage"
 import { geocodeCiudad, getBrowserLocation } from "@/lib/geocode"
 import GaleriaImagenes from "@/components/galeria-imagenes"
 import HorarioDisponibilidad from "@/components/horario-disponibilidad"
+import PerfilPublicoForm from "@/components/perfil-publico-form"
 import { useFeatureFlags } from "@/context/feature-flags-context"
 import { OnboardingModal } from "@/components/onboarding-modal"
 import { formatCategoryName } from "@/lib/category"
@@ -683,6 +684,17 @@ export default function DashboardPage() {
                 onGuardado={(datos) =>
                   setPerfilProveedor((prev: any) => (prev ? { ...prev, ...datos } : prev))
                 }
+              />
+            </CardContent>
+          </Card>
+        )}
+
+        {perfilProveedor && (
+          <Card>
+            <CardContent className="p-5">
+              <PerfilPublicoForm
+                perfil={perfilProveedor}
+                onGuardado={(perfilActualizado) => setPerfilProveedor(perfilActualizado)}
               />
             </CardContent>
           </Card>

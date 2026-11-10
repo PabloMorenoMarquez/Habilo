@@ -88,7 +88,7 @@ export function actualizarMe(datos: { ciudad?: string; telefono?: string; nombre
 }
 
 export function getMiPerfilProveedor() {
-  return apiFetch("/proveedor/me")
+  return apiFetch<MiPerfilProveedor>("/proveedor/me")
 }
 
 export function iniciarVerificacionIdentidad() {
@@ -719,6 +719,31 @@ export interface SitemapItem {
   fecha_creacion: string | null
 }
 
+export interface MiPerfilProveedor {
+  id: string
+  usuario_id: string
+  descripcion: string | null
+  experiencia_años: number | null
+  radio_km_disponible: number
+  valoracion_media: string | null
+  num_valoraciones: number
+  verificado: boolean | null
+  fecha_creacion: string | null
+  dias_disponibles: string | null
+  hora_inicio: string | null
+  hora_fin: string | null
+  destacado_hasta: string | null
+  url_documento: string | null
+  motivo_rechazo: string | null
+  codigo_referido: string | null
+  ciudad: string | null
+  zona: string | null
+  materias: string[]
+  niveles: string[]
+  perfil_publico: boolean
+  consentimiento_marketing: boolean
+}
+
 export function actualizarPerfilProveedor(datos: {
   descripcion?: string
   experiencia_años?: number
@@ -726,8 +751,14 @@ export function actualizarPerfilProveedor(datos: {
   dias_disponibles?: string
   hora_inicio?: string
   hora_fin?: string
+  ciudad?: string
+  zona?: string
+  materias?: string[]
+  niveles?: string[]
+  perfil_publico?: boolean
+  consentimiento_marketing?: boolean
 }) {
-  return apiFetch(`/proveedor/`, {
+  return apiFetch<MiPerfilProveedor>(`/proveedor/`, {
     method: "PATCH",
     body: JSON.stringify(datos),
   })
