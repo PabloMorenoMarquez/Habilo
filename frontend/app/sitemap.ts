@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next'
 import { fetchPublic } from '@/lib/server-api'
-import type { PerfilSitemapItem, ServicioSitemapItem } from '@/lib/api'
+import type { SitemapItem } from '@/lib/api'
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://habilo.es').replace(/\/+$/, '')
 
@@ -11,8 +11,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ]
 
   const [servicios, perfiles] = await Promise.all([
-    fetchPublic<ServicioSitemapItem[]>('/servicio/sitemap'),
-    fetchPublic<PerfilSitemapItem[]>('/proveedor/sitemap'),
+    fetchPublic<SitemapItem[]>('/servicio/sitemap'),
+    fetchPublic<SitemapItem[]>('/proveedor/sitemap'),
   ])
 
   const urlsServicios: MetadataRoute.Sitemap = (servicios ?? []).map((servicio) => ({

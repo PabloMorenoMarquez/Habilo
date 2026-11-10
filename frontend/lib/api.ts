@@ -646,20 +646,6 @@ export function crearOfertaPorHoras(solicitudId: string, horas: number, descripc
   })
 }
 
-export interface PerfilProveedorPublico {
-  id: string
-  usuario_id: string
-  descripcion: string | null
-  experiencia_años: number | null
-  radio_km_disponible: number
-  valoracion_media: string | null
-  num_valoraciones: number
-  verificado: boolean | null
-  dias_disponibles: string | null
-  hora_inicio: string | null
-  hora_fin: string | null
-}
-
 export function getPerfilProveedorPublico(perfilId: string) {
   return apiFetch<PerfilPublicoCompleto>(`/proveedor/${perfilId}`)
 }
@@ -728,12 +714,7 @@ export interface PerfilPublicoCompleto {
   resenas: ResenaPublica[]
 }
 
-export interface ServicioSitemapItem {
-  id: string
-  fecha_creacion: string | null
-}
-
-export interface PerfilSitemapItem {
+export interface SitemapItem {
   id: string
   fecha_creacion: string | null
 }

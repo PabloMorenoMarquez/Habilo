@@ -48,8 +48,8 @@ function formatearPrecio(servicio: ServicioResumen): string | null {
 }
 
 function descripcionMetadata(perfil: PerfilPublicoCompleto): string {
-  if (perfil.descripcion) return perfil.descripcion.slice(0, 155)
   if (!perfil.perfil_publico) return 'Perfil de profesional en Habilo.'
+  if (perfil.descripcion) return perfil.descripcion.slice(0, 155)
   const materias = perfil.materias.length > 0 ? ` de ${perfil.materias.join(', ')}` : ''
   return `Clases particulares${materias} en ${perfil.ciudad ?? CIUDAD_POR_DEFECTO}.`
 }
@@ -216,14 +216,14 @@ export default async function ProfesorPage({ params }: ProfesorPageProps) {
                       <h1 className="text-2xl md:text-3xl font-bold text-foreground leading-tight">
                         {perfil.nombre_publico}
                       </h1>
-                      {perfil.verificado === true && (
+                      {perfil.perfil_publico && perfil.verificado === true && (
                         <Badge variant="secondary" className="gap-1 font-normal">
                           <BadgeCheck size={14} aria-hidden="true" /> Verificado
                         </Badge>
                       )}
                     </div>
 
-                    {rating != null && (
+                    {perfil.perfil_publico && rating != null && (
                       <div className="flex items-center gap-1 text-sm">
                         <Star size={16} className="fill-amber-400 text-amber-400" aria-hidden="true" />
                         <span className="font-semibold">{rating.toFixed(1)}</span>
@@ -241,13 +241,13 @@ export default async function ProfesorPage({ params }: ProfesorPageProps) {
                           {[perfil.zona, perfil.ciudad].filter(Boolean).join(', ')}
                         </span>
                       )}
-                      {experiencia && (
+                      {perfil.perfil_publico && experiencia && (
                         <span className="inline-flex items-center gap-1">
                           <GraduationCap size={14} aria-hidden="true" />
                           {experiencia}
                         </span>
                       )}
-                      {perfil.radio_km_disponible > 0 && (
+                      {perfil.perfil_publico && perfil.radio_km_disponible > 0 && (
                         <span>Se desplaza hasta {perfil.radio_km_disponible} km</span>
                       )}
                     </div>
