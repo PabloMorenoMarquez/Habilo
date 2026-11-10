@@ -56,16 +56,24 @@ SELECT to_regclass('public.referidos');
 
 SELECT column_name
 FROM information_schema.columns
-WHERE table_name = 'leads'
-  AND column_name IN ('nombre', 'contacto', 'canal', 'mensaje', 'consentimiento', 'utm', 'ref');
+WHERE table_schema = 'public'
+  AND table_name = 'leads'
+ORDER BY ordinal_position;
+```
 
+Deben aparecer 18 columnas: `id`, `servicio_id`, `perfil_id`, `proveedor_id`, `nombre`, `contacto`, `canal_contacto`, `mensaje`, `consentimiento`, `ref`, `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term`, `pagina_origen`, `estado` y `fecha_creacion`.
+
+```sql
 SELECT column_name
 FROM information_schema.columns
-WHERE table_name = 'perfiles_proveedor'
+WHERE table_schema = 'public'
+  AND table_name = 'perfiles_proveedor'
   AND column_name IN ('codigo_referido', 'destacado_hasta');
 ```
 
-Si falta `leads`, `referidos`, `codigo_referido` o `destacado_hasta`, el feature de referidos baseline no está aplicado: no despliegues el backend hasta resolverlo.
+Si falta `leads` o alguna de sus 18 columnas, la migración de growth no está aplicada: no despliegues el backend.
+
+Si faltan `referidos`, `codigo_referido` o `destacado_hasta`, el baseline de referidos no está aplicado: no despliegues hasta resolverlo.
 
 ### 1.3 Verificar datos
 
@@ -76,6 +84,13 @@ SELECT count(*) FROM categorias WHERE nombre = 'clases_particulares';
 ```
 
 Anota los tres números antes y después del backfill.
+
+### 1.4 Rollback
+
+- Si `2026-11-02_data_backfill.sql` falla antes del `COMMIT`, PostgreSQL revierte la transacción completa.
+- Si ya se confirmó y la reasignación de categorías es incorrecta, restaura la copia de seguridad. Volver a ejecutar el SQL no deshace el `UPDATE`.
+- La migración de growth solo añade columnas, la tabla `leads` y su índice. Para revertirla, restaura la copia de seguridad; no ejecutes `DROP` manuales sobre datos de producción.
+- Si solo falla la creación de `clases_particulares`, revisa primero si la categoría ya existe antes de repetir el bloque de inserción.
 
 ---
 
@@ -95,7 +110,7 @@ Anota los tres números antes y después del backfill.
 
 | Variable | Uso |
 |---|---|
-| `RESEND_API_KEY` | Envío de emails de leads y waitlist |
+| `RESEND_API_KEY` | Envío de emails de leads |
 | `EMAIL_FROM` | Remitente verificado en Resend |
 
 Sin estas variables, los leads se guardan pero no se notifica al profesor. Verifica el remitente en Resend antes de lanzar tráfico.
@@ -159,7 +174,7 @@ Crear un funnel con estos eventos, en este orden:
 10. `share_clicked`
 11. `message_sent`
 
-Comprobar que `lead_submitted` incluye `perfil_id` y `canal`, y que `share_clicked` incluye `provider_id` y `channel`.
+Comprobar que `lead_submitted` incluye `channel` y el identificador del origen: `service_id` o `perfil_id`. En `share_clicked`, comprobar `channel` más `provider_id` en el perfil público o `service_id` en el detalle de servicio.
 
 ---
 
@@ -197,15 +212,19 @@ Cada lunes, 30 minutos:
 
 ## 7. Retención y limpieza de leads
 
-- Conservar los leads durante 12 meses desde el último contacto.
-- Revisar trimestralmente y borrar los antiguos:
+- Conservar cada lead durante 12 meses desde su creación. `leads` no guarda una fecha de último contacto.
+- Revisar trimestralmente y borrar los antiguos dentro de una transacción:
 
 ```sql
 SELECT count(*) FROM leads WHERE fecha_creacion < now() - interval '12 months';
+
+BEGIN;
 DELETE FROM leads WHERE fecha_creacion < now() - interval '12 months';
+-- Comprueba que el número de filas borradas coincide con el SELECT anterior.
+COMMIT;
 ```
 
-Ejecuta primero el `SELECT`, revisa el número y después el `DELETE`. No borres leads con una reclamación abierta.
+Ejecuta primero el `SELECT`, revisa el número y después el `DELETE`. Si el número no coincide o hay una reclamación abierta sin resolver, ejecuta `ROLLBACK;` en lugar de `COMMIT;`.
 
 ---
 
