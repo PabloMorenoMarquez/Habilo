@@ -36,6 +36,7 @@ import {
   confirmarImagenServicio,
   ServicioDetalle,
   ApiError,
+  type MiPerfilProveedor,
 } from "@/lib/api"
 import { subirImagenServicio } from "@/lib/storage"
 import { geocodeCiudad, getBrowserLocation } from "@/lib/geocode"
@@ -66,7 +67,7 @@ export default function DashboardPage() {
   const [cargandoServicios, setCargandoServicios] = useState(true)
   const [valoracionMedia, setValoracionMedia] = useState<number | null>(null)
   const [mensajesNoLeidos, setMensajesNoLeidos] = useState<number | null>(null)
-  const [perfilProveedor, setPerfilProveedor] = useState<any>(null)
+  const [perfilProveedor, setPerfilProveedor] = useState<MiPerfilProveedor | null>(null)
   //const [verificandoIdentidad, setVerificandoIdentidad] = useState(false)
   //const [errorVerificacion, setErrorVerificacion] = useState<string | null>(null)
 
@@ -118,8 +119,8 @@ export default function DashboardPage() {
       .catch((err) => console.error("No se pudieron cargar las categorías:", err))
 
     getMiPerfilProveedor()
-      .then((p: any) => {
-        setValoracionMedia(parseFloat(p.valoracion_media))
+      .then((p) => {
+        setValoracionMedia(p.valoracion_media ? parseFloat(p.valoracion_media) : null)
         setPerfilProveedor(p)
       })
       .catch(() => {})
@@ -682,7 +683,7 @@ export default function DashboardPage() {
                 horaInicioInicial={perfilProveedor.hora_inicio}
                 horaFinInicial={perfilProveedor.hora_fin}
                 onGuardado={(datos) =>
-                  setPerfilProveedor((prev: any) => (prev ? { ...prev, ...datos } : prev))
+                  setPerfilProveedor((prev) => (prev ? { ...prev, ...datos } : prev))
                 }
               />
             </CardContent>

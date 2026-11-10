@@ -33,8 +33,14 @@ export default function PerfilPublicoForm({ perfil, onGuardado }: PerfilPublicoF
   const [error, setError] = useState<string | null>(null)
   const [guardadoOk, setGuardadoOk] = useState(false)
 
+  function marcarEditado() {
+    setError(null)
+    setGuardadoOk(false)
+  }
+
   const handleGuardar = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (guardando) return
     setGuardando(true)
     setError(null)
     setGuardadoOk(false)
@@ -79,7 +85,7 @@ export default function PerfilPublicoForm({ perfil, onGuardado }: PerfilPublicoF
             value={ciudad}
             onChange={(event) => {
               setCiudad(event.target.value)
-              setGuardadoOk(false)
+              marcarEditado()
             }}
             placeholder="Talavera de la Reina"
             autoComplete="address-level2"
@@ -92,7 +98,7 @@ export default function PerfilPublicoForm({ perfil, onGuardado }: PerfilPublicoF
             value={zona}
             onChange={(event) => {
               setZona(event.target.value)
-              setGuardadoOk(false)
+              marcarEditado()
             }}
             placeholder="Centro"
           />
@@ -106,11 +112,12 @@ export default function PerfilPublicoForm({ perfil, onGuardado }: PerfilPublicoF
           value={materias}
           onChange={(event) => {
             setMaterias(event.target.value)
-            setGuardadoOk(false)
+            marcarEditado()
           }}
           placeholder="Matemáticas, Física"
+          aria-describedby="perfil-materias-ayuda"
         />
-        <p className="text-xs text-muted-foreground">Separa cada materia con una coma.</p>
+        <p id="perfil-materias-ayuda" className="text-xs text-muted-foreground">Separa cada materia con una coma.</p>
       </div>
 
       <div className="space-y-2">
@@ -120,11 +127,12 @@ export default function PerfilPublicoForm({ perfil, onGuardado }: PerfilPublicoF
           value={niveles}
           onChange={(event) => {
             setNiveles(event.target.value)
-            setGuardadoOk(false)
+            marcarEditado()
           }}
           placeholder="Primaria, ESO, Bachillerato"
+          aria-describedby="perfil-niveles-ayuda"
         />
-        <p className="text-xs text-muted-foreground">Separa cada nivel con una coma.</p>
+        <p id="perfil-niveles-ayuda" className="text-xs text-muted-foreground">Separa cada nivel con una coma.</p>
       </div>
 
       <div className="space-y-3">
@@ -134,7 +142,7 @@ export default function PerfilPublicoForm({ perfil, onGuardado }: PerfilPublicoF
             checked={perfilPublico}
             onCheckedChange={(valor) => {
               setPerfilPublico(valor === true)
-              setGuardadoOk(false)
+              marcarEditado()
             }}
           />
           <Label htmlFor="perfil-publico" className="text-sm font-normal leading-snug">
@@ -148,7 +156,7 @@ export default function PerfilPublicoForm({ perfil, onGuardado }: PerfilPublicoF
             checked={consentimientoMarketing}
             onCheckedChange={(valor) => {
               setConsentimientoMarketing(valor === true)
-              setGuardadoOk(false)
+              marcarEditado()
             }}
           />
           <Label htmlFor="perfil-marketing" className="text-sm font-normal leading-snug">
