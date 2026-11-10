@@ -1,13 +1,15 @@
 "use client"
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react"
-import posthog from "posthog-js"
+import {
+  CONSENT_STORAGE_KEY,
+  guardarConsentimiento,
+  initAnalytics,
+  leerConsentimiento,
+  revocarAnalytics,
+} from "@/lib/analytics"
 
-export const CONSENT_STORAGE_KEY = "habilo_consent_v1"
-
-const isPostHogConfigured = Boolean(
-  process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST
-)
+export { CONSENT_STORAGE_KEY }
 
 interface ConsentContextValue {
   analytics: boolean | null
@@ -18,58 +20,36 @@ interface ConsentContextValue {
 
 const ConsentContext = createContext<ConsentContextValue | null>(null)
 
-function leerConsentimiento(): boolean | null {
-  if (typeof window === "undefined") return null
-  try {
-    const guardado = localStorage.getItem(CONSENT_STORAGE_KEY)
-    if (!guardado) return null
-    const datos = JSON.parse(guardado)
-    return typeof datos?.analytics === "boolean" ? datos.analytics : null
-  } catch {
-    return null
-  }
-}
-
-function guardarConsentimiento(analytics: boolean) {
-  if (typeof window === "undefined") return
-  localStorage.setItem(
-    CONSENT_STORAGE_KEY,
-    JSON.stringify({ analytics, ts: new Date().toISOString() })
-  )
-}
-
-function aplicarConsentimiento(analytics: boolean, capturarPageview: boolean) {
-  if (!isPostHogConfigured) return
-
-  if (analytics) {
-    posthog.reset()
-    posthog.opt_in_capturing()
-    if (capturarPageview) posthog.capture("$pageview")
-  } else {
-    posthog.opt_out_capturing()
-    posthog.reset()
-  }
-}
-
 export function ConsentProvider({ children }: { children: React.ReactNode }) {
   const [analytics, setAnalytics] = useState<boolean | null>(null)
   const [bannerOpen, setBannerOpen] = useState(false)
 
   useEffect(() => {
     const guardado = leerConsentimiento()
-    if (guardado === null) {
-      setBannerOpen(true)
+
+    if (guardado === true) {
+      setAnalytics(true)
+      void initAnalytics()
       return
     }
+
+    // Sin decisión o con rechazo previo no se inicializa PostHog. También se
+    // eliminan restos de versiones anteriores que lo cargaban sin permiso.
+    revocarAnalytics()
     setAnalytics(guardado)
-    aplicarConsentimiento(guardado, guardado)
+    if (guardado === null) setBannerOpen(true)
   }, [])
 
   const decidir = useCallback((nuevoValor: boolean) => {
     guardarConsentimiento(nuevoValor)
     setAnalytics(nuevoValor)
-    aplicarConsentimiento(nuevoValor, nuevoValor)
     setBannerOpen(false)
+
+    if (nuevoValor) {
+      void initAnalytics()
+    } else {
+      revocarAnalytics()
+    }
   }, [])
 
   const abrirBanner = useCallback(() => setBannerOpen(true), [])

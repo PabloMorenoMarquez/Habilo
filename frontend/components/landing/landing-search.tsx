@@ -3,13 +3,9 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Search } from "lucide-react"
-import posthog from "posthog-js"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-
-const isPostHogConfigured = Boolean(
-  process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST
-)
+import { captureIfConsented } from "@/lib/analytics"
 
 export default function LandingSearch() {
   const router = useRouter()
@@ -17,9 +13,7 @@ export default function LandingSearch() {
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (isPostHogConfigured) {
-      posthog.capture("landing_cta_clicked", { cta: "search" })
-    }
+    captureIfConsented("landing_cta_clicked", { cta: "search" })
     const texto = query.trim()
     router.push(texto ? `/home?q=${encodeURIComponent(texto)}` : "/home")
   }

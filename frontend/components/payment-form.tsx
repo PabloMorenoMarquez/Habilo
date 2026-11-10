@@ -4,11 +4,7 @@ import { useState } from "react"
 import { useStripe, useElements, PaymentElement } from "@stripe/react-stripe-js"
 import { Button } from "@/components/ui/button"
 import { Loader } from "lucide-react"
-import posthog from "posthog-js"
-
-const isPostHogConfigured = Boolean(
-  process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST
-)
+import { captureIfConsented } from "@/lib/analytics"
 
 export default function PaymentForm({ onSuccess }: { onSuccess: () => void }) {
   const stripe = useStripe()
@@ -35,9 +31,7 @@ export default function PaymentForm({ onSuccess }: { onSuccess: () => void }) {
     }
 
     if (paymentIntent && (paymentIntent.status === "requires_capture" || paymentIntent.status === "succeeded")) {
-      if (isPostHogConfigured) {
-        posthog.capture("payment_authorized", { payment_status: paymentIntent.status })
-      }
+      captureIfConsented("payment_authorized", { payment_status: paymentIntent.status })
       onSuccess()
     } else {
       setError("El pago no se pudo autorizar. Prueba con otra tarjeta.")

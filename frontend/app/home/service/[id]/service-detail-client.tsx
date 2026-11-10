@@ -28,11 +28,7 @@ import {
 import { AuthRequiredDialog } from "@/components/auth-required-dialog"
 import { LeadContactDialog } from "@/components/lead-contact-dialog"
 import { formatCategoryName } from "@/lib/category"
-import posthog from "posthog-js"
-
-const isPostHogConfigured = Boolean(
-  process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST
-)
+import { captureIfConsented } from "@/lib/analytics"
 
 function formatPrice(price: number, type: string) {
   if (type === "hora") return `${price}€/hora`
@@ -146,13 +142,11 @@ export default function ServiceDetailClient({ initialServicio }: ServiceDetailCl
   useEffect(() => {
     if (!servicio || servicioVistoRef.current === servicio.id) return
     servicioVistoRef.current = servicio.id
-    if (isPostHogConfigured) {
-      posthog.capture("service_viewed", {
-        service_id: servicio.id,
-        category: servicio.categoria_nombre ?? null,
-        city: servicio.proveedor_ciudad ?? null,
-      })
-    }
+    captureIfConsented("service_viewed", {
+      service_id: servicio.id,
+      category: servicio.categoria_nombre ?? null,
+      city: servicio.proveedor_ciudad ?? null,
+    })
   }, [servicio])
 
   useEffect(() => {
@@ -212,12 +206,10 @@ export default function ServiceDetailClient({ initialServicio }: ServiceDetailCl
     try {
       if (previo) await desmarcarServicioFavorito(servicio.id)
       else await marcarServicioFavorito(servicio.id)
-      if (isPostHogConfigured) {
-        posthog.capture("service_favorite_changed", {
-          service_id: servicio.id,
-          is_favorited: !previo,
-        })
-      }
+      captureIfConsented("service_favorite_changed", {
+        service_id: servicio.id,
+        is_favorited: !previo,
+      })
     } catch (err) {
       setLiked(previo)
       console.error("No se pudo actualizar el favorito:", err)
@@ -238,12 +230,10 @@ export default function ServiceDetailClient({ initialServicio }: ServiceDetailCl
     try {
       if (previo) await desmarcarProveedorFavorito(servicio.proveedor_id)
       else await marcarProveedorFavorito(servicio.proveedor_id)
-      if (isPostHogConfigured) {
-        posthog.capture("provider_follow_changed", {
-          provider_id: servicio.proveedor_id,
-          is_following: !previo,
-        })
-      }
+      captureIfConsented("provider_follow_changed", {
+        provider_id: servicio.proveedor_id,
+        is_following: !previo,
+      })
     } catch (err) {
       setSiguiendoProveedor(previo)
       console.error("No se pudo actualizar el seguimiento:", err)
@@ -262,12 +252,10 @@ export default function ServiceDetailClient({ initialServicio }: ServiceDetailCl
     setContactoError(null)
     try {
       const solicitud = await crearSolicitud(servicio.id)
-      if (isPostHogConfigured) {
-        posthog.capture("service_request_created", {
-          service_id: servicio.id,
-          request_id: solicitud.id,
-        })
-      }
+      captureIfConsented("service_request_created", {
+        service_id: servicio.id,
+        request_id: solicitud.id,
+      })
       router.push(`/chats?solicitud=${solicitud.id}`)
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
@@ -292,9 +280,7 @@ export default function ServiceDetailClient({ initialServicio }: ServiceDetailCl
         // El usuario puede cancelar el diálogo nativo; no es un fallo.
         return
       }
-      if (isPostHogConfigured) {
-        posthog.capture("share_clicked", { channel: "native", service_id: servicio.id })
-      }
+      captureIfConsented("share_clicked", { channel: "native", service_id: servicio.id })
       return
     }
 
@@ -303,9 +289,7 @@ export default function ServiceDetailClient({ initialServicio }: ServiceDetailCl
       "_blank",
       "noopener,noreferrer"
     )
-    if (isPostHogConfigured) {
-      posthog.capture("share_clicked", { channel: "whatsapp", service_id: servicio.id })
-    }
+    captureIfConsented("share_clicked", { channel: "whatsapp", service_id: servicio.id })
   }
 
   if (cargando) {

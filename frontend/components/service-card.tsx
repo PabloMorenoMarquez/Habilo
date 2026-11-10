@@ -9,11 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuth } from "@/context/auth-context"
 import { marcarServicioFavorito, desmarcarServicioFavorito } from "@/lib/api"
 import { AuthRequiredDialog } from "@/components/auth-required-dialog"
-import posthog from "posthog-js"
-
-const isPostHogConfigured = Boolean(
-  process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST
-)
+import { captureIfConsented } from "@/lib/analytics"
 
 interface ServiceCardProps {
   service: {
@@ -80,12 +76,10 @@ export default function ServiceCard({ service, onFavoritoChange }: ServiceCardPr
       } else {
         await marcarServicioFavorito(service.id)
       }
-      if (isPostHogConfigured) {
-        posthog.capture("service_favorite_changed", {
-          service_id: service.id,
-          is_favorited: !previo,
-        })
-      }
+      captureIfConsented("service_favorite_changed", {
+        service_id: service.id,
+        is_favorited: !previo,
+      })
       onFavoritoChange?.(!previo)
     } catch (err) {
       setFavorito(previo)

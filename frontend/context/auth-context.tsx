@@ -1,8 +1,12 @@
 "use client"
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react"
-import posthog from "posthog-js"
 import { getToken, setToken, clearToken, getMe } from "@/lib/api"
+import {
+  captureIfConsented,
+  identifyIfConsented,
+  resetAnalyticsIdentity,
+} from "@/lib/analytics"
 
 export type UserRole = "cliente" | "profesional" | null
 const ROLE_KEY = "serviclick_role"
@@ -83,15 +87,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
-const isPostHogConfigured = Boolean(
-  process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST
-)
-
 function identifyUser(user: User) {
-  if (!isPostHogConfigured) return
-  if (!posthog.has_opted_in_capturing()) return
-
-  posthog.identify(user.id, {
+  identifyIfConsented(user.id, {
     email: user.email,
     name: user.name,
     ...(user.role ? { role: user.role } : {}),
@@ -136,20 +133,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(token)
     const loggedInUser = await fetchAndSetUser()
 
-    if (user && user.id !== loggedInUser.id && isPostHogConfigured) {
-      posthog.reset()
+    if (user && user.id !== loggedInUser.id) {
+      resetAnalyticsIdentity()
     }
     identifyUser(loggedInUser)
-    if (isPostHogConfigured) {
-      posthog.capture("login_completed")
-    }
+    captureIfConsented("login_completed")
   }, [fetchAndSetUser, user])
 
   const logout = useCallback(() => {
-    if (isPostHogConfigured) {
-      posthog.capture("logout_completed")
-      posthog.reset()
-    }
+    captureIfConsented("logout_completed")
+    resetAnalyticsIdentity()
     clearToken()
     localStorage.removeItem(ROLE_KEY)
     setUser(null)
@@ -158,9 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const selectRole = useCallback((role: "cliente" | "profesional") => {
     localStorage.setItem(ROLE_KEY, role)
     setUser((prev) => (prev ? { ...prev, role } : null))
-    if (isPostHogConfigured) {
-      posthog.capture("role_selected", { role })
-    }
+    captureIfConsented("role_selected", { role })
   }, [])
 
   const refreshUser = useCallback(async () => {

@@ -42,6 +42,7 @@ export default function PrivacyPage() {
           <li>Gestionar reportes, bloqueos y suspensiones: interés legítimo en mantener un entorno seguro y cumplimiento de estos Términos.</li>
           <li>Enviarte comunicaciones esenciales sobre tu cuenta o solicitudes: ejecución del contrato.</li>
           <li>Cumplir obligaciones legales aplicables: cumplimiento de una obligación legal (art. 6.1.c RGPD).</li>
+          <li>Medir el uso de la Plataforma con analítica: tu consentimiento (art. 6.1.a RGPD). Solo se activa si aceptas y puedes retirarlo en cualquier momento.</li>
         </ul>
       </section>
 
@@ -83,9 +84,9 @@ export default function PrivacyPage() {
 
       <section>
         <h2>9. Cookies</h2>
-        <p>Habilo utiliza cookies técnicas necesarias para el funcionamiento de la Plataforma, por ejemplo, para mantener tu sesión iniciada. Estas cookies no requieren consentimiento.</p>
-        <p>Si aceptas la analítica, usamos PostHog y Vercel Analytics para entender qué páginas ayudan a encontrar profesor y mejorar el servicio. Estas herramientas solo se activan después de tu aceptación y no se cargan si eliges “Solo esenciales”. No usamos session replay ni grabamos tu pantalla.</p>
-        <p>Puedes cambiar o retirar tu consentimiento en cualquier momento:</p>
+        <p>Habilo utiliza almacenamiento técnico necesario para el funcionamiento de la Plataforma, por ejemplo, para mantener tu sesión iniciada. Estas cookies no requieren consentimiento.</p>
+        <p>La analítica es opcional. PostHog y Vercel Analytics solo se cargan después de que pulses “Aceptar analítica”. Antes de esa decisión, o si eliges “Solo esenciales”, no se inicializan, no se envían eventos y no se guardan identificadores analíticos. La base legal es tu consentimiento (art. 6.1.a RGPD).</p>
+        <p>Si retiras el consentimiento, dejamos de enviar eventos y eliminamos las cookies y el almacenamiento local de PostHog. Puedes cambiar o retirar tu consentimiento en cualquier momento:</p>
         <p><ConsentSettingsButton /></p>
       </section>
 

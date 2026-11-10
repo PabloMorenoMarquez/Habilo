@@ -14,12 +14,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { MapPin, Calendar, Star, Edit, Mail, Briefcase, UserCheck, Loader, Phone } from "lucide-react"
 import { getMiPerfilProveedor, getMisServicios, actualizarMe, ApiError, ServicioDetalle, getBloqueados, desbloquearUsuario, UsuarioBloqueado, getSignedUrlAvatar } from "@/lib/api"
 import { suscribirseAPush } from "@/lib/push"
-import posthog from "posthog-js"
 import { subirAvatarUsuario } from "@/lib/storage"
-
-const isPostHogConfigured = Boolean(
-  process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST
-)
+import { captureIfConsented } from "@/lib/analytics"
 
 function formatFecha(fecha: string | null | undefined) {
   if (!fecha) return "—"
@@ -102,9 +98,7 @@ export default function ProfilePage() {
         ciudad: form.ciudad || undefined,
       })
       await refreshUser()
-      if (isPostHogConfigured) {
-        posthog.capture("profile_updated")
-      }
+      captureIfConsented("profile_updated")
       setEditOpen(false)
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "No se pudo guardar el perfil."

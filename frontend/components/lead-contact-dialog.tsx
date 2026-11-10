@@ -1,7 +1,6 @@
 "use client"
 
 import { useRef, useState } from "react"
-import posthog from "posthog-js"
 import { Loader } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -10,11 +9,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import { crearLead } from "@/lib/api"
+import { captureIfConsented } from "@/lib/analytics"
 import { getUtm } from "@/lib/utm"
-
-const isPostHogConfigured = Boolean(
-  process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST
-)
 
 type CanalContacto = "whatsapp" | "email"
 
@@ -133,13 +129,11 @@ export function LeadContactDialog({
       })
       if (intentoRef.current !== intentoId) return
       setEnviado(true)
-      if (isPostHogConfigured) {
-        posthog.capture("lead_submitted", {
-          service_id: servicioId,
-          perfil_id: perfilId,
-          channel: canal,
-        })
-      }
+      captureIfConsented("lead_submitted", {
+        service_id: servicioId,
+        perfil_id: perfilId,
+        channel: canal,
+      })
     } catch {
       if (intentoRef.current !== intentoId) return
       setErrorEnvio("No se pudo enviar. Inténtalo de nuevo.")

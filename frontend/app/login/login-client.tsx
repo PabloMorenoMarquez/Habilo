@@ -7,11 +7,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Search, Star, Shield, Loader } from "lucide-react"
 import { API_URL, clearToken } from "@/lib/api"
-import posthog from "posthog-js"
-
-const isPostHogConfigured = Boolean(
-  process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST
-)
+import { captureIfConsented } from "@/lib/analytics"
 
 const GoogleIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -71,16 +67,12 @@ function LoginPageInner() {
   }, [searchParams])
 
   const handleGoogleLogin = () => {
-    if (isPostHogConfigured) {
-      posthog.capture("signup_started", { provider: "google" })
-    }
+    captureIfConsented("signup_started", { provider: "google" })
     window.location.href = `${API_URL}/auth/google/login`
   }
 
   const handleFacebookLogin = () => {
-    if (isPostHogConfigured) {
-      posthog.capture("signup_started", { provider: "facebook" })
-    }
+    captureIfConsented("signup_started", { provider: "facebook" })
     window.location.href = `${API_URL}/auth/facebook/login`
   }
 

@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
 import { useEffect, useState, useRef, useCallback } from "react"
-import posthog from "posthog-js"
 import Navbar from "@/components/navbar"
 import ServiceCard from "@/components/service-card"
 import { Input } from "@/components/ui/input"
@@ -18,13 +17,10 @@ import { usePaginacion } from "@/hooks/use-paginacion"
 import { OnboardingModal } from "@/components/onboarding-modal"
 import { formatCategoryName } from "@/lib/category"
 import { mapServicioParaTarjeta } from "@/lib/service-mapper"
+import { captureIfConsented } from "@/lib/analytics"
 
 const RADIO_KM = 50 // radio de búsqueda por defecto
 const LOCATION_KEY = "serviclick_location"
-
-const isPostHogConfigured = Boolean(
-  process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST
-)
 
 interface HomeClientProps {
   initialServicios: ServicioBackend[]
@@ -229,13 +225,11 @@ export default function HomeClient({
     if (!query && !category && !ciudadLabel) return
 
     const timer = setTimeout(() => {
-      if (isPostHogConfigured) {
-        posthog.capture("search_performed", {
-          query,
-          city: ciudadLabel || null,
-          category,
-        })
-      }
+      captureIfConsented("search_performed", {
+        query,
+        city: ciudadLabel || null,
+        category,
+      })
     }, 500)
 
     return () => clearTimeout(timer)

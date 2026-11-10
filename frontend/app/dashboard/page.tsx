@@ -46,12 +46,8 @@ import PerfilPublicoForm from "@/components/perfil-publico-form"
 import { useFeatureFlags } from "@/context/feature-flags-context"
 import { OnboardingModal } from "@/components/onboarding-modal"
 import { formatCategoryName } from "@/lib/category"
-import posthog from "posthog-js"
 import { InviteProviderDialog } from "@/components/invite-provider-dialog"
-
-const isPostHogConfigured = Boolean(
-  process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST
-)
+import { captureIfConsented } from "@/lib/analytics"
 
 // loadStripe se llama UNA vez fuera del componente (mismo patrón que stripe-provider.tsx)
 //const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
@@ -245,14 +241,12 @@ export default function DashboardPage() {
         }
       }
 
-      if (isPostHogConfigured) {
-        posthog.capture("service_created", {
-          service_id: nuevo.id,
-          category_id: form.categoriaId,
-          price_type: form.priceType,
-          image_count: imagenesNuevas.length,
-        })
-      }
+      captureIfConsented("service_created", {
+        service_id: nuevo.id,
+        category_id: form.categoriaId,
+        price_type: form.priceType,
+        image_count: imagenesNuevas.length,
+      })
       resetForm()
       setDialogOpen(false)
       cargarMisServicios()
@@ -331,13 +325,11 @@ export default function DashboardPage() {
         ...(coords ? { latitud: coords.lat, longitud: coords.lng } : {}),
       })
 
-      if (isPostHogConfigured) {
-        posthog.capture("service_updated", {
-          service_id: editingService.id,
-          category_id: editForm.categoriaId,
-          price_type: editForm.priceType,
-        })
-      }
+      captureIfConsented("service_updated", {
+        service_id: editingService.id,
+        category_id: editForm.categoriaId,
+        price_type: editForm.priceType,
+      })
       closeEdit()
       cargarMisServicios()
     } catch (err) {
@@ -352,9 +344,7 @@ export default function DashboardPage() {
     setErrorAcciones(null)
     try {
       await eliminarServicio(id)
-      if (isPostHogConfigured) {
-        posthog.capture("service_deleted", { service_id: id })
-      }
+      captureIfConsented("service_deleted", { service_id: id })
       setMisServicios((prev) => prev.filter((s) => s.id !== id))
     } catch (err) {
       setErrorAcciones(err instanceof ApiError ? err.message : "No se pudo eliminar el servicio")
@@ -393,12 +383,10 @@ export default function DashboardPage() {
     setErrorAcciones(null)
     try {
       const actualizado = await actualizarServicio(servicio.id, { activo: !servicio.activo })
-      if (isPostHogConfigured) {
-        posthog.capture("service_availability_changed", {
-          service_id: servicio.id,
-          is_active: actualizado.activo,
-        })
-      }
+      captureIfConsented("service_availability_changed", {
+        service_id: servicio.id,
+        is_active: actualizado.activo,
+      })
       setMisServicios((prev) => prev.map((s) => (s.id === servicio.id ? actualizado : s)))
     } catch (err) {
       setErrorAcciones(err instanceof ApiError ? err.message : "No se pudo actualizar el servicio")

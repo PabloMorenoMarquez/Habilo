@@ -1,14 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import posthog from "posthog-js"
 import { MessageCircle, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { LeadContactDialog } from "@/components/lead-contact-dialog"
-
-const isPostHogConfigured = Boolean(
-  process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST
-)
+import { captureIfConsented } from "@/lib/analytics"
 
 interface PublicProfileContactProps {
   perfilId: string
@@ -29,9 +25,7 @@ export function PublicProfileContact({ perfilId, profesionalNombre }: PublicProf
         // El usuario puede cancelar el diálogo nativo; no es un fallo.
         return
       }
-      if (isPostHogConfigured) {
-        posthog.capture("share_clicked", { channel: "native", provider_id: perfilId })
-      }
+      captureIfConsented("share_clicked", { channel: "native", provider_id: perfilId })
       return
     }
 
@@ -40,9 +34,7 @@ export function PublicProfileContact({ perfilId, profesionalNombre }: PublicProf
       "_blank",
       "noopener,noreferrer"
     )
-    if (isPostHogConfigured) {
-      posthog.capture("share_clicked", { channel: "whatsapp", provider_id: perfilId })
-    }
+    captureIfConsented("share_clicked", { channel: "whatsapp", provider_id: perfilId })
   }
 
   return (

@@ -9,11 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Search, Briefcase, ArrowRight, CheckCircle, Loader } from "lucide-react"
 import { getMiPerfilProveedor, crearPerfilProveedor, ApiError } from "@/lib/api"
-import posthog from "posthog-js"
-
-const isPostHogConfigured = Boolean(
-  process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST
-)
+import { captureIfConsented } from "@/lib/analytics"
 
 export default function SelectRolePage() {
   const { isAuthenticated, isLoading, role, selectRole } = useAuth()
@@ -85,9 +81,7 @@ export default function SelectRolePage() {
         codigo_referido: codigoReferido,
       })
       if (codigoReferido) localStorage.removeItem("habilo_referido_codigo")
-      if (isPostHogConfigured) {
-        posthog.capture("provider_profile_created", { service_radius_km: radio })
-      }
+      captureIfConsented("provider_profile_created", { service_radius_km: radio })
       goToProfesional()
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "No se pudo crear tu perfil de proveedor."
