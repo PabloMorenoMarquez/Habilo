@@ -5,20 +5,21 @@ import { fetchPublicResponse } from '@/lib/server-api'
 import { formatCategoryName } from '@/lib/category'
 import type { ServicioBackend } from '@/lib/api'
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://habilo.es'
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://habilo.es').replace(/\/+$/, '')
 
 type ServiceDetailPageProps = {
   params: Promise<{ id: string }>
 }
 
 async function getServicio(id: string) {
-  return fetchPublicResponse<ServicioBackend>(`/servicio/${id}`)
+  // Sin caché: un 404 o un 5xx transitorio no debe quedar cacheado por ISR.
+  return fetchPublicResponse<ServicioBackend>(`/servicio/${id}`, 0)
 }
 
 export async function generateMetadata({ params }: ServiceDetailPageProps): Promise<Metadata> {
   const { id } = await params
   const { data: servicio } = await getServicio(id)
-  const canonical = `/home/service/${id}`
+  const canonical = `${SITE_URL}/home/service/${id}`
 
   if (!servicio) {
     return {

@@ -12,6 +12,13 @@ test("el servicio se renderiza en servidor y permite contactar sin cuenta", asyn
     expect(html).toContain(detalle.descripcion.slice(0, 40))
   }
 
+  // Estas aserciones solo pueden cumplirse si el cuerpo se renderiza en el
+  // servidor: el metadata y el JSON-LD no contienen CTA, enlace ni precio.
+  expect(html).toContain("Contactar profesional")
+  expect(html).toContain(`href="/profesores/${detalle.proveedor_id}"`)
+  expect(html).toContain("Descripción del servicio")
+  expect(html).toContain(`${parseFloat(detalle.precio)}€`)
+
   await page.route("**/leads/", (route) =>
     route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ ok: true }) })
   )

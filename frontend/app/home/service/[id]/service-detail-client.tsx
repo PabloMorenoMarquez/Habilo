@@ -84,6 +84,7 @@ export default function ServiceDetailClient({ initialServicio }: ServiceDetailCl
   const [leadOpen, setLeadOpen] = useState(false)
 
   const servicioVistoRef = useRef<string | null>(null)
+  const detallePromesaRef = useRef<{ id: string; promise: Promise<ServicioBackend> } | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -98,30 +99,44 @@ export default function ServiceDetailClient({ initialServicio }: ServiceDetailCl
       setCargando(false)
       return
     }
+    if (initialServicio) return
+
+    // Sin datos SSR (fallo de red o del backend): reintentamos una sola vez.
+    // Reutilizamos la misma promesa si el efecto se repite (Strict Mode), y no
+    // dependemos de la sesión para no repetir la petición ni volver al spinner.
+    let intento = detallePromesaRef.current
+    if (!intento || intento.id !== id) {
+      setCargando(true)
+      intento = { id, promise: getServicioDetalle(id) }
+      detallePromesaRef.current = intento
+    }
 
     let activo = true
+    intento.promise
+      .then((data) => {
+        if (activo) setServicio(data)
+      })
+      .catch((err) => console.error(err))
+      .finally(() => {
+        if (activo) setCargando(false)
+      })
 
-    if (!initialServicio) {
-      // Sin datos SSR (fallo de red o del backend): cargamos en cliente y, si
-      // vuelve a fallar, mostramos el estado de error de la página.
-      setCargando(true)
-      getServicioDetalle(id)
-        .then((data) => {
-          if (activo) setServicio(data)
-        })
-        .catch((err) => console.error(err))
-        .finally(() => {
-          if (activo) setCargando(false)
-        })
-    } else if (!isLoading && isAuthenticated) {
-      // El HTML SSR es anónimo. Con sesión refrescamos una vez para recuperar
-      // el estado real de favorito; los anónimos no repiten la petición.
-      getServicioDetalle(id)
-        .then((data) => {
-          if (activo) setServicio(data)
-        })
-        .catch((err) => console.error("No se pudo refrescar el servicio:", err))
+    return () => {
+      activo = false
     }
+  }, [id, initialServicio])
+
+  useEffect(() => {
+    if (!initialServicio || isLoading || !isAuthenticated) return
+
+    // El HTML SSR es anónimo. Con sesión refrescamos una vez para recuperar
+    // el estado real de favorito; los anónimos no repiten la petición.
+    let activo = true
+    getServicioDetalle(id)
+      .then((data) => {
+        if (activo) setServicio(data)
+      })
+      .catch((err) => console.error("No se pudo refrescar el servicio:", err))
 
     return () => {
       activo = false
@@ -144,20 +159,41 @@ export default function ServiceDetailClient({ initialServicio }: ServiceDetailCl
     if (servicio) setLiked(servicio.es_favorito)
   }, [servicio])
 
-  useEffect(() => {
-    if (!servicio) return
+  const proveedorId = servicio?.proveedor_id
 
-    getPerfilProveedorPublico(servicio.proveedor_id)
-      .then(setPerfilProveedor)
+  useEffect(() => {
+    if (!proveedorId) return
+
+    let activo = true
+    getPerfilProveedorPublico(proveedorId)
+      .then((perfil) => {
+        if (activo) setPerfilProveedor(perfil)
+      })
       .catch((err) => console.error("No se pudo cargar el perfil del profesional:", err))
 
-    // Solo comprobamos "sigo a este proveedor" si hay sesión — para anónimos no tiene sentido
-    if (isAuthenticated) {
-      listarProveedoresFavoritos()
-        .then((favs) => setSiguiendoProveedor(favs.some((p) => p.id === servicio.proveedor_id)))
-        .catch((err) => console.error("No se pudo comprobar si sigues a este profesional:", err))
+    return () => {
+      activo = false
     }
-  }, [servicio?.proveedor_id, isAuthenticated])
+  }, [proveedorId])
+
+  useEffect(() => {
+    // Solo comprobamos "sigo a este proveedor" si hay sesión — para anónimos no tiene sentido
+    if (!proveedorId || !isAuthenticated) {
+      setSiguiendoProveedor(false)
+      return
+    }
+
+    let activo = true
+    listarProveedoresFavoritos()
+      .then((favs) => {
+        if (activo) setSiguiendoProveedor(favs.some((p) => p.id === proveedorId))
+      })
+      .catch((err) => console.error("No se pudo comprobar si sigues a este profesional:", err))
+
+    return () => {
+      activo = false
+    }
+  }, [proveedorId, isAuthenticated])
 
   const requireAuth = (mensaje: string) => {
     setAuthDialogMensaje(mensaje)
@@ -302,10 +338,13 @@ export default function ServiceDetailClient({ initialServicio }: ServiceDetailCl
   const reviewCount = servicio.proveedor_num_valoraciones ?? 0
   const precio = parseFloat(servicio.precio)
   const fotos = imagenes.length > 0 ? imagenes.map((img) => img.url) : servicio.imagen_url ? [servicio.imagen_url] : []
-  const ciudad = perfilProveedor?.ciudad || servicio.proveedor_ciudad
   // La API devuelve el perfil privado anonimizado; no lo usamos para completar
-  // materias y niveles en la ficha pública del servicio.
+  // ciudad, materias ni niveles en la ficha pública del servicio.
   const perfilVisible = perfilProveedor?.perfil_publico === true
+  const ciudad =
+    perfilProveedor && !perfilVisible
+      ? null
+      : perfilProveedor?.ciudad || servicio.proveedor_ciudad
   const materias = perfilVisible ? perfilProveedor?.materias ?? [] : []
   const niveles = perfilVisible ? perfilProveedor?.niveles ?? [] : []
 
