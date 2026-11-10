@@ -89,6 +89,7 @@ const isPostHogConfigured = Boolean(
 
 function identifyUser(user: User) {
   if (!isPostHogConfigured) return
+  if (!posthog.has_opted_in_capturing()) return
 
   posthog.identify(user.id, {
     email: user.email,

@@ -1,4 +1,5 @@
 import { LegalDocument } from "@/components/legal-document"
+import { ConsentSettingsButton } from "@/components/consent-settings-button"
 
 export const metadata = { title: "Política de privacidad | Habilo" }
 
@@ -19,6 +20,8 @@ export default function PrivacyPage() {
           <li>Teléfono y ciudad, si decides completarlos en tu perfil.</li>
           <li>Si te registras como Profesional: descripción de tu actividad, años de experiencia, radio de acción, horario de disponibilidad y el documento acreditativo que subas para la verificación cuando esta funcionalidad esté activa.</li>
           <li>El contenido de los mensajes que envías a través del chat.</li>
+          <li>Si contactas con un profesional sin crear cuenta: nombre, WhatsApp o email, mensaje, página de origen, parámetros UTM y código de referido.</li>
+          <li>Si activas tu perfil público como Profesional: nombre, foto, ciudad, zona, materias, niveles, precio y tu consentimiento expreso para publicarlos. El consentimiento para usar tu imagen o voz en redes sociales es separado y opcional.</li>
           <li>Valoraciones, comentarios y reportes que redactes sobre otros usuarios.</li>
         </ul>
         <h3>2.2. Datos que se generan por el uso</h3>
@@ -48,6 +51,10 @@ export default function PrivacyPage() {
         <ul>
           <li>Supabase (base de datos y almacenamiento de archivos).</li>
           <li>Google LLC y Meta Platforms, Inc. (autenticación mediante OAuth).</li>
+          <li>PostHog, Inc. (analítica de producto, solo si aceptas la analítica).</li>
+          <li>Functional Software, Inc. (Sentry, registro de errores técnicos).</li>
+          <li>Vercel, Inc. (Vercel Analytics, solo si aceptas la analítica).</li>
+          <li>Resend (envío de emails transaccionales y confirmación de la lista de espera con doble opt-in).</li>
         </ul>
         <p>Habilo no vende tus datos personales a terceros ni los utiliza con fines publicitarios ajenos a la propia Plataforma.</p>
       </section>
@@ -55,6 +62,7 @@ export default function PrivacyPage() {
       <section>
         <h2>5. Cuánto tiempo conservamos tus datos</h2>
         <p>Conservamos tus datos mientras mantengas una cuenta activa. Tras la baja, conservaremos determinados datos durante los plazos legalmente exigidos, en particular a efectos de posibles reclamaciones.</p>
+        <p>Los datos de los formularios de contacto sin cuenta se conservan durante 12 meses desde el último contacto, salvo que ejerzas antes tu derecho de supresión.</p>
       </section>
 
       <section>
@@ -75,7 +83,10 @@ export default function PrivacyPage() {
 
       <section>
         <h2>9. Cookies</h2>
-        <p>Habilo utiliza cookies técnicas necesarias para el funcionamiento de la Plataforma, por ejemplo, para mantener tu sesión iniciada.</p>
+        <p>Habilo utiliza cookies técnicas necesarias para el funcionamiento de la Plataforma, por ejemplo, para mantener tu sesión iniciada. Estas cookies no requieren consentimiento.</p>
+        <p>Si aceptas la analítica, usamos PostHog y Vercel Analytics para entender qué páginas ayudan a encontrar profesor y mejorar el servicio. Estas herramientas solo se activan después de tu aceptación y no se cargan si eliges “Solo esenciales”. No usamos session replay ni grabamos tu pantalla.</p>
+        <p>Puedes cambiar o retirar tu consentimiento en cualquier momento:</p>
+        <p><ConsentSettingsButton /></p>
       </section>
 
       <section>
