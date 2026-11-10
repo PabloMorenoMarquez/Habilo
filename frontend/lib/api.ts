@@ -728,6 +728,16 @@ export interface PerfilPublicoCompleto {
   resenas: ResenaPublica[]
 }
 
+export interface ServicioSitemapItem {
+  id: string
+  fecha_creacion: string | null
+}
+
+export interface PerfilSitemapItem {
+  id: string
+  fecha_creacion: string | null
+}
+
 export function actualizarPerfilProveedor(datos: {
   descripcion?: string
   experiencia_años?: number

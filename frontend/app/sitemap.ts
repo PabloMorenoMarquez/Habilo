@@ -1,8 +1,8 @@
 import type { MetadataRoute } from 'next'
-import { getCategorias } from '@/lib/api'
+import { fetchPublic } from '@/lib/server-api'
+import type { PerfilSitemapItem, ServicioSitemapItem } from '@/lib/api'
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://habilo.es'
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://habilo.es').replace(/\/+$/, '')
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const estaticas: MetadataRoute.Sitemap = [
@@ -10,25 +10,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/home`, changeFrequency: 'hourly', priority: 0.9 },
   ]
 
-  try {
-    const [categorias, serviciosResponse] = await Promise.all([
-      getCategorias(),
-      fetch(`${API_URL}/servicio/sitemap`, { next: { revalidate: 300 } }),
-    ])
-    const urlsCategorias: MetadataRoute.Sitemap = categorias.map((c) => ({
-      url: `${SITE_URL}/home?categoria=${c.id}`,
-      changeFrequency: 'daily',
-      priority: 0.6,
-    }))
-    const servicios = serviciosResponse.ok ? await serviciosResponse.json() : []
-    const urlsServicios: MetadataRoute.Sitemap = servicios.map((servicio: { id: string; fecha_creacion?: string }) => ({
-      url: `${SITE_URL}/home/service/${servicio.id}`,
-      lastModified: servicio.fecha_creacion ? new Date(servicio.fecha_creacion) : undefined,
-      changeFrequency: 'weekly',
-      priority: 0.8,
-    }))
-    return [...estaticas, ...urlsCategorias, ...urlsServicios]
-  } catch {
-    return estaticas
-  }
+  const [servicios, perfiles] = await Promise.all([
+    fetchPublic<ServicioSitemapItem[]>('/servicio/sitemap'),
+    fetchPublic<PerfilSitemapItem[]>('/proveedor/sitemap'),
+  ])
+
+  const urlsServicios: MetadataRoute.Sitemap = (servicios ?? []).map((servicio) => ({
+    url: `${SITE_URL}/home/service/${servicio.id}`,
+    lastModified: servicio.fecha_creacion ? new Date(servicio.fecha_creacion) : undefined,
+    changeFrequency: 'weekly',
+    priority: 0.8,
+  }))
+
+  const urlsPerfiles: MetadataRoute.Sitemap = (perfiles ?? []).map((perfil) => ({
+    url: `${SITE_URL}/profesores/${perfil.id}`,
+    lastModified: perfil.fecha_creacion ? new Date(perfil.fecha_creacion) : undefined,
+    changeFrequency: 'weekly',
+    priority: 0.7,
+  }))
+
+  return [...estaticas, ...urlsServicios, ...urlsPerfiles]
 }
