@@ -1,6 +1,6 @@
 # Habilo Growth Foundation Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Convertir Habilo en un escaparate público indexable y medible, con perfiles de profesor con consentimiento y contacto sin cuenta, antes de escalar contenido o publicidad.
 
@@ -137,7 +137,7 @@ Quedan fuera de este plan, y se planificarán por separado:
   - Modelo `Lead` con `id`, `servicio_id`, `perfil_id`, `proveedor_id`, `nombre`, `contacto`, `canal_contacto`, `mensaje`, `consentimiento`, `ref`, `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term`, `pagina_origen`, `estado`, `fecha_creacion`.
   - `CrearLead` con `servicio_id: UUID | None`, `perfil_id: UUID | None`, `nombre`, `contacto`, `canal_contacto`, `mensaje`, `consentimiento`, `website`, `ref`, UTM opcionales y `pagina_origen`.
 
-- [ ] **Step 1: Escribir tests de contrato**
+- [x] **Step 1: Escribir tests de contrato**
 
 ```python
 import pytest
@@ -188,13 +188,13 @@ def test_modelos_tienen_columnas_nuevas():
     assert "ref" in Lead.__table__.columns
 ```
 
-- [ ] **Step 2: Ejecutar y verificar fallo**
+- [x] **Step 2: Ejecutar y verificar fallo**
 
 Run: `python -m pytest tests/test_growth_schema.py -v`
 
 Expected: FAIL con `ModuleNotFoundError: No module named 'schemas.lead_schema'`.
 
-- [ ] **Step 3: Implementar modelos y schemas**
+- [x] **Step 3: Implementar modelos y schemas**
 
 En `Perfil_Proveedor` añadir, importando `text` desde `sqlalchemy` y `ARRAY` desde `sqlalchemy.dialects.postgresql`:
 
@@ -237,7 +237,7 @@ Añadir los campos nuevos a `PerfilProveedorOut` (`ciudad`, `zona`, `materias`, 
 
 Añadir `ciudad`, `zona`, `materias` y `niveles` a `ServicioBase` para que `ServicioOut` y `ServicioBusquedaOut` los incluyan. En `PerfilProveedorPublicoOut`, `materias` y `niveles` usan `Field(default_factory=list)`.
 
-- [ ] **Step 4: Crear la migración SQL**
+- [x] **Step 4: Crear la migración SQL**
 
 `backend/migrations/2026-11-02_growth_foundation.sql` debe contener, dentro de `BEGIN;`/`COMMIT;`:
 
@@ -281,13 +281,13 @@ CREATE INDEX IF NOT EXISTS idx_leads_proveedor_fecha
   ON leads (proveedor_id, fecha_creacion DESC);
 ```
 
-- [ ] **Step 5: Ejecutar tests**
+- [x] **Step 5: Ejecutar tests**
 
 Run: `python -m pytest tests/test_growth_schema.py -v`
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add backend/models/lead.py backend/models/perfil_proveedor.py backend/models/servicio.py backend/models/__init__.py backend/schemas/lead_schema.py backend/schemas/proveedor_schema.py backend/schemas/servicio_schema.py backend/repositories/proveedor_repository.py backend/repositories/servicio_repository.py backend/services/proveedor_service.py backend/services/servicio_service.py backend/routers/proveedores.py backend/routers/servicios.py backend/migrations/2026-11-02_growth_foundation.sql backend/tests/test_growth_schema.py
@@ -316,7 +316,7 @@ git commit -m "feat(backend): add growth fields and lead model"
   - `GET /servicio/` acepta `lat` y `lng` opcionales.
   - `GET /servicio/resumen` devuelve `ResumenPublicoOut`.
 
-- [ ] **Step 1: Escribir tests unitarios**
+- [x] **Step 1: Escribir tests unitarios**
 
 ```python
 from unittest.mock import MagicMock
@@ -349,13 +349,13 @@ def test_resumen_devuelve_contadores():
     assert svc.resumen()["servicios_activos"] == 6
 ```
 
-- [ ] **Step 2: Ejecutar y verificar fallo**
+- [x] **Step 2: Ejecutar y verificar fallo**
 
 Run: `python -m pytest tests/test_servicio_publico.py -v`
 
 Expected: FAIL porque `buscar` no acepta `ciudad` o `resumen` no existe.
 
-- [ ] **Step 3: Implementar el repositorio**
+- [x] **Step 3: Implementar el repositorio**
 
 Reglas de `buscar_por_proximidad`:
 
@@ -379,13 +379,13 @@ select(
 
 `resenas` se cuenta en una consulta separada: `select(func.count(Valoracion.id))`.
 
-- [ ] **Step 4: Implementar router y schema**
+- [x] **Step 4: Implementar router y schema**
 
 `ResumenPublicoOut` tiene `servicios_activos: int`, `profesores_activos: int`, `resenas: int`.
 
 Declarar `GET /servicio/resumen` antes de `GET /servicio/{servicio_id}`. El router de búsqueda usa `lat: Optional[float] = Query(None)`, `lng: Optional[float] = Query(None)` y `radio_km: float = Query(50.0, gt=0, le=200)`. Si llega solo una coordenada, responder `422`. Llamar `service.buscar(...)` con argumentos nombrados para no desplazar `usuario_id` a `ciudad`.
 
-- [ ] **Step 5: Añadir test de integración**
+- [x] **Step 5: Añadir test de integración**
 
 En `backend/tests/integration/test_busqueda_proximidad.py`:
 
@@ -401,7 +401,7 @@ def test_busqueda_sin_coordenadas_devuelve_todos_los_activos(seed_data):
     assert all(r["distancia_km"] is None for r in resultados)
 ```
 
-- [ ] **Step 6: Ejecutar tests unitarios y de integración**
+- [x] **Step 6: Ejecutar tests unitarios y de integración**
 
 Run: `python -m pytest tests/test_servicio_publico.py -v`
 
@@ -413,7 +413,7 @@ Run: `$env:TEST_DATABASE_URL="postgresql://test:test@localhost:5433/serviclick_t
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add backend/repositories/servicio_repository.py backend/services/servicio_service.py backend/routers/servicios.py backend/schemas/servicio_schema.py backend/tests/test_servicio_publico.py backend/tests/integration/test_busqueda_proximidad.py
@@ -443,7 +443,7 @@ git commit -m "feat(backend): expose public catalog and summary"
   - `GET /proveedor/sitemap`.
   - `ServicioBusquedaOut.proveedor_perfil_publico: bool` y `proveedor_ciudad: str | None`.
 
-- [ ] **Step 1: Escribir tests de privacidad**
+- [x] **Step 1: Escribir tests de privacidad**
 
 ```python
 from unittest.mock import MagicMock
@@ -522,13 +522,13 @@ def test_perfil_publico_muestra_nombre_real():
     assert resultado["ciudad"] == "Talavera de la Reina"
 ```
 
-- [ ] **Step 2: Ejecutar y verificar fallo**
+- [x] **Step 2: Ejecutar y verificar fallo**
 
 Run: `python -m pytest tests/test_perfil_publico.py -v`
 
 Expected: FAIL porque `obtener_perfil_publico` no existe.
 
-- [ ] **Step 3: Implementar consultas**
+- [x] **Step 3: Implementar consultas**
 
 `ProveedorRepository.get_publico(perfil_id)` devuelve un diccionario con `perfil`, `usuario_nombre`, `usuario_avatar`, `fecha_creacion`. No incluye email ni teléfono.
 
@@ -536,7 +536,7 @@ Expected: FAIL porque `obtener_perfil_publico` no existe.
 
 `ValoracionRepository.listar_publicas_por_destinatario(destinatario_id, limit=10)` devuelve `puntuacion`, `comentario`, `fecha` y `autor_nombre` (nombre del autor). `destinatario_id` es `perfil.usuario_id`, no el id del perfil. El servicio reduce `autor_nombre` al primer nombre.
 
-- [ ] **Step 4: Implementar el schema y el servicio**
+- [x] **Step 4: Implementar el schema y el servicio**
 
 `PerfilProveedorPublicoOut` debe contener solo:
 
@@ -564,7 +564,7 @@ Regla de anonimización:
 
 `ServicioRepository.buscar_por_proximidad` y `obtener_detalle_publico` añaden `Perfil_Proveedor.perfil_publico` y `Perfil_Proveedor.ciudad` al `select`. Si es `False`, devuelven `proveedor_nombre="Profesional de Habilo"`, `proveedor_avatar=None`, `proveedor_ciudad=None` y `proveedor_perfil_publico=False`. `obtener_detalle_publico` filtra `Servicio.activo.isnot(False)`.
 
-- [ ] **Step 5: Implementar rutas**
+- [x] **Step 5: Implementar rutas**
 
 En `backend/routers/proveedores.py`, declarar en este orden:
 
@@ -577,13 +577,13 @@ GET /proveedor/{perfil_id}
 
 La ruta `GET /proveedor/{perfil_id}` cambia su `response_model` a `PerfilProveedorPublicoOut` y usa `obtener_perfil_publico`. `/sitemap` solo devuelve perfiles con `perfil_publico=True`.
 
-- [ ] **Step 6: Ejecutar tests**
+- [x] **Step 6: Ejecutar tests**
 
 Run: `python -m pytest tests/test_perfil_publico.py -v`
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add backend/repositories/proveedor_repository.py backend/repositories/valoracion_repository.py backend/repositories/servicio_repository.py backend/services/proveedor_service.py backend/schemas/proveedor_schema.py backend/schemas/servicio_schema.py backend/routers/proveedores.py backend/tests/test_perfil_publico.py
@@ -610,7 +610,7 @@ git commit -m "feat(backend): add consent-aware public provider profiles"
   - `NotificacionEmailService.enviar_a_email(destinatario: str, asunto: str, cuerpo_html: str) -> None`.
   - `POST /leads/` con rate limit `5/hour`.
 
-- [ ] **Step 1: Escribir tests del servicio**
+- [x] **Step 1: Escribir tests del servicio**
 
 ```python
 from unittest.mock import MagicMock, patch
@@ -673,7 +673,7 @@ def test_lead_de_servicio_inactivo_devuelve_400():
     assert exc.value.status_code == 400
 ```
 
-- [ ] **Step 2: Escribir test del honeypot**
+- [x] **Step 2: Escribir test del honeypot**
 
 ```python
 from fastapi import FastAPI
@@ -720,13 +720,13 @@ def test_lead_sin_consentimiento_devuelve_422():
     assert response.status_code == 422
 ```
 
-- [ ] **Step 3: Ejecutar y verificar fallo**
+- [x] **Step 3: Ejecutar y verificar fallo**
 
 Run: `python -m pytest tests/test_lead_service.py tests/test_lead_router.py -v`
 
 Expected: FAIL con `ModuleNotFoundError`.
 
-- [ ] **Step 4: Implementar persistencia y notificación**
+- [x] **Step 4: Implementar persistencia y notificación**
 
 `LeadRepository.crear(datos: dict) -> Lead` abre sesión, elimina `website` del diccionario, crea, hace commit y devuelve el lead.
 
@@ -752,7 +752,7 @@ Email:
 
 `NotificacionEmailService.enviar_a_email` usa `ejecutar_en_segundo_plano` y `_enviar_resend`, con `from=Config.EMAIL_FROM`.
 
-- [ ] **Step 5: Implementar router**
+- [x] **Step 5: Implementar router**
 
 `POST /leads/` con `status_code=201`, `@limiter.limit("5/hour")`.
 
@@ -762,13 +762,13 @@ Si no: `LeadService().crear(datos, pagina_origen=datos.pagina_origen)` y devolve
 
 Incluir `leads_router` en `backend/main.py`.
 
-- [ ] **Step 6: Ejecutar tests**
+- [x] **Step 6: Ejecutar tests**
 
 Run: `python -m pytest tests/test_lead_service.py tests/test_lead_router.py -v`
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add backend/repositories/lead_repository.py backend/services/lead_service.py backend/routers/leads.py backend/services/notificacion_email_service.py backend/main.py backend/tests/test_lead_service.py backend/tests/test_lead_router.py
@@ -803,7 +803,7 @@ git commit -m "feat(backend): capture anonymous leads"
   - Callback OAuth redirige a `{FRONTEND_URL}/login?token=...`.
   - Navbar anónimo muestra “Iniciar sesión” y “Soy profesor”.
 
-- [ ] **Step 1: Escribir test del redirect OAuth**
+- [x] **Step 1: Escribir test del redirect OAuth**
 
 ```python
 def test_url_redirect_token_usa_login():
@@ -811,7 +811,7 @@ def test_url_redirect_token_usa_login():
     assert _url_redirect_token("abc123") == "http://localhost:3000/login?token=abc123"
 ```
 
-- [ ] **Step 2: Escribir test E2E de rutas**
+- [x] **Step 2: Escribir test E2E de rutas**
 
 ```ts
 import { test, expect } from "@playwright/test"
@@ -832,7 +832,7 @@ test("home anónimo muestra iniciar sesión", async ({ page }) => {
 })
 ```
 
-- [ ] **Step 3: Ejecutar y verificar fallo**
+- [x] **Step 3: Ejecutar y verificar fallo**
 
 Run: `python -m pytest tests/test_auth_redirect.py -v`
 
@@ -842,7 +842,7 @@ Run: `npx playwright test e2e/login_route.spec.ts --project=chromium`
 
 Expected: FAIL porque `/login` no existe.
 
-- [ ] **Step 4: Mover el login**
+- [x] **Step 4: Mover el login**
 
 Copiar el contenido actual de `frontend/app/page.tsx` a `frontend/app/login/login-client.tsx` con el mismo `LoginPageInner` y `Suspense`.
 
@@ -861,7 +861,7 @@ export default function LoginPage() {
 
 Mantener el parámetro `token`, `ref` y la redirección por rol.
 
-- [ ] **Step 5: Redirección temporal de `/`**
+- [x] **Step 5: Redirección temporal de `/`**
 
 `frontend/app/page.tsx`:
 
@@ -878,7 +878,7 @@ export default async function Page({
 }
 ```
 
-- [ ] **Step 6: Corregir backend y frontend**
+- [x] **Step 6: Corregir backend y frontend**
 
 En `backend/routers/auth.py`, añadir:
 
@@ -899,7 +899,7 @@ En `navbar.tsx`:
 - El logo enlaza a `/home` para anónimos.
 - `handleLogout` sigue llevando a `/`.
 
-- [ ] **Step 7: Ejecutar tests**
+- [x] **Step 7: Ejecutar tests**
 
 Run: `python -m pytest tests/test_auth_redirect.py -v`
 
@@ -909,7 +909,7 @@ Run: `npx playwright test e2e/login_route.spec.ts --project=chromium`
 
 Expected: PASS.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add frontend/app/login/page.tsx frontend/app/login/login-client.tsx frontend/app/page.tsx frontend/components/auth-required-dialog.tsx frontend/components/navbar.tsx frontend/app/dashboard/page.tsx frontend/app/chats/page.tsx frontend/app/favoritos/page.tsx frontend/app/profile/page.tsx frontend/app/select-role/page.tsx frontend/app/admin/layout.tsx backend/routers/auth.py backend/tests/test_auth_redirect.py frontend/e2e/login_route.spec.ts
@@ -941,7 +941,7 @@ git commit -m "feat(auth): move login to /login"
   - Landing en `/` con H1 exacto, buscador y hasta 6 servicios reales.
   - `mapServicioParaTarjeta(s: ServicioBackend)`.
 
-- [ ] **Step 0: Desactivar captura no esencial antes de instrumentar**
+- [x] **Step 0: Desactivar captura no esencial antes de instrumentar**
 
 Antes de añadir cualquier evento, aplicar el Step 3 de Task 12:
 
@@ -950,7 +950,7 @@ Antes de añadir cualquier evento, aplicar el Step 3 de Task 12:
 
 Sin este paso, los eventos de landing y el `identify` de usuarios autenticados podrían ejecutarse antes del consentimiento.
 
-- [ ] **Step 1: Escribir test E2E**
+- [x] **Step 1: Escribir test E2E**
 
 ```ts
 import { test, expect } from "@playwright/test"
@@ -978,13 +978,13 @@ test("el manifest usa los iconos existentes", async ({ request }) => {
 })
 ```
 
-- [ ] **Step 2: Ejecutar y verificar fallo**
+- [x] **Step 2: Ejecutar y verificar fallo**
 
 Run: `npx playwright test e2e/landing.spec.ts --project=chromium`
 
 Expected: FAIL porque `/` redirige a `/home`.
 
-- [ ] **Step 3: Implementar server-api y mapper**
+- [x] **Step 3: Implementar server-api y mapper**
 
 `frontend/lib/server-api.ts`:
 
@@ -1051,7 +1051,7 @@ export function getUtm(): UtmData {
 }
 ```
 
-- [ ] **Step 4: Implementar landing**
+- [x] **Step 4: Implementar landing**
 
 `app/page.tsx` es Server Component:
 
@@ -1078,13 +1078,13 @@ No usar “miles de profesionales” ni “verificados”.
 
 `LandingTracker` es cliente: llama `storeUtmFromUrl(window.location.search)` y captura `referral_visit` si hay `ref`; el evento incluye `{ code }`.
 
-- [ ] **Step 5: Corregir manifest y metadata global**
+- [x] **Step 5: Corregir manifest y metadata global**
 
 En `manifest.ts`, cambiar las rutas de iconos a `/icon-192.png`, `/icon-512.png` y `/icon-maskable-512.png`.
 
 En `layout.tsx`, actualizar `metadata.description` y `keywords` para clases particulares en Talavera. Eliminar `alternates: { canonical: '/' }` del metadata global: cada página define su canonical. Añadir `<LandingTracker />` dentro del árbol de providers.
 
-- [ ] **Step 6: Ejecutar verificación**
+- [x] **Step 6: Ejecutar verificación**
 
 Run: `npx tsc --noEmit`
 
@@ -1098,7 +1098,7 @@ Run: `npx playwright test e2e/landing.spec.ts --project=chromium`
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add frontend/lib/server-api.ts frontend/lib/service-mapper.ts frontend/lib/utm.ts frontend/components/landing/landing-search.tsx frontend/components/landing/landing-teacher-cta.tsx frontend/components/landing/landing-tracker.tsx frontend/app/page.tsx frontend/app/layout.tsx frontend/app/manifest.ts frontend/e2e/landing.spec.ts
@@ -1123,7 +1123,7 @@ git commit -m "feat(frontend): add public landing page"
   - `buscarServicios` acepta `lat?`, `lng?`, `radio_km?`, `ciudad?`.
   - `/home?q=...&ciudad=...` renderiza datos iniciales en servidor.
 
-- [ ] **Step 1: Escribir test E2E**
+- [x] **Step 1: Escribir test E2E**
 
 ```ts
 import { test, expect } from "@playwright/test"
@@ -1144,13 +1144,13 @@ test("la búsqueda por URL llega al cliente", async ({ page }) => {
 })
 ```
 
-- [ ] **Step 2: Ejecutar y verificar fallo**
+- [x] **Step 2: Ejecutar y verificar fallo**
 
 Run: `npx playwright test e2e/home_ssr.spec.ts --project=chromium`
 
 Expected: FAIL porque `/home` sigue siendo Client Component sin datos iniciales.
 
-- [ ] **Step 3: Ampliar tipos y hook**
+- [x] **Step 3: Ampliar tipos y hook**
 
 En `lib/api.ts`, `buscarServicios` acepta:
 
@@ -1173,7 +1173,7 @@ En `HomeClient`:
 - No pedir geolocalización automáticamente. Leer solo una ubicación guardada en `localStorage`; `getBrowserLocation()` se ejecuta únicamente desde “Usar mi ubicación”.
 - No disparar `cargarServicios(true)` en el primer render si `coords === null`, `search === initialQuery`, `activeCategoriaId === null` y no hay `initialCiudad`: la lista ya viene del servidor. Usar un `useRef` para saltar ese primer efecto.
 
-- [ ] **Step 4: Separar servidor y cliente**
+- [x] **Step 4: Separar servidor y cliente**
 
 `app/home/page.tsx`:
 
@@ -1213,7 +1213,7 @@ export default async function HomePage({
 
 `home-client.tsx` recibe esas props, conserva el estado actual de filtros y usa `usePaginacion` con `initial`.
 
-- [ ] **Step 5: Ajustar comportamiento**
+- [x] **Step 5: Ajustar comportamiento**
 
 - Quitar el bloque que obliga a “Necesitamos tu ubicación” antes de mostrar servicios.
 - Mostrar siempre el grid; si no hay ubicación, indicar “Mostrando todos los servicios”.
@@ -1224,7 +1224,7 @@ export default async function HomePage({
 - No mostrar “0 servicios encontrados” en el HTML inicial si el servidor trajo servicios.
 - Cambiar el estado vacío a “No encontramos servicios con los filtros actuales.”
 
-- [ ] **Step 6: Ejecutar verificación**
+- [x] **Step 6: Ejecutar verificación**
 
 Run: `npx tsc --noEmit`
 
@@ -1238,7 +1238,7 @@ Run: `npx playwright test e2e/home_ssr.spec.ts --project=chromium`
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add frontend/app/home/page.tsx frontend/app/home/home-client.tsx frontend/hooks/use-paginacion.ts frontend/lib/api.ts frontend/e2e/home_ssr.spec.ts
@@ -1262,7 +1262,7 @@ git commit -m "feat(frontend): server-render home catalog"
   - `LeadContactDialog({ open, onOpenChange, servicioId?, perfilId?, profesionalNombre })`.
   - CTA anónimo de servicio abre el diálogo sin login.
 
-- [ ] **Step 1: Implementar tipos y llamada API**
+- [x] **Step 1: Implementar tipos y llamada API**
 
 En `lib/api.ts`:
 
@@ -1332,7 +1332,7 @@ export interface PerfilPublicoCompleto {
 }
 ```
 
-- [ ] **Step 2: Implementar diálogo**
+- [x] **Step 2: Implementar diálogo**
 
 `LeadContactDialog` usa los componentes `Dialog`, `Input`, `Label`, `Textarea`, `Checkbox` y `Button` existentes.
 
@@ -1352,7 +1352,7 @@ export interface PerfilPublicoCompleto {
 - Error genérico: “No se pudo enviar. Inténtalo de nuevo.”
 - Capturar `lead_submitted` con `{ service_id, perfil_id, channel }`.
 
-- [ ] **Step 3: Escribir test E2E**
+- [x] **Step 3: Escribir test E2E**
 
 ```ts
 import { test, expect } from "@playwright/test"
@@ -1376,13 +1376,13 @@ test("un visitante anónimo contacta sin crear cuenta", async ({ page }) => {
 })
 ```
 
-- [ ] **Step 4: Ejecutar y verificar fallo**
+- [x] **Step 4: Ejecutar y verificar fallo**
 
 Run: `npx playwright test e2e/service_contact.spec.ts --project=chromium`
 
 Expected: FAIL porque el CTA exige login.
 
-- [ ] **Step 5: Conectar el CTA**
+- [x] **Step 5: Conectar el CTA**
 
 En `service-detail-client.tsx`:
 
@@ -1391,7 +1391,7 @@ En `service-detail-client.tsx`:
 - Renderizar el diálogo junto a `AuthRequiredDialog`.
 - Mantener el texto del botón “Contactar profesional”.
 
-- [ ] **Step 6: Ejecutar verificación**
+- [x] **Step 6: Ejecutar verificación**
 
 Run: `npx tsc --noEmit`
 
@@ -1401,7 +1401,7 @@ Run: `npx playwright test e2e/service_contact.spec.ts --project=chromium`
 
 Expected: PASS si `TEST_SERVICIO_ID` está configurado; SKIP si no.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add frontend/components/lead-contact-dialog.tsx frontend/lib/api.ts frontend/app/home/service/[id]/service-detail-client.tsx frontend/e2e/service_contact.spec.ts
@@ -1424,7 +1424,7 @@ git commit -m "feat(frontend): add anonymous contact dialog"
   - HTML inicial con título, descripción, precio y profesional.
   - El CTA anónimo de Task 8 se mantiene sin volver a exigir login.
 
-- [ ] **Step 1: Escribir test E2E**
+- [x] **Step 1: Escribir test E2E**
 
 ```ts
 import { test, expect } from "@playwright/test"
@@ -1455,13 +1455,13 @@ test("el servicio se renderiza en servidor y permite contactar sin cuenta", asyn
 })
 ```
 
-- [ ] **Step 2: Ejecutar y verificar fallo**
+- [x] **Step 2: Ejecutar y verificar fallo**
 
 Run: `npx playwright test e2e/service_detail.spec.ts --project=chromium`
 
 Expected: FAIL porque el HTML inicial del servicio se renderiza en cliente.
 
-- [ ] **Step 3: Arreglar params y SSR**
+- [x] **Step 3: Arreglar params y SSR**
 
 En `page.tsx`, tipar `params` como `Promise<{ id: string }>` y hacer `const { id } = await params` tanto en `generateMetadata` como en el componente.
 
@@ -1480,7 +1480,7 @@ Usar `fetchPublicResponse<ServicioBackend>("/servicio/{id}")` desde `lib/server-
 
 Pasar `initialServicio` a `ServiceDetailClient`.
 
-- [ ] **Step 4: Ajustar cliente**
+- [x] **Step 4: Ajustar cliente**
 
 - Inicializar `servicio` con `initialServicio` y `cargando` en `!initialServicio`.
 - Si `initialServicio` existe, no volver a llamar a `getServicioDetalle` en el primer render; solo cargar la galería y el perfil.
@@ -1493,13 +1493,13 @@ Pasar `initialServicio` a `ServiceDetailClient`.
 - Botón compartir: `navigator.share` si existe; si no, abrir `https://wa.me/?text=...`; capturar `share_clicked` con `{ channel: "whatsapp" | "native", service_id }`.
 - Mantener `handleContactar` de Task 8 sin cambios.
 
-- [ ] **Step 5: Ajustar JSON-LD**
+- [x] **Step 5: Ajustar JSON-LD**
 
 - `provider.name` usa el nombre ya anonimizado por la API.
 - Añadir `areaServed` con la ciudad si existe.
 - Mantener `offers` y `aggregateRating` solo cuando haya datos reales.
 
-- [ ] **Step 6: Ejecutar verificación**
+- [x] **Step 6: Ejecutar verificación**
 
 Run: `npx tsc --noEmit`
 
@@ -1513,7 +1513,7 @@ Run: `npx playwright test e2e/service_detail.spec.ts --project=chromium`
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add frontend/app/home/service/[id]/page.tsx frontend/app/home/service/[id]/service-detail-client.tsx frontend/e2e/service_detail.spec.ts
@@ -1539,7 +1539,7 @@ git commit -m "feat(frontend): server-render service detail and anonymous contac
   - `robots: noindex, follow` si `perfil_publico === false`.
   - Sitemap sin URLs `?categoria=UUID`.
 
-- [ ] **Step 1: Escribir test E2E**
+- [x] **Step 1: Escribir test E2E**
 
 ```ts
 import { test, expect } from "@playwright/test"
@@ -1566,13 +1566,13 @@ test("el sitemap no incluye filtros con UUID", async ({ request }) => {
 })
 ```
 
-- [ ] **Step 2: Ejecutar y verificar fallo**
+- [x] **Step 2: Ejecutar y verificar fallo**
 
 Run: `npx playwright test e2e/public_profile.spec.ts --project=chromium`
 
 Expected: FAIL porque `/profesores/[id]` no existe.
 
-- [ ] **Step 3: Implementar página**
+- [x] **Step 3: Implementar página**
 
 `app/profesores/[id]/page.tsx`:
 
@@ -1591,7 +1591,7 @@ Expected: FAIL porque `/profesores/[id]` no existe.
 
 `PublicProfileContact` es cliente, renderiza un `Button` “Contactar” que abre `LeadContactDialog` con `perfilId` y `profesionalNombre`. Añade también un botón “Compartir por WhatsApp” que usa `navigator.share` si existe o `https://wa.me/?text=...`; captura `share_clicked` con `{ channel: "whatsapp" | "native", provider_id }`.
 
-- [ ] **Step 4: Limpiar sitemap y robots**
+- [x] **Step 4: Limpiar sitemap y robots**
 
 `sitemap.ts`:
 
@@ -1607,7 +1607,7 @@ Expected: FAIL porque `/profesores/[id]` no existe.
 - `allow`: `/`, `/home`, `/home/service/`, `/profesores/`.
 - `disallow`: `/dashboard`, `/admin`, `/chats`, `/profile`, `/favoritos`, `/select-role`, `/publish-service`, `/login`.
 
-- [ ] **Step 5: Ejecutar verificación**
+- [x] **Step 5: Ejecutar verificación**
 
 Run: `npx tsc --noEmit`
 
@@ -1621,7 +1621,7 @@ Run: `npx playwright test e2e/public_profile.spec.ts --project=chromium`
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add frontend/app/profesores/[id]/page.tsx frontend/components/public-profile-contact.tsx frontend/app/sitemap.ts frontend/app/robots.ts frontend/lib/api.ts frontend/e2e/public_profile.spec.ts
@@ -1645,7 +1645,7 @@ git commit -m "feat(frontend): add public provider profile and clean sitemap"
   - Formulario con `ciudad`, `zona`, `materias`, `niveles`, `perfil_publico`, `consentimiento_marketing`.
   - `actualizarPerfilProveedor` acepta los campos nuevos.
 
-- [ ] **Step 1: Corregir helper de test**
+- [x] **Step 1: Corregir helper de test**
 
 En `e2e/helpers/auth.ts`, usar la clave real del token:
 
@@ -1656,7 +1656,7 @@ localStorage.removeItem("serviclick_token")
 
 En `logout`, borrar `token` y `serviclick_role`.
 
-- [ ] **Step 2: Escribir test E2E**
+- [x] **Step 2: Escribir test E2E**
 
 ```ts
 import { test, expect } from "@playwright/test"
@@ -1672,13 +1672,13 @@ test("el profesor ve los ajustes de perfil público", async ({ page }) => {
 })
 ```
 
-- [ ] **Step 3: Ejecutar y verificar fallo**
+- [x] **Step 3: Ejecutar y verificar fallo**
 
 Run: `npx playwright test e2e/provider_settings.spec.ts --project=chromium`
 
 Expected: FAIL porque no existe el formulario.
 
-- [ ] **Step 4: Implementar formulario**
+- [x] **Step 4: Implementar formulario**
 
 `PerfilPublicoForm` recibe el perfil actual y muestra:
 
@@ -1693,13 +1693,13 @@ Expected: FAIL porque no existe el formulario.
 
 Insertar la tarjeta en `dashboard/page.tsx` después de `HorarioDisponibilidad`.
 
-- [ ] **Step 5: Ampliar tipos API**
+- [x] **Step 5: Ampliar tipos API**
 
 `actualizarPerfilProveedor` acepta `ciudad`, `zona`, `materias`, `niveles`, `perfil_publico`, `consentimiento_marketing`.
 
 Añadir `MiPerfilProveedor extends PerfilProveedorPublico` con `ciudad`, `zona`, `materias`, `niveles`, `perfil_publico`, `consentimiento_marketing`, `url_documento` y `motivo_rechazo`. Tipar `getMiPerfilProveedor()` con esa interfaz. No añadir `consentimiento_marketing` a `PerfilPublicoCompleto` ni a `PerfilProveedorPublico`.
 
-- [ ] **Step 6: Ejecutar verificación**
+- [x] **Step 6: Ejecutar verificación**
 
 Run: `npx tsc --noEmit`
 
@@ -1713,7 +1713,7 @@ Run: `npx playwright test e2e/provider_settings.spec.ts --project=chromium`
 
 Expected: PASS si `PROVEEDOR_TOKEN` está configurado; SKIP si no.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add frontend/components/perfil-publico-form.tsx frontend/app/dashboard/page.tsx frontend/lib/api.ts frontend/e2e/helpers/auth.ts frontend/e2e/provider_settings.spec.ts
@@ -1741,7 +1741,7 @@ git commit -m "feat(frontend): add provider public profile settings"
   - Banner con “Aceptar analítica” y “Solo esenciales”.
   - PostHog opt-out por defecto y sin persistencia hasta aceptar.
 
-- [ ] **Step 1: Escribir test E2E**
+- [x] **Step 1: Escribir test E2E**
 
 ```ts
 import { test, expect } from "@playwright/test"
@@ -1771,13 +1771,13 @@ test("aceptar analítica guarda la decisión", async ({ page }) => {
 })
 ```
 
-- [ ] **Step 2: Ejecutar y verificar fallo**
+- [x] **Step 2: Ejecutar y verificar fallo**
 
 Run: `npx playwright test e2e/consent.spec.ts --project=chromium`
 
 Expected: FAIL porque no hay banner.
 
-- [ ] **Step 3: Configurar PostHog opt-out**
+- [x] **Step 3: Configurar PostHog opt-out**
 
 En `instrumentation-client.ts`, mantener `posthog.init` con:
 
@@ -1791,7 +1791,7 @@ disable_session_recording: true,
 
 Eliminar `Sentry.replayIntegration()` y las opciones `replaysSessionSampleRate`/`replaysOnErrorSampleRate`. No se activa session replay en esta fase.
 
-- [ ] **Step 4: Implementar consentimiento**
+- [x] **Step 4: Implementar consentimiento**
 
 `ConsentProvider`:
 
@@ -1816,7 +1816,7 @@ En `app/layout.tsx`, envolver el árbol existente con `<ConsentProvider>` y rend
 
 `ConsentSettingsButton` usa `abrirBanner()` y se inserta en la política de privacidad.
 
-- [ ] **Step 5: Actualizar privacidad**
+- [x] **Step 5: Actualizar privacidad**
 
 En `frontend/app/legal/privacidad/page.tsx`:
 
@@ -1826,7 +1826,7 @@ En `frontend/app/legal/privacidad/page.tsx`:
 - 5: indicar conservación de leads durante 12 meses.
 - 9: explicar cookies técnicas y analítica opcional; cómo retirar el consentimiento; indicar que no se usa session replay.
 
-- [ ] **Step 6: Ejecutar verificación**
+- [x] **Step 6: Ejecutar verificación**
 
 Run: `npx tsc --noEmit`
 
@@ -1840,7 +1840,7 @@ Run: `npx playwright test e2e/consent.spec.ts --project=chromium`
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add frontend/context/consent-context.tsx frontend/components/consent-banner.tsx frontend/components/consent-settings-button.tsx frontend/instrumentation-client.ts frontend/context/auth-context.tsx frontend/app/layout.tsx frontend/app/legal/privacidad/page.tsx frontend/e2e/consent.spec.ts
@@ -1863,7 +1863,7 @@ git commit -m "feat(frontend): add consent-gated analytics"
   - SQL de backfill de categoría.
   - Runbook operativo para Vercel Analytics, GSC, Bing, PostHog, UTMs y opt-in de profesores.
 
-- [ ] **Step 1: Crear SQL de backfill**
+- [x] **Step 1: Crear SQL de backfill**
 
 `backend/migrations/2026-11-02_data_backfill.sql`:
 
@@ -1926,7 +1926,7 @@ COMMIT;
 
 Añadir `clases_particulares` a `backend/seed_categories.py` con el mismo icono y descripción, para que entornos locales nuevos tengan la categoría sin depender del SQL manual. No cambiar los IDs existentes.
 
-- [ ] **Step 2: Escribir runbook**
+- [x] **Step 2: Escribir runbook**
 
 `docs/growth/measurement-runbook.md` debe incluir:
 
@@ -1966,7 +1966,7 @@ Hola [nombre], estoy preparando el perfil público de Habilo para que las famili
 - Retención de leads: 12 meses; revisar y borrar manualmente los antiguos.
 - Gate de ads: no activar hasta 20 profesores y 10 reseñas.
 
-- [ ] **Step 3: Verificar el runbook**
+- [x] **Step 3: Verificar el runbook**
 
 Run: `Test-Path docs/growth/measurement-runbook.md`
 
@@ -1976,7 +1976,7 @@ Run: `Select-String -Path docs/growth/measurement-runbook.md -Pattern "utm_sourc
 
 Expected: al menos 3 coincidencias.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add backend/migrations/2026-11-02_data_backfill.sql backend/seed_categories.py docs/growth/measurement-runbook.md docs/superpowers/plans/2026-11-02-habilo-growth-foundation.md
