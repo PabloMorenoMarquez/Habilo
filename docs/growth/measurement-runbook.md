@@ -133,7 +133,7 @@ https://habilo.es/_vercel/insights/script.js
 
 Si devuelve `404`, revisar que Analytics esté activo en Vercel y que el despliegue sea el de producción.
 
-Vercel Analytics y PostHog solo se cargan después del consentimiento del banner. No ejecutes pruebas de humo aceptando analítica en producción con datos reales de menores.
+PostHog se inicializa en modo opt-out: no captura eventos ni persiste identificadores hasta que aceptas la analítica. Vercel Analytics no se carga hasta aceptar. No ejecutes pruebas de humo aceptando analítica en producción con datos reales de menores.
 
 ### 4.2 Google Search Console y Bing Webmaster Tools
 
