@@ -8,7 +8,10 @@ Sentry.init({
   dsn: "https://4afc0a0f384ca86508e2dc9326cdeb0a@o4511982693580800.ingest.de.sentry.io/4511982693974096",
 
   // Sin trazas: el aviso legal describe Sentry solo como registro de errores.
-  tracesSampleRate: 0,
+  // La integración HttpContext añade la URL completa y cabeceras sin respetar
+  // dataCollection, así que se excluye.
+  integrations: (integraciones) =>
+    integraciones.filter((integracion) => integracion.name !== "HttpContext"),
 
   dataCollection: {
     // No enviar información personal, cuerpos, cookies, cabeceras, parámetros

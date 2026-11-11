@@ -219,9 +219,11 @@ function detenerTransporte() {
 if (process.env.NODE_ENV !== "production" && typeof window !== "undefined") {
   const destino = window as Window & {
     __habiloAnalyticsOptOut?: () => boolean | null
+    __habiloAnalyticsCapturar?: (evento: string) => void
   }
   destino.__habiloAnalyticsOptOut = () =>
     cliente?.__loaded ? cliente.has_opted_out_capturing() : null
+  destino.__habiloAnalyticsCapturar = (evento) => captureIfConsented(evento)
 }
 
 /**

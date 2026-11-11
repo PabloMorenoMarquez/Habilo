@@ -4,6 +4,24 @@ const CLAVE_CONSENTIMIENTO = "habilo_consent_v1"
 const POSTHOG = /posthog\.com/i
 
 /**
+ * PostHog descarta eventos de navegadores automatizados: detecta
+ * `navigator.webdriver` y la marca "HeadlessChrome" en `userAgentData`. Playwright
+ * los expone por defecto, lo que dejaría los tests de red vacíos. Se ocultan
+ * solo en este spec para que las peticiones a PostHog sean reales.
+ */
+test.use({
+  userAgent:
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+})
+
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "webdriver", { get: () => false })
+    Object.defineProperty(navigator, "userAgentData", { get: () => undefined })
+  })
+})
+
+/**
  * Intercepta cualquier petición a PostHog y la responde con 200 vacío. Sirve
  * para comprobar que no se intenta enviar nada antes del consentimiento ni
  * después de retirarlo, sin provocar reintentos del SDK.
@@ -18,10 +36,8 @@ async function interceptarPostHog(page: Page): Promise<string[]> {
 }
 
 /**
- * Lee el estado real de PostHog en el navegador. En localhost PostHog marca la
- * sesión como entorno de test (`$internal_or_test_user`) y no manda eventos,
- * así que la inicialización se comprueba con el marcador de desarrollo y con
- * su persistencia, no con la red.
+ * Lee el estado real de PostHog en el navegador. La inicialización se comprueba
+ * con el marcador de desarrollo y con su persistencia, no solo con la red.
  */
 function analyticsIniciado(page: Page) {
   return page.evaluate(() =>
@@ -161,22 +177,38 @@ test("retirar el consentimiento para los envíos y limpia la persistencia", asyn
 })
 
 test("retirar justo después de aceptar corta los envíos pendientes", async ({ page }) => {
-  const peticiones = await interceptarPostHog(page)
-  await paginaSinDecision(page)
+  const marcas: number[] = []
+  await page.route(POSTHOG, async (route) => {
+    marcas.push(Date.now())
+    await route.fulfill({ status: 200, contentType: "application/json", body: "{}" })
+  })
+  await page.addInitScript((clave) => {
+    localStorage.setItem(clave, JSON.stringify({ analytics: true, ts: new Date().toISOString() }))
+  }, CLAVE_CONSENTIMIENTO)
 
-  await page.getByRole("button", { name: "Aceptar analítica" }).click()
+  await page.goto("/")
   await expect.poll(() => analyticsIniciado(page), { timeout: 15_000 }).toBe(true)
+  await expect.poll(() => marcas.length, { timeout: 15_000 }).toBeGreaterThan(0)
 
-  // Sin esperar ninguna ventana de batching: abrir preferencias y retirar.
+  // Evento de negocio justo antes de retirar: con batching volvería a salir
+  // 3 s después, ya sin consentimiento.
+  await page.evaluate(() => {
+    const ventana = window as Window & {
+      __habiloAnalyticsCapturar?: (evento: string) => void
+    }
+    ventana.__habiloAnalyticsCapturar?.("e2e_previo_a_retirada")
+  })
+
   await page.locator('a[href="/legal/privacidad"]').first().click()
   await page.getByRole("button", { name: "Cambiar preferencias de cookies" }).click()
   await page.getByRole("button", { name: "Solo esenciales" }).click()
   await expect.poll(() => analyticsOptOut(page), { timeout: 15_000 }).toBe(true)
 
-  const trasRetirar = peticiones.length
+  const retirada = Date.now()
   await page.waitForTimeout(5000)
 
-  expect(peticiones.length).toBe(trasRetirar)
+  const posteriores = marcas.filter((marca) => marca > retirada + 250)
+  expect(posteriores).toHaveLength(0)
 })
 
 test("retirar mientras carga el chunk de PostHog impide su inicialización", async ({ page }) => {

@@ -8,9 +8,7 @@ import * as Sentry from "@sentry/nextjs";
 Sentry.init({
   dsn: "https://4afc0a0f384ca86508e2dc9326cdeb0a@o4511982693580800.ingest.de.sentry.io/4511982693974096",
 
-  // Sin trazas: el aviso legal describe Sentry solo como registro de errores.
-  tracesSampleRate: 0,
-
+  // Sin `tracesSampleRate`: no se envían trazas, solo errores.
   dataCollection: {
     // No enviar información personal, cuerpos, cookies, cabeceras, parámetros
     // de URL ni variables locales.
