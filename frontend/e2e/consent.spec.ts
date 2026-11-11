@@ -28,6 +28,13 @@ function analyticsIniciado(page: Page) {
   )
 }
 
+function analyticsOptOut(page: Page) {
+  return page.evaluate(() => {
+    const ventana = window as Window & { __habiloAnalyticsOptOut?: () => boolean | null }
+    return ventana.__habiloAnalyticsOptOut ? ventana.__habiloAnalyticsOptOut() : null
+  })
+}
+
 async function estadoAnalitica(page: Page) {
   return page.evaluate(() => {
     const claves = Object.keys(localStorage)
@@ -102,6 +109,7 @@ test("aceptar analítica inicializa PostHog y deja persistencia", async ({ page 
 
   await expect.poll(() => analyticsIniciado(page), { timeout: 15_000 }).toBe(true)
   await expect.poll(async () => (await estadoAnalitica(page)).optIn).toBe(true)
+  expect(await analyticsOptOut(page)).toBe(false)
 
   const consentimiento = await page.evaluate(
     (clave) => localStorage.getItem(clave),
@@ -121,6 +129,7 @@ test("retirar el consentimiento para los envíos y limpia la persistencia", asyn
   await expect.poll(() => analyticsIniciado(page), { timeout: 15_000 }).toBe(true)
 
   await page.goto("/legal/privacidad")
+  await expect.poll(() => analyticsIniciado(page), { timeout: 15_000 }).toBe(true)
   await page.waitForTimeout(1000)
   peticiones.length = 0
 
@@ -135,6 +144,7 @@ test("retirar el consentimiento para los envíos y limpia la persistencia", asyn
     .toContain('"analytics":false')
 
   await expect.poll(() => analyticsIniciado(page), { timeout: 15_000 }).toBe(false)
+  await expect.poll(() => analyticsOptOut(page), { timeout: 15_000 }).toBe(true)
 
   // El marcador "0" es la prueba durable del opt-out; la persistencia activa
   // y las cookies deben desaparecer.
@@ -177,9 +187,32 @@ test("sincroniza el rechazo de otra pestaña y deja de capturar", async ({ conte
   await otra.getByRole("button", { name: "Solo esenciales" }).click()
 
   await expect.poll(() => analyticsIniciado(page), { timeout: 15_000 }).toBe(false)
+  await expect.poll(() => analyticsOptOut(page), { timeout: 15_000 }).toBe(true)
   const estado = await estadoAnalitica(page)
   expect(estado.marcador).toBe("0")
   expect(estado.almacen).toBe(false)
+})
+
+test("volver a aceptar tras retirar reactiva la analítica", async ({ page }) => {
+  await interceptarPostHog(page)
+  await paginaSinDecision(page)
+
+  await page.getByRole("button", { name: "Aceptar analítica" }).click()
+  await expect.poll(() => analyticsIniciado(page), { timeout: 15_000 }).toBe(true)
+
+  await page.goto("/legal/privacidad")
+  await expect.poll(() => analyticsIniciado(page), { timeout: 15_000 }).toBe(true)
+  await page.getByRole("button", { name: "Cambiar preferencias de cookies" }).click()
+  await page.getByRole("button", { name: "Solo esenciales" }).click()
+  await expect.poll(() => analyticsOptOut(page), { timeout: 15_000 }).toBe(true)
+
+  await page.getByRole("button", { name: "Cambiar preferencias de cookies" }).click()
+  await page.getByRole("button", { name: "Aceptar analítica" }).click()
+
+  await expect.poll(() => analyticsIniciado(page), { timeout: 15_000 }).toBe(true)
+  expect(await analyticsOptOut(page)).toBe(false)
+  const estado = await estadoAnalitica(page)
+  expect(estado.marcador).toBe("1")
 })
 
 test("un consentimiento guardado afirmativo inicializa PostHog sin mostrar el banner", async ({

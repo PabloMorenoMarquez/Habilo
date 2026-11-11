@@ -53,9 +53,10 @@ export function initAnalytics(): Promise<void> {
 
   if (cliente?.__loaded) {
     if (!analyticsActivo) {
-      cliente.opt_in_capturing()
+      cliente.opt_in_capturing({ captureEventName: false })
       analyticsActivo = true
     }
+    marcarInicializacion(true)
     return Promise.resolve()
   }
 
@@ -84,7 +85,7 @@ export function initAnalytics(): Promise<void> {
             advanced_disable_flags: true,
           })
         }
-        posthog.opt_in_capturing()
+        posthog.opt_in_capturing({ captureEventName: false })
         analyticsActivo = true
         marcarInicializacion(true)
       })
@@ -126,7 +127,7 @@ export function resetAnalyticsIdentity(): void {
   if (!cliente?.__loaded) return
   cliente.reset()
   if (tieneConsentimientoAnalitico()) {
-    cliente.opt_in_capturing()
+    cliente.opt_in_capturing({ captureEventName: false })
     analyticsActivo = true
   } else {
     // Sin consentimiento, reset() deja la instancia en su estado por defecto
@@ -179,6 +180,16 @@ export function captureExceptionIfConsented(error: unknown): void {
 
 function esClaveOptInOut(nombre: string): boolean {
   return nombre.startsWith("__ph_opt_in_out_")
+}
+
+// Sonda de solo desarrollo para que los E2E verifiquen el estado real del
+// consentimiento dentro del SDK. En producción no se ejecuta.
+if (process.env.NODE_ENV !== "production" && typeof window !== "undefined") {
+  const destino = window as Window & {
+    __habiloAnalyticsOptOut?: () => boolean | null
+  }
+  destino.__habiloAnalyticsOptOut = () =>
+    cliente?.__loaded ? cliente.has_opted_out_capturing() : null
 }
 
 /**
