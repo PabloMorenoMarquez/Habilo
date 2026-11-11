@@ -160,6 +160,25 @@ test("retirar el consentimiento para los envíos y limpia la persistencia", asyn
   expect(await clavesPostHogActivas(page)).toHaveLength(0)
 })
 
+test("retirar justo después de aceptar corta los envíos pendientes", async ({ page }) => {
+  const peticiones = await interceptarPostHog(page)
+  await paginaSinDecision(page)
+
+  await page.getByRole("button", { name: "Aceptar analítica" }).click()
+  await expect.poll(() => analyticsIniciado(page), { timeout: 15_000 }).toBe(true)
+
+  // Sin esperar ninguna ventana de batching: abrir preferencias y retirar.
+  await page.locator('a[href="/legal/privacidad"]').first().click()
+  await page.getByRole("button", { name: "Cambiar preferencias de cookies" }).click()
+  await page.getByRole("button", { name: "Solo esenciales" }).click()
+  await expect.poll(() => analyticsOptOut(page), { timeout: 15_000 }).toBe(true)
+
+  const trasRetirar = peticiones.length
+  await page.waitForTimeout(5000)
+
+  expect(peticiones.length).toBe(trasRetirar)
+})
+
 test("retirar mientras carga el chunk de PostHog impide su inicialización", async ({ page }) => {
   const peticiones = await interceptarPostHog(page)
   await paginaSinDecision(page)

@@ -13,6 +13,8 @@ let analyticsActivo = false
 // Sube al retirar el consentimiento. Un init en vuelo compara su época y se
 // aborta si el usuario retiró el permiso mientras cargaba el chunk.
 let epoca = 0
+// Corta los envíos en vuelo y los reintentos cuando se retira el permiso.
+let controladorEnvios: AbortController | null = null
 
 export function leerConsentimiento(): boolean | null {
   if (typeof window === "undefined") return null
@@ -53,6 +55,7 @@ export function initAnalytics(): Promise<void> {
 
   if (cliente?.__loaded) {
     if (!analyticsActivo) {
+      prepararTransporte(cliente)
       cliente.opt_in_capturing({ captureEventName: false })
       analyticsActivo = true
     }
@@ -83,8 +86,11 @@ export function initAnalytics(): Promise<void> {
             capture_exceptions: true,
             disable_surveys: true,
             advanced_disable_flags: true,
+            // Sin batching no queda una ventana de 3 s con eventos sin enviar.
+            request_batching: false,
           })
         }
+        prepararTransporte(posthog)
         posthog.opt_in_capturing({ captureEventName: false })
         analyticsActivo = true
         marcarInicializacion(true)
@@ -117,7 +123,7 @@ export function revocarAnalytics(): void {
     // optar por fuera después para que no quede capturando tras la retirada.
     cliente.reset()
     cliente.opt_out_capturing()
-    descartarEnviosPendientes(cliente)
+    detenerTransporte()
     analyticsActivo = false
   }
   marcarInicializacion(false)
@@ -128,9 +134,9 @@ export function resetAnalyticsIdentity(): void {
   if (!cliente?.__loaded) return
   if (!tieneConsentimientoAnalitico()) {
     // Sin consentimiento, reset() escribiría un identificador nuevo y dejaría
-    // la captura activa. Solo apagamos, descartamos colas y limpiamos.
+    // la captura activa. Solo apagamos, cortamos envíos y limpiamos.
     cliente.opt_out_capturing()
-    descartarEnviosPendientes(cliente)
+    detenerTransporte()
     analyticsActivo = false
     epoca += 1
     marcarInicializacion(false)
@@ -138,6 +144,7 @@ export function resetAnalyticsIdentity(): void {
     return
   }
   cliente.reset()
+  prepararTransporte(cliente)
   cliente.opt_in_capturing({ captureEventName: false })
   analyticsActivo = true
 }
@@ -185,24 +192,26 @@ function esClaveOptInOut(nombre: string): boolean {
   return nombre.startsWith("__ph_opt_in_out_")
 }
 
-type PostHogInterno = {
-  _requestQueue?: { _queue?: unknown[]; _clearFlushTimeout?: () => void }
-  _retryQueue?: { _queue?: unknown[] }
+type ConfigConTransporte = {
+  fetch_options?: { signal?: AbortSignal }
 }
 
 /**
- * posthog-js no ofrece una API pública para descartar la cola de envío:
- * `shutdown()` la vacía enviándola. Tras retirar el consentimiento hay que
- * impedir esa transmisión, así que vaciamos las colas internas (la versión
- * del SDK está fijada en package.json).
+ * `request_batching: false` hace que cada evento se envíe al capturarlo, sin
+ * ventana de 3 s. El `AbortController` permite cortar además el envío en vuelo
+ * y los reintentos cuando se retira el consentimiento. Al volver a aceptar se
+ * instala un controlador nuevo.
  */
-function descartarEnviosPendientes(instancia: PostHog) {
-  const interno = instancia as unknown as PostHogInterno
-  interno._requestQueue?._clearFlushTimeout?.()
-  const peticiones = interno._requestQueue?._queue
-  if (Array.isArray(peticiones)) peticiones.length = 0
-  const reintentos = interno._retryQueue?._queue
-  if (Array.isArray(reintentos)) reintentos.length = 0
+function prepararTransporte(instancia: PostHog) {
+  controladorEnvios?.abort()
+  controladorEnvios = new AbortController()
+  const config = instancia.config as unknown as ConfigConTransporte
+  config.fetch_options = { signal: controladorEnvios.signal }
+}
+
+function detenerTransporte() {
+  controladorEnvios?.abort()
+  controladorEnvios = null
 }
 
 // Sonda de solo desarrollo para que los E2E verifiquen el estado real del
