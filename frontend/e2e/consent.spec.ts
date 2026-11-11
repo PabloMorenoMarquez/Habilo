@@ -35,6 +35,23 @@ async function interceptarPostHog(page: Page): Promise<string[]> {
   return peticiones
 }
 
+const EVENTO_POSTHOG = /posthog\.com\/e\//
+
+/** Extrae los nombres de evento del cuerpo JSON de PostHog. */
+function eventosDelCuerpo(cuerpo: string | null): string[] {
+  if (!cuerpo) return []
+  try {
+    const json = JSON.parse(cuerpo) as {
+      event?: string
+      batch?: Array<{ event?: string }>
+    }
+    const lista = json.batch ?? [json]
+    return lista.map((evento) => evento.event).filter((evento): evento is string => Boolean(evento))
+  } catch {
+    return []
+  }
+}
+
 /**
  * Lee el estado real de PostHog en el navegador. La inicialización se comprueba
  * con el marcador de desarrollo y con su persistencia, no solo con la red.
@@ -178,8 +195,10 @@ test("retirar el consentimiento para los envíos y limpia la persistencia", asyn
 
 test("retirar justo después de aceptar corta los envíos pendientes", async ({ page }) => {
   const marcas: number[] = []
+  const eventos: string[] = []
   await page.route(POSTHOG, async (route) => {
     marcas.push(Date.now())
+    eventos.push(...eventosDelCuerpo(route.request().postData()))
     await route.fulfill({ status: 200, contentType: "application/json", body: "{}" })
   })
   await page.addInitScript((clave) => {
@@ -199,7 +218,10 @@ test("retirar justo después de aceptar corta los envíos pendientes", async ({ 
     }
     ventana.__habiloAnalyticsCapturar?.("e2e_previo_a_retirada")
   })
-  await expect.poll(() => marcas.length, { timeout: 15_000 }).toBeGreaterThan(antesDelEvento)
+  await expect
+    .poll(() => eventos.includes("e2e_previo_a_retirada"), { timeout: 15_000 })
+    .toBe(true)
+  expect(marcas.length).toBeGreaterThan(antesDelEvento)
 
   await page.locator('a[href="/legal/privacidad"]').first().click()
   await page.getByRole("button", { name: "Cambiar preferencias de cookies" }).click()
@@ -211,6 +233,76 @@ test("retirar justo después de aceptar corta los envíos pendientes", async ({ 
 
   const posteriores = marcas.filter((marca) => marca > retirada + 250)
   expect(posteriores).toHaveLength(0)
+})
+
+test("retirar aborta un envío en vuelo y no lo reintenta", async ({ context, page }) => {
+  const peticiones: string[] = []
+  const canceladas: string[] = []
+  page.on("requestfailed", (req) => {
+    if (EVENTO_POSTHOG.test(req.url())) {
+      canceladas.push(req.failure()?.errorText ?? "desconocido")
+    }
+  })
+
+  // La segunda pestaña retira el consentimiento; sus envíos no salen a la red.
+  await context.route(POSTHOG, async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: "{}" })
+  })
+
+  let liberar: () => void = () => {}
+  const bloqueo = new Promise<void>((resolve) => {
+    liberar = resolve
+  })
+  let enVuelo = false
+
+  await page.route(POSTHOG, async (route) => {
+    if (!EVENTO_POSTHOG.test(route.request().url())) {
+      await route.fulfill({ status: 200, contentType: "application/javascript", body: "" })
+      return
+    }
+
+    // Los eventos de `init()` salen antes de instalar `fetch_options`; se
+    // retiene uno posterior, ya cubierto por la señal de retirada.
+    if (!enVuelo && eventosDelCuerpo(route.request().postData()).includes("e2e_envio_en_vuelo")) {
+      enVuelo = true
+      peticiones.push(route.request().url())
+      await bloqueo
+      await route
+        .fulfill({ status: 200, contentType: "application/json", body: "{}" })
+        .catch(() => {})
+      return
+    }
+
+    await route.fulfill({ status: 200, contentType: "application/json", body: "{}" })
+  })
+
+  await paginaSinDecision(page)
+  await page.getByRole("button", { name: "Aceptar analítica" }).click()
+  await expect.poll(() => analyticsIniciado(page), { timeout: 15_000 }).toBe(true)
+
+  await page.evaluate(() => {
+    const ventana = window as Window & {
+      __habiloAnalyticsCapturar?: (evento: string) => void
+    }
+    ventana.__habiloAnalyticsCapturar?.("e2e_envio_en_vuelo")
+  })
+  await expect.poll(() => enVuelo, { timeout: 15_000 }).toBe(true)
+
+  // La primera pestaña sigue en "/" con el envío retenido; la segunda retira.
+  const otra = await context.newPage()
+  await otra.goto("/legal/privacidad")
+  await otra.getByRole("button", { name: "Cambiar preferencias de cookies" }).click()
+  await otra.getByRole("button", { name: "Solo esenciales" }).click()
+
+  await expect.poll(() => analyticsOptOut(page), { timeout: 15_000 }).toBe(true)
+  await expect.poll(() => canceladas.length, { timeout: 10_000 }).toBeGreaterThan(0)
+  expect(canceladas.every((motivo) => motivo.includes("ERR_ABORTED"))).toBe(true)
+
+  const antesDeLiberar = peticiones.length
+  liberar()
+  // Un reintento de PostHog llegaría entre 1,5 y 4,5 s después del fallo.
+  await page.waitForTimeout(6000)
+  expect(peticiones.length).toBe(antesDeLiberar)
 })
 
 test("retirar mientras carga el chunk de PostHog impide su inicialización", async ({ page }) => {

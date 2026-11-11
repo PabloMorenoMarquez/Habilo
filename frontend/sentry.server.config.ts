@@ -8,7 +8,9 @@ import { sinParametrosEnBreadcrumb, sinParametrosEnEvento } from "./lib/sentry-s
 Sentry.init({
   dsn: "https://4afc0a0f384ca86508e2dc9326cdeb0a@o4511982693580800.ingest.de.sentry.io/4511982693974096",
 
-  // Sin `tracesSampleRate`: no se envían trazas, solo errores.
+  // Sin trazas: solo se registran errores. Se fija en 0 para que una variable
+  // de entorno no active el envío de transacciones con URLs.
+  tracesSampleRate: 0,
   beforeBreadcrumb: sinParametrosEnBreadcrumb,
   beforeSend: sinParametrosEnEvento,
   dataCollection: {

@@ -88,6 +88,9 @@ export function initAnalytics(): Promise<void> {
             advanced_disable_flags: true,
             // Sin batching no queda una ventana de 3 s con eventos sin enviar.
             request_batching: false,
+            // En desarrollo el cuerpo va sin comprimir para que los E2E
+            // comprueben qué evento se envió; en producción se comprime.
+            disable_compression: process.env.NODE_ENV !== "production",
           })
         }
         prepararTransporte(posthog)
@@ -196,6 +199,40 @@ type ConfigConTransporte = {
   fetch_options?: { signal?: AbortSignal }
 }
 
+const TIMEOUT_ENVIO_MS = 60_000
+
+/**
+ * Compone la señal de retirada con un timeout por envío. `AbortSignal.any` y
+ * `AbortSignal.timeout` no existen en navegadores antiguos; ahí se construye
+ * la composición a mano para no perder el timeout.
+ */
+function componerSenal(retirada: AbortSignal): AbortSignal {
+  if (typeof AbortSignal.any === "function" && typeof AbortSignal.timeout === "function") {
+    return AbortSignal.any([retirada, AbortSignal.timeout(TIMEOUT_ENVIO_MS)])
+  }
+
+  const compuesta = new AbortController()
+  const temporizador = setTimeout(() => compuesta.abort(), TIMEOUT_ENVIO_MS)
+  const abortar = () => {
+    clearTimeout(temporizador)
+    compuesta.abort()
+  }
+  compuesta.signal.addEventListener(
+    "abort",
+    () => {
+      clearTimeout(temporizador)
+      retirada.removeEventListener("abort", abortar)
+    },
+    { once: true }
+  )
+  if (retirada.aborted) {
+    abortar()
+  } else {
+    retirada.addEventListener("abort", abortar, { once: true })
+  }
+  return compuesta.signal
+}
+
 /**
  * `request_batching: false` hace que cada evento se envíe al capturarlo, sin
  * ventana de 3 s. El `AbortController` permite cortar además el envío en vuelo
@@ -213,12 +250,7 @@ function prepararTransporte(instancia: PostHog) {
   const opciones: { signal?: AbortSignal } = {}
   Object.defineProperty(opciones, "signal", {
     enumerable: true,
-    get: () => {
-      if (typeof AbortSignal.any !== "function" || typeof AbortSignal.timeout !== "function") {
-        return controlador.signal
-      }
-      return AbortSignal.any([controlador.signal, AbortSignal.timeout(60_000)])
-    },
+    get: () => componerSenal(controlador.signal),
   })
 
   const config = instancia.config as unknown as ConfigConTransporte
