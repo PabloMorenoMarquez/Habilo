@@ -42,6 +42,7 @@ export default function PrivacyPage() {
           <li>Gestionar reportes, bloqueos y suspensiones: interés legítimo en mantener un entorno seguro y cumplimiento de estos Términos.</li>
           <li>Enviarte comunicaciones esenciales sobre tu cuenta o solicitudes: ejecución del contrato.</li>
           <li>Cumplir obligaciones legales aplicables: cumplimiento de una obligación legal (art. 6.1.c RGPD).</li>
+          <li>Registrar errores técnicos: interés legítimo en la seguridad y estabilidad de la Plataforma (art. 6.1.f RGPD). Sentry no recibe datos de usuario ni cuerpos de petición.</li>
           <li>Medir el uso de la Plataforma con analítica: tu consentimiento (art. 6.1.a RGPD). Solo se activa si aceptas y puedes retirarlo en cualquier momento.</li>
         </ul>
       </section>

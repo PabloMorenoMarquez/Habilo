@@ -117,6 +117,7 @@ export function revocarAnalytics(): void {
     // optar por fuera después para que no quede capturando tras la retirada.
     cliente.reset()
     cliente.opt_out_capturing()
+    descartarEnviosPendientes(cliente)
     analyticsActivo = false
   }
   marcarInicializacion(false)
@@ -125,18 +126,20 @@ export function revocarAnalytics(): void {
 
 export function resetAnalyticsIdentity(): void {
   if (!cliente?.__loaded) return
-  cliente.reset()
-  if (tieneConsentimientoAnalitico()) {
-    cliente.opt_in_capturing({ captureEventName: false })
-    analyticsActivo = true
-  } else {
-    // Sin consentimiento, reset() deja la instancia en su estado por defecto
-    // (capturando). Hay que volver a apagarla explícitamente.
+  if (!tieneConsentimientoAnalitico()) {
+    // Sin consentimiento, reset() escribiría un identificador nuevo y dejaría
+    // la captura activa. Solo apagamos, descartamos colas y limpiamos.
     cliente.opt_out_capturing()
+    descartarEnviosPendientes(cliente)
     analyticsActivo = false
     epoca += 1
     marcarInicializacion(false)
+    limpiarPersistenciaPostHog()
+    return
   }
+  cliente.reset()
+  cliente.opt_in_capturing({ captureEventName: false })
+  analyticsActivo = true
 }
 
 export function captureIfConsented(event: string, properties?: Properties): void {
@@ -182,6 +185,26 @@ function esClaveOptInOut(nombre: string): boolean {
   return nombre.startsWith("__ph_opt_in_out_")
 }
 
+type PostHogInterno = {
+  _requestQueue?: { _queue?: unknown[]; _clearFlushTimeout?: () => void }
+  _retryQueue?: { _queue?: unknown[] }
+}
+
+/**
+ * posthog-js no ofrece una API pública para descartar la cola de envío:
+ * `shutdown()` la vacía enviándola. Tras retirar el consentimiento hay que
+ * impedir esa transmisión, así que vaciamos las colas internas (la versión
+ * del SDK está fijada en package.json).
+ */
+function descartarEnviosPendientes(instancia: PostHog) {
+  const interno = instancia as unknown as PostHogInterno
+  interno._requestQueue?._clearFlushTimeout?.()
+  const peticiones = interno._requestQueue?._queue
+  if (Array.isArray(peticiones)) peticiones.length = 0
+  const reintentos = interno._retryQueue?._queue
+  if (Array.isArray(reintentos)) reintentos.length = 0
+}
+
 // Sonda de solo desarrollo para que los E2E verifiquen el estado real del
 // consentimiento dentro del SDK. En producción no se ejecuta.
 if (process.env.NODE_ENV !== "production" && typeof window !== "undefined") {
@@ -212,12 +235,19 @@ function limpiarPersistenciaPostHog() {
 
   if (nombresCookie.length > 0) {
     const host = window.location.hostname
-    const dominios: Array<string | null> = [null, host, `.${host}`]
-    const partes = host.split(".")
     const esIp = /^\d+$/.test(host)
-    if (partes.length > 2 && !esIp) {
-      const raiz = partes.slice(-2).join(".")
-      dominios.push(raiz, `.${raiz}`)
+    const dominios = new Set<string | null>([null, host, `.${host}`])
+    if (esIp) {
+      dominios.add(`.${host}`)
+    } else {
+      // Cubre cualquier sufijo, no solo el dominio registrable: así también
+      // se borran cookies puestas en sufijos de varias etiquetas.
+      const partes = host.split(".")
+      for (let i = 1; i < partes.length; i += 1) {
+        const sufijo = partes.slice(i).join(".")
+        dominios.add(sufijo)
+        dominios.add(`.${sufijo}`)
+      }
     }
 
     for (const nombre of nombresCookie) {

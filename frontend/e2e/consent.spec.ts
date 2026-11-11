@@ -4,14 +4,15 @@ const CLAVE_CONSENTIMIENTO = "habilo_consent_v1"
 const POSTHOG = /posthog\.com/i
 
 /**
- * Intercepta cualquier petición a PostHog y la aborta. Sirve para comprobar
- * que no se intenta enviar nada antes del consentimiento ni después de retirarlo.
+ * Intercepta cualquier petición a PostHog y la responde con 200 vacío. Sirve
+ * para comprobar que no se intenta enviar nada antes del consentimiento ni
+ * después de retirarlo, sin provocar reintentos del SDK.
  */
 async function interceptarPostHog(page: Page): Promise<string[]> {
   const peticiones: string[] = []
   await page.route(POSTHOG, async (route) => {
     peticiones.push(route.request().url())
-    await route.abort()
+    await route.fulfill({ status: 200, contentType: "application/json", body: "{}" })
   })
   return peticiones
 }
@@ -154,6 +155,48 @@ test("retirar el consentimiento para los envíos y limpia la persistencia", asyn
 
   await page.waitForTimeout(3500)
 
+  expect(peticiones).toHaveLength(0)
+  expect(cookiesPostHog(await page.context().cookies())).toHaveLength(0)
+  expect(await clavesPostHogActivas(page)).toHaveLength(0)
+})
+
+test("retirar mientras carga el chunk de PostHog impide su inicialización", async ({ page }) => {
+  const peticiones = await interceptarPostHog(page)
+  await paginaSinDecision(page)
+
+  let liberar: () => void = () => {}
+  const bloqueo = new Promise<void>((resolve) => {
+    liberar = resolve
+  })
+  let chunkPedido: () => void = () => {}
+  const pedido = new Promise<void>((resolve) => {
+    chunkPedido = resolve
+  })
+  await page.route(/posthog-js.*\.js/, async (route) => {
+    chunkPedido()
+    await bloqueo
+    await route.continue()
+  })
+
+  await page.getByRole("button", { name: "Aceptar analítica" }).click()
+  await pedido
+
+  // Navegación de cliente a la página legal: el import del chunk sigue en vuelo.
+  await page.locator('a[href="/legal/privacidad"]').first().click()
+  await page.getByRole("button", { name: "Cambiar preferencias de cookies" }).click()
+  await page.getByRole("button", { name: "Solo esenciales" }).click()
+  await expect
+    .poll(
+      () => page.evaluate((clave) => localStorage.getItem(clave), CLAVE_CONSENTIMIENTO),
+      { timeout: 15_000 }
+    )
+    .toContain('"analytics":false')
+
+  liberar()
+  await page.waitForTimeout(3500)
+
+  expect(await analyticsIniciado(page)).toBe(false)
+  expect(await analyticsOptOut(page)).toBeNull()
   expect(peticiones).toHaveLength(0)
   expect(cookiesPostHog(await page.context().cookies())).toHaveLength(0)
   expect(await clavesPostHogActivas(page)).toHaveLength(0)

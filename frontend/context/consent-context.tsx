@@ -56,7 +56,9 @@ export function ConsentProvider({ children }: { children: React.ReactNode }) {
   // analítica en las demás, y aceptar debe activarla.
   useEffect(() => {
     const alCambiarAlmacen = (evento: StorageEvent) => {
-      if (evento.key !== CONSENT_STORAGE_KEY) return
+      // `key === null` significa que otra pestaña hizo localStorage.clear():
+      // hay que releer la decisión y, si ya no existe, revocar.
+      if (evento.key !== null && evento.key !== CONSENT_STORAGE_KEY) return
       const guardado = leerConsentimiento()
       setAnalytics(guardado)
       if (guardado === true) {
