@@ -4,11 +4,14 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import * as Sentry from "@sentry/nextjs";
+import { sinParametrosEnBreadcrumb, sinParametrosEnEvento } from "./lib/sentry-sanitize";
 
 Sentry.init({
   dsn: "https://4afc0a0f384ca86508e2dc9326cdeb0a@o4511982693580800.ingest.de.sentry.io/4511982693974096",
 
   // Sin `tracesSampleRate`: no se envían trazas, solo errores.
+  beforeBreadcrumb: sinParametrosEnBreadcrumb,
+  beforeSend: sinParametrosEnEvento,
   dataCollection: {
     // No enviar información personal, cuerpos, cookies, cabeceras, parámetros
     // de URL ni variables locales.
