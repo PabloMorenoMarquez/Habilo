@@ -204,9 +204,25 @@ type ConfigConTransporte = {
  */
 function prepararTransporte(instancia: PostHog) {
   controladorEnvios?.abort()
-  controladorEnvios = new AbortController()
+  const controlador = new AbortController()
+  controladorEnvios = controlador
+
+  // El SDK copia `fetch_options` en cada envío. Con un getter, cada petición
+  // recibe una señal nueva que compone la retirada del consentimiento con su
+  // propio timeout, sin pisar el del SDK.
+  const opciones: { signal?: AbortSignal } = {}
+  Object.defineProperty(opciones, "signal", {
+    enumerable: true,
+    get: () => {
+      if (typeof AbortSignal.any !== "function" || typeof AbortSignal.timeout !== "function") {
+        return controlador.signal
+      }
+      return AbortSignal.any([controlador.signal, AbortSignal.timeout(60_000)])
+    },
+  })
+
   const config = instancia.config as unknown as ConfigConTransporte
-  config.fetch_options = { signal: controladorEnvios.signal }
+  config.fetch_options = opciones
 }
 
 function detenerTransporte() {

@@ -28,7 +28,7 @@ test.beforeEach(async ({ page }) => {
  */
 async function interceptarPostHog(page: Page): Promise<string[]> {
   const peticiones: string[] = []
-  await page.route(POSTHOG, async (route) => {
+  await page.context().route(POSTHOG, async (route) => {
     peticiones.push(route.request().url())
     await route.fulfill({ status: 200, contentType: "application/json", body: "{}" })
   })
@@ -192,12 +192,14 @@ test("retirar justo después de aceptar corta los envíos pendientes", async ({ 
 
   // Evento de negocio justo antes de retirar: con batching volvería a salir
   // 3 s después, ya sin consentimiento.
+  const antesDelEvento = marcas.length
   await page.evaluate(() => {
     const ventana = window as Window & {
       __habiloAnalyticsCapturar?: (evento: string) => void
     }
     ventana.__habiloAnalyticsCapturar?.("e2e_previo_a_retirada")
   })
+  await expect.poll(() => marcas.length, { timeout: 15_000 }).toBeGreaterThan(antesDelEvento)
 
   await page.locator('a[href="/legal/privacidad"]').first().click()
   await page.getByRole("button", { name: "Cambiar preferencias de cookies" }).click()
@@ -268,6 +270,7 @@ test("un consentimiento inválido vuelve a pedir decisión y no envía nada", as
 })
 
 test("sincroniza el rechazo de otra pestaña y deja de capturar", async ({ context, page }) => {
+  await interceptarPostHog(page)
   await page.addInitScript((clave) => {
     localStorage.setItem(clave, JSON.stringify({ analytics: true, ts: new Date().toISOString() }))
   }, CLAVE_CONSENTIMIENTO)
