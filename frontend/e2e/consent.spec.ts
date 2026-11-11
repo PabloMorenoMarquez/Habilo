@@ -238,6 +238,7 @@ test("retirar justo después de aceptar corta los envíos pendientes", async ({ 
 test("retirar aborta un envío en vuelo y no lo reintenta", async ({ context, page }) => {
   const peticiones: string[] = []
   const canceladas: string[] = []
+  let totalEnvios = 0
   page.on("requestfailed", (req) => {
     if (EVENTO_POSTHOG.test(req.url())) {
       canceladas.push(req.failure()?.errorText ?? "desconocido")
@@ -260,6 +261,10 @@ test("retirar aborta un envío en vuelo y no lo reintenta", async ({ context, pa
       await route.fulfill({ status: 200, contentType: "application/javascript", body: "" })
       return
     }
+
+    // Cuenta también los reintentos: cualquier envío posterior a la retirada
+    // invalida la prueba, aunque no sea el evento retenido.
+    totalEnvios += 1
 
     // Los eventos de `init()` salen antes de instalar `fetch_options`; se
     // retiene uno posterior, ya cubierto por la señal de retirada.
@@ -298,11 +303,12 @@ test("retirar aborta un envío en vuelo y no lo reintenta", async ({ context, pa
   await expect.poll(() => canceladas.length, { timeout: 10_000 }).toBeGreaterThan(0)
   expect(canceladas.every((motivo) => motivo.includes("ERR_ABORTED"))).toBe(true)
 
-  const antesDeLiberar = peticiones.length
+  const enviosAlRetirar = totalEnvios
   liberar()
-  // Un reintento de PostHog llegaría entre 1,5 y 4,5 s después del fallo.
-  await page.waitForTimeout(6000)
-  expect(peticiones.length).toBe(antesDeLiberar)
+  // Cubre el primer reintento de PostHog, que llega entre 1,5 y 4,5 s después.
+  await page.waitForTimeout(8000)
+  expect(totalEnvios).toBe(enviosAlRetirar)
+  expect(peticiones.length).toBe(1)
 })
 
 test("retirar mientras carga el chunk de PostHog impide su inicialización", async ({ page }) => {

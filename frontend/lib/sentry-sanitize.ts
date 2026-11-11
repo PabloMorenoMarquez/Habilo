@@ -1,7 +1,8 @@
 import type { Breadcrumb, ErrorEvent } from "@sentry/nextjs"
 
 const URL_CON_PARAMETROS = /(https?:\/\/[^\s?#<>"']+)[?#][^\s<>"']*/gi
-const RUTA_CON_PARAMETROS = /(^|[\s("'=])(\/[^\s?#<>"']*)[?#][^\s<>"')]*/g
+const RUTA_CON_PARAMETROS = /(^|[\s("'=:])(\/[^\s?#<>"']*)[?#][^\s<>"')]*/g
+const PARAMETROS_SUELTOS = /[?&][^\s=&#]+=[^\s&#]*/g
 
 /** Corta query y fragmento de una URL sin interpretarla. */
 function sinParametros(valor: string): string {
@@ -11,7 +12,10 @@ function sinParametros(valor: string): string {
 
 /** Limpia URLs con query incrustadas en textos libres (mensajes, excepciones). */
 function sinParametrosEnTexto(texto: string): string {
-  return texto.replace(URL_CON_PARAMETROS, "$1").replace(RUTA_CON_PARAMETROS, "$1$2")
+  return texto
+    .replace(URL_CON_PARAMETROS, "$1")
+    .replace(RUTA_CON_PARAMETROS, "$1$2")
+    .replace(PARAMETROS_SUELTOS, "")
 }
 
 /**
