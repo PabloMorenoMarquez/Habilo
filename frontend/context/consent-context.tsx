@@ -52,6 +52,26 @@ export function ConsentProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  // Sincroniza la decisión entre pestañas: retirar en una debe detener la
+  // analítica en las demás, y aceptar debe activarla.
+  useEffect(() => {
+    const alCambiarAlmacen = (evento: StorageEvent) => {
+      if (evento.key !== CONSENT_STORAGE_KEY) return
+      const guardado = leerConsentimiento()
+      setAnalytics(guardado)
+      if (guardado === true) {
+        setBannerOpen(false)
+        void initAnalytics()
+      } else {
+        revocarAnalytics()
+        setBannerOpen(guardado === null)
+      }
+    }
+
+    window.addEventListener("storage", alCambiarAlmacen)
+    return () => window.removeEventListener("storage", alCambiarAlmacen)
+  }, [])
+
   const abrirBanner = useCallback(() => setBannerOpen(true), [])
 
   return (

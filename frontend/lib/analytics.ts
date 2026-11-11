@@ -10,6 +10,9 @@ const isPostHogConfigured = Boolean(posthogProjectToken && posthogHost)
 let cliente: PostHog | null = null
 let initPromise: Promise<void> | null = null
 let analyticsActivo = false
+// Sube al retirar el consentimiento. Un init en vuelo compara su época y se
+// aborta si el usuario retiró el permiso mientras cargaba el chunk.
+let epoca = 0
 
 export function leerConsentimiento(): boolean | null {
   if (typeof window === "undefined") return null
@@ -57,8 +60,15 @@ export function initAnalytics(): Promise<void> {
   }
 
   if (!initPromise) {
+    const epocaInicial = epoca
     initPromise = import("posthog-js")
       .then(({ default: posthog }) => {
+        if (epocaInicial !== epoca || !tieneConsentimientoAnalitico()) {
+          initPromise = null
+          // Si se retiró y volvió a aceptar durante la carga, reintenta.
+          if (tieneConsentimientoAnalitico()) void initAnalytics()
+          return
+        }
         cliente = posthog
         if (!posthog.__loaded) {
           posthog.init(posthogProjectToken!, {
@@ -69,12 +79,14 @@ export function initAnalytics(): Promise<void> {
             disable_session_recording: true,
             autocapture: false,
             capture_pageleave: false,
+            capture_exceptions: true,
             disable_surveys: true,
             advanced_disable_flags: true,
           })
         }
         posthog.opt_in_capturing()
         analyticsActivo = true
+        marcarInicializacion(true)
       })
       .catch(() => {
         initPromise = null
@@ -86,8 +98,19 @@ export function initAnalytics(): Promise<void> {
   return initPromise
 }
 
+/**
+ * Señal de solo desarrollo para que los E2E puedan distinguir "PostHog
+ * inicializado" de "nunca inicializado". En producción no se ejecuta.
+ */
+function marcarInicializacion(activo: boolean) {
+  if (process.env.NODE_ENV === "production") return
+  const destino = window as Window & { __habiloAnalyticsIniciado?: boolean }
+  destino.__habiloAnalyticsIniciado = activo
+}
+
 export function revocarAnalytics(): void {
   if (typeof window === "undefined") return
+  epoca += 1
   if (cliente?.__loaded) {
     // reset() devuelve el consentimiento al estado por defecto; se vuelve a
     // optar por fuera después para que no quede capturando tras la retirada.
@@ -95,6 +118,7 @@ export function revocarAnalytics(): void {
     cliente.opt_out_capturing()
     analyticsActivo = false
   }
+  marcarInicializacion(false)
   limpiarPersistenciaPostHog()
 }
 
@@ -105,42 +129,92 @@ export function resetAnalyticsIdentity(): void {
     cliente.opt_in_capturing()
     analyticsActivo = true
   } else {
+    // Sin consentimiento, reset() deja la instancia en su estado por defecto
+    // (capturando). Hay que volver a apagarla explícitamente.
+    cliente.opt_out_capturing()
     analyticsActivo = false
+    epoca += 1
+    marcarInicializacion(false)
   }
 }
 
 export function captureIfConsented(event: string, properties?: Properties): void {
   if (!tieneConsentimientoAnalitico()) return
+  if (cliente?.__loaded && analyticsActivo) {
+    cliente.capture(event, properties)
+    return
+  }
   void initAnalytics().then(() => {
-    cliente?.capture(event, properties)
+    if (tieneConsentimientoAnalitico() && cliente?.__loaded) {
+      cliente.capture(event, properties)
+    }
   })
 }
 
 export function identifyIfConsented(distinctId: string, properties?: Properties): void {
   if (!tieneConsentimientoAnalitico()) return
+  if (cliente?.__loaded && analyticsActivo) {
+    cliente.identify(distinctId, properties)
+    return
+  }
   void initAnalytics().then(() => {
-    cliente?.identify(distinctId, properties)
+    if (tieneConsentimientoAnalitico() && cliente?.__loaded) {
+      cliente.identify(distinctId, properties)
+    }
   })
 }
 
 export function captureExceptionIfConsented(error: unknown): void {
   if (!tieneConsentimientoAnalitico()) return
+  if (cliente?.__loaded && analyticsActivo) {
+    cliente.captureException(error)
+    return
+  }
   void initAnalytics().then(() => {
-    cliente?.captureException(error)
+    if (tieneConsentimientoAnalitico() && cliente?.__loaded) {
+      cliente.captureException(error)
+    }
   })
 }
 
-/** Borra restos de versiones anteriores que inicializaban PostHog antes del consentimiento. */
+function esClaveOptInOut(nombre: string): boolean {
+  return nombre.startsWith("__ph_opt_in_out_")
+}
+
+/**
+ * Borra restos de versiones anteriores que inicializaban PostHog antes del
+ * consentimiento. Conserva el marcador `__ph_opt_in_out_*` en "0": es la
+ * prueba durable del opt-out, no un identificador analítico.
+ */
 function limpiarPersistenciaPostHog() {
+  const nombresCookie: string[] = []
   try {
     for (const cookie of document.cookie.split(";")) {
       const nombre = cookie.split("=")[0]?.trim()
       if (nombre && (nombre.startsWith("ph_") || nombre.startsWith("__ph"))) {
-        document.cookie = `${nombre}=; Max-Age=0; path=/`
+        if (!esClaveOptInOut(nombre)) nombresCookie.push(nombre)
       }
     }
   } catch {
     // Sin acceso a cookies: no hay nada que limpiar.
+  }
+
+  if (nombresCookie.length > 0) {
+    const host = window.location.hostname
+    const dominios: Array<string | null> = [null, host, `.${host}`]
+    const partes = host.split(".")
+    const esIp = /^\d+$/.test(host)
+    if (partes.length > 2 && !esIp) {
+      const raiz = partes.slice(-2).join(".")
+      dominios.push(raiz, `.${raiz}`)
+    }
+
+    for (const nombre of nombresCookie) {
+      for (const dominio of dominios) {
+        const base = `${nombre}=; Max-Age=0; path=/; SameSite=Lax`
+        document.cookie = dominio ? `${base}; domain=${dominio}` : base
+      }
+    }
   }
 
   try {
@@ -148,6 +222,10 @@ function limpiarPersistenciaPostHog() {
     for (let i = 0; i < localStorage.length; i += 1) {
       const clave = localStorage.key(i)
       if (clave && (clave.startsWith("ph_") || clave.startsWith("__ph"))) {
+        if (esClaveOptInOut(clave)) {
+          if (localStorage.getItem(clave) !== "0") localStorage.setItem(clave, "0")
+          continue
+        }
         claves.push(clave)
       }
     }

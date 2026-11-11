@@ -85,8 +85,8 @@ export default function PrivacyPage() {
       <section>
         <h2>9. Cookies</h2>
         <p>Habilo utiliza almacenamiento técnico necesario para el funcionamiento de la Plataforma, por ejemplo, para mantener tu sesión iniciada. Estas cookies no requieren consentimiento.</p>
-        <p>La analítica es opcional. PostHog y Vercel Analytics solo se cargan después de que pulses “Aceptar analítica”. Antes de esa decisión, o si eliges “Solo esenciales”, no se inicializan, no se envían eventos y no se guardan identificadores analíticos. La base legal es tu consentimiento (art. 6.1.a RGPD).</p>
-        <p>Si retiras el consentimiento, dejamos de enviar eventos y eliminamos las cookies y el almacenamiento local de PostHog. Puedes cambiar o retirar tu consentimiento en cualquier momento:</p>
+        <p>La analítica es opcional. PostHog y Vercel Analytics solo se inicializan y empiezan a medir después de que pulses “Aceptar analítica”. Antes de esa decisión, o si eliges “Solo esenciales”, no se inicializan, no se envían eventos y no se guardan identificadores analíticos. La base legal es tu consentimiento (art. 6.1.a RGPD).</p>
+        <p>Si retiras el consentimiento, dejamos de enviar eventos y eliminamos las cookies y los identificadores analíticos de PostHog. Solo conservamos un marcador técnico de tu decisión. Puedes cambiar o retirar tu consentimiento en cualquier momento:</p>
         <p><ConsentSettingsButton /></p>
       </section>
 
