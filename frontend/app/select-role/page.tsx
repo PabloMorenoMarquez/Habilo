@@ -178,7 +178,7 @@ export default function SelectRolePage() {
               </p>
             </div>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              {["Busca entre miles de servicios", "Compara precios y valoraciones", "Contrata de forma segura"].map((item) => (
+              {["Busca entre los servicios publicados", "Compara precios y valoraciones", "Contrata de forma segura"].map((item) => (
                 <li key={item} className="flex items-center gap-2">
                   <CheckCircle size={14} className="text-primary shrink-0" />
                   {item}
