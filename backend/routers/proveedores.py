@@ -38,7 +38,7 @@ async def actualizar_perfil(request: Request, datos: ActualizarPerfilProveedor, 
     perfil = service.obtener_por_usuario(usuario_id)
     if not perfil:
         raise HTTPException(status_code=404, detail="No tienes perfil de proveedor")
-    return service.actualizar_perfil(perfil.id, **datos.model_dump(exclude_none=True))
+    return service.actualizar_perfil(perfil.id, **datos.model_dump(exclude_unset=True))
 
 
 @router.get("/sitemap")

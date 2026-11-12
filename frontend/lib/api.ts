@@ -751,8 +751,8 @@ export function actualizarPerfilProveedor(datos: {
   dias_disponibles?: string
   hora_inicio?: string
   hora_fin?: string
-  ciudad?: string
-  zona?: string
+  ciudad?: string | null
+  zona?: string | null
   materias?: string[]
   niveles?: string[]
   perfil_publico?: boolean

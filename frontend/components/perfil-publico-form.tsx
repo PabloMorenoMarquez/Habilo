@@ -47,8 +47,8 @@ export default function PerfilPublicoForm({ perfil, onGuardado }: PerfilPublicoF
 
     try {
       const actualizado = await actualizarPerfilProveedor({
-        ciudad: ciudad.trim() || undefined,
-        zona: zona.trim() || undefined,
+        ciudad: ciudad.trim() || null,
+        zona: zona.trim() || null,
         materias: parseLista(materias),
         niveles: parseLista(niveles),
         perfil_publico: perfilPublico,

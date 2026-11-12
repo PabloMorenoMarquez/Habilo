@@ -45,6 +45,9 @@ class ProveedorRepository:
                 return codigo
             
     def actualizar(self, perfil_id: UUID, **campos):
+        # `ciudad` y `zona` se pueden borrar con un null explícito. El resto de
+        # campos conserva la semántica anterior: null significa "no cambiar".
+        campos_borrables = {"ciudad", "zona"}
         session = SessionLocal()
         try:
             stmt = select(Perfil_Proveedor).where(Perfil_Proveedor.id == perfil_id)
@@ -52,7 +55,7 @@ class ProveedorRepository:
             if not perfil:
                 return None
             for campo, valor in campos.items():
-                if valor is not None:
+                if valor is not None or campo in campos_borrables:
                     setattr(perfil, campo, valor)
             session.commit()
             session.refresh(perfil)
