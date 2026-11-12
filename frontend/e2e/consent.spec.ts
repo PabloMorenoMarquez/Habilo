@@ -459,6 +459,9 @@ test("el token de login no llega a PostHog ni queda en la URL", async ({ page })
     ventana.__habiloAnalyticsCapturar?.("e2e_token_login", {
       enlace: "https://habilo.es/login?token=TOKEN_SECRETO_E2E",
       token: "TOKEN_SECRETO_E2E",
+      // Un objeto demasiado anidado se descarta entero; no puede colarse una
+      // credencial en un subárbol que el saneador no recorra.
+      anidado: { a: { b: { c: { d: { e: { f: { g: "TOKEN_SECRETO_E2E" } } } } } } },
     })
   })
 

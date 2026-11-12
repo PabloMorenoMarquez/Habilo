@@ -201,6 +201,10 @@ class ServicioRepository:
             if punto is not None:
                 radio_m = radio_km * 1000
                 stmt = stmt.where(
+                    # Un perfil privado no participa en búsquedas por
+                    # proximidad: el radio y la distancia permitirían
+                    # triangulizar su ubicación aunque no se devuelva.
+                    Perfil_Proveedor.perfil_publico.is_(True),
                     Servicio.ubicacion.isnot(None),
                     ST_DWithin(Servicio.ubicacion, punto, radio_m),
                 )
@@ -256,7 +260,7 @@ class ServicioRepository:
                     "zona": servicio.zona,
                     "materias": servicio.materias or [],
                     "niveles": servicio.niveles or [],
-                    "distancia_km": row.distancia_km if punto is not None else None,
+                    "distancia_km": row.distancia_km if punto is not None and es_publico else None,
                     "proveedor_nombre": row.proveedor_nombre if es_publico else "Profesional de Habilo",
                     "proveedor_avatar": row.proveedor_avatar if es_publico else None,
                     "proveedor_ciudad": row.proveedor_ciudad if es_publico else None,

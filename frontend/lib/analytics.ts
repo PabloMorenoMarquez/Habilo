@@ -22,7 +22,10 @@ function limpiarParametrosSensibles(valor: string): string {
 }
 
 function sanearPropiedades(valor: unknown, profundidad = 0): unknown {
-  if (profundidad > 4 || valor === null || typeof valor !== "object") return valor
+  if (valor === null || typeof valor !== "object") return valor
+  // Más allá de este límite se descarta el subárbol: devolverlo sin recorrer
+  // dejaría pasar credenciales anidadas.
+  if (profundidad > 4) return null
   if (Array.isArray(valor)) {
     return valor.map((item) => sanearPropiedades(item, profundidad + 1))
   }

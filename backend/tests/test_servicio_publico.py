@@ -96,6 +96,22 @@ def test_busqueda_publica_mantiene_ciudad_si_perfil_es_publico():
     assert resultado[0]["proveedor_nombre"] == "Ana García"
 
 
+def test_busqueda_por_proximidad_excluye_perfiles_privados():
+    from unittest.mock import patch
+    import repositories.servicio_repository as modulo
+
+    sesion = MagicMock()
+    sesion.execute.return_value.all.return_value = []
+    with patch.object(modulo, "SessionLocal", return_value=sesion):
+        repo = modulo.ServicioRepository()
+        repo.buscar_por_proximidad(39.96, -4.83, 25)
+
+    sentencia = sesion.execute.call_args.args[0]
+    sql = str(sentencia.compile(compile_kwargs={"literal_binds": True}))
+    assert "perfiles_proveedor.perfil_publico IS true" in sql
+    assert "ST_DWithin" in sql
+
+
 def test_detalle_publico_oculta_ubicacion_de_perfil_privado():
     from unittest.mock import patch
     import repositories.servicio_repository as modulo
