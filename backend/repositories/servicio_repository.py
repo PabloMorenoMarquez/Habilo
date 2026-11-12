@@ -8,6 +8,16 @@ from decimal import Decimal
 from geoalchemy2.shape import to_shape
 
 
+def _ocultar_ubicacion_si_privado(datos: dict, es_publico: bool) -> dict:
+    """La API pública nunca devuelve ciudad, zona ni coordenadas del profesor
+    cuando su perfil no es público."""
+    if not es_publico:
+        for campo in ("ciudad", "zona", "latitud", "longitud"):
+            if campo in datos:
+                datos[campo] = None
+    return datos
+
+
 class ServicioRepository:
     def __init__(self):
         self.session = SessionLocal()
@@ -202,12 +212,20 @@ class ServicioRepository:
                     Servicio.descripcion.ilike(f"%{texto}%"),
                 ))
             if ciudad:
-                ciudad_expr = func.coalesce(
-                    Servicio.ciudad,
-                    case((Perfil_Proveedor.perfil_publico.is_(True), Perfil_Proveedor.ciudad)),
-                    case((Perfil_Proveedor.perfil_publico.is_(True), Usuario.ciudad)),
+                # La ciudad del servicio solo es pública si el perfil lo es.
+                # Así un perfil privado no se puede enumerar por ciudad.
+                ciudad_publica = case(
+                    (
+                        Perfil_Proveedor.perfil_publico.is_(True),
+                        func.coalesce(
+                            Servicio.ciudad,
+                            Perfil_Proveedor.ciudad,
+                            Usuario.ciudad,
+                        ),
+                    ),
+                    else_=None,
                 )
-                stmt = stmt.where(ciudad_expr.ilike(f"%{ciudad}%"))
+                stmt = stmt.where(ciudad_publica.ilike(f"%{ciudad}%"))
             if usuario_id:
                 stmt = stmt.where(Usuario.id != usuario_id)
             if punto is not None:
@@ -223,7 +241,7 @@ class ServicioRepository:
             for row in rows:
                 servicio = row[0]
                 es_publico = bool(row.proveedor_perfil_publico)
-                resultado.append({
+                resultado.append(_ocultar_ubicacion_si_privado({
                     "id": servicio.id,
                     "proveedor_id": servicio.proveedor_id,
                     "categoria_id": servicio.categoria_id,
@@ -247,7 +265,7 @@ class ServicioRepository:
                     "proveedor_num_valoraciones": row.proveedor_num_valoraciones,
                     "categoria_nombre": row.categoria_nombre,
                     "proveedor_destacado_hasta": row.proveedor_destacado_hasta,
-                })
+                }, es_publico))
 
             return resultado
         finally:
@@ -304,7 +322,7 @@ class ServicioRepository:
 
             servicio = row[0]
             es_publico = bool(row.proveedor_perfil_publico)
-            return {
+            return _ocultar_ubicacion_si_privado({
                 "id": servicio.id,
                 "proveedor_id": servicio.proveedor_id,
                 "categoria_id": servicio.categoria_id,
@@ -330,7 +348,7 @@ class ServicioRepository:
                 "proveedor_num_valoraciones": row.proveedor_num_valoraciones,
                 "categoria_nombre": row.categoria_nombre,
                 "proveedor_destacado_hasta": row.proveedor_destacado_hasta,
-            }
+            }, es_publico)
         finally:
             session.close()
             

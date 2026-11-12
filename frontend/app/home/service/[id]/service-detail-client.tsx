@@ -457,7 +457,7 @@ export default function ServiceDetailClient({ initialServicio }: ServiceDetailCl
                 </Button>
               </div>
 
-              {(perfilProveedor?.dias_disponibles || (perfilProveedor?.hora_inicio && perfilProveedor?.hora_fin)) && (
+              {perfilVisible && (perfilProveedor?.dias_disponibles || (perfilProveedor?.hora_inicio && perfilProveedor?.hora_fin)) && (
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-secondary/60">
                   <div className="p-2 rounded-lg bg-card text-primary shrink-0">
                     <Clock size={16} />

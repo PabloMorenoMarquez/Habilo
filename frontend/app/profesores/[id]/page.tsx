@@ -12,7 +12,6 @@ import { formatCategoryName } from '@/lib/category'
 import type { PerfilPublicoCompleto, ServicioResumen } from '@/lib/api'
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://habilo.es').replace(/\/+$/, '')
-const CIUDAD_POR_DEFECTO = 'Talavera de la Reina'
 
 const DIAS_LABELS: Record<number, string> = { 1: 'L', 2: 'M', 3: 'X', 4: 'J', 5: 'V', 6: 'S', 7: 'D' }
 
@@ -51,7 +50,8 @@ function descripcionMetadata(perfil: PerfilPublicoCompleto): string {
   if (!perfil.perfil_publico) return 'Perfil de profesional en Habilo.'
   if (perfil.descripcion) return perfil.descripcion.slice(0, 155)
   const materias = perfil.materias.length > 0 ? ` de ${perfil.materias.join(', ')}` : ''
-  return `Clases particulares${materias} en ${perfil.ciudad ?? CIUDAD_POR_DEFECTO}.`
+  const ubicacion = perfil.ciudad ? ` en ${perfil.ciudad}` : ''
+  return `Clases particulares${materias}${ubicacion}.`
 }
 
 export async function generateMetadata({ params }: ProfesorPageProps): Promise<Metadata> {
@@ -68,9 +68,8 @@ export async function generateMetadata({ params }: ProfesorPageProps): Promise<M
     }
   }
 
-  const titulo = `${perfil.nombre_publico} — Clases particulares en ${
-    perfil.ciudad ?? CIUDAD_POR_DEFECTO
-  } | Habilo`
+  const ubicacion = perfil.ciudad ? ` en ${perfil.ciudad}` : ''
+  const titulo = `${perfil.nombre_publico} — Clases particulares${ubicacion} | Habilo`
   const descripcion = descripcionMetadata(perfil)
 
   return {
