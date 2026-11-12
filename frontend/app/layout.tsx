@@ -1,12 +1,14 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter, Plus_Jakarta_Sans } from 'next/font/google'
-import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 import { AuthProvider } from '@/context/auth-context'
+import { ConsentProvider } from '@/context/consent-context'
 import { ServiceWorkerRegister } from '@/components/sw-register'
 import { FeatureFlagsProvider } from '@/context/feature-flags-context'
 import { PilotoBanner } from '@/components/piloto-banner'
 import { FeedbackButton } from '@/components/feedback-button'
+import { ConsentBanner, AnalyticsGate } from '@/components/consent-banner'
+import LandingTracker from '@/components/landing/landing-tracker'
 
 const inter = Inter({
   subsets: ["latin"],
@@ -23,10 +25,9 @@ export const metadata: Metadata = {
     default: 'Habilo | Profesionales y servicios cerca de ti',
     template: '%s',
   },
-  description: 'Encuentra fontaneros, electricistas, reformas y otros profesionales cerca de ti. Compara servicios y contacta con proveedores en España.',
+  description: 'Clases particulares en Talavera de la Reina. Encuentra profesores por materia y nivel, compara precios y contacta directamente con el profesor.',
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://habilo.es'),
-  alternates: { canonical: '/' },
-  keywords: ['servicios cerca de mí', 'profesionales en España', 'fontaneros', 'electricistas', 'reformas'],
+  keywords: ['clases particulares Talavera de la Reina', 'profesores particulares Talavera', 'clases de matemáticas', 'clases de inglés', 'apoyo escolar'],
   openGraph: {
     title: 'Habilo | Profesionales y servicios cerca de ti',
     description: 'Encuentra profesionales de confianza cerca de ti en España.',
@@ -55,17 +56,22 @@ export default function RootLayout({
   return (
     <html lang="es" className={`${inter.variable} ${jakarta.variable}`}>
       <body suppressHydrationWarning className="font-sans antialiased bg-background text-foreground">
-        <GoogleOAuthProvider clientId="942976025153-ogog1r1e33lh9dr5gmamtb10dk67rtsf.apps.googleusercontent.com">
-          <FeatureFlagsProvider>
-            <AuthProvider>
-              <PilotoBanner />
-              {children}
-              <FeedbackButton />
-            </AuthProvider>
-          </FeatureFlagsProvider>
-        </GoogleOAuthProvider>
-        <Analytics />
-        <ServiceWorkerRegister/>
+        <ConsentProvider>
+          <GoogleOAuthProvider clientId="942976025153-ogog1r1e33lh9dr5gmamtb10dk67rtsf.apps.googleusercontent.com">
+            <FeatureFlagsProvider>
+              <AuthProvider>
+                {/* Global a propósito: el ?ref= sobrevive al redirect con token hacia /login y queda en habilo_utm_v1. */}
+                <LandingTracker />
+                <PilotoBanner />
+                {children}
+                <FeedbackButton />
+                <ConsentBanner />
+              </AuthProvider>
+            </FeatureFlagsProvider>
+          </GoogleOAuthProvider>
+          <AnalyticsGate />
+          <ServiceWorkerRegister/>
+        </ConsentProvider>
       </body>
     </html>
   )

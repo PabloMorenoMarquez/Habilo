@@ -1,5 +1,5 @@
-from sqlalchemy import Column, Text, Boolean, DateTime, ForeignKey, Integer, Numeric
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, Text, Boolean, DateTime, ForeignKey, Integer, Numeric, text
+from sqlalchemy.dialects.postgresql import ARRAY, UUID
 import uuid
 from datetime import datetime, timezone
 
@@ -26,3 +26,11 @@ class Perfil_Proveedor(base):
     dias_disponibles = Column(Text, nullable=True)
     hora_inicio = Column(Text, nullable=True)
     hora_fin = Column(Text, nullable=True)
+    codigo_referido = Column(Text, unique=True, nullable=False)
+    destacado_hasta = Column(DateTime, nullable=True)
+    ciudad = Column(Text, nullable=True)
+    zona = Column(Text, nullable=True)
+    materias = Column(ARRAY(Text), nullable=False, default=list, server_default=text("'{}'::text[]"))
+    niveles = Column(ARRAY(Text), nullable=False, default=list, server_default=text("'{}'::text[]"))
+    perfil_publico = Column(Boolean, nullable=False, default=False, server_default=text("false"))
+    consentimiento_marketing = Column(Boolean, nullable=False, default=False, server_default=text("false"))

@@ -6,11 +6,12 @@ import type { Paginado } from "@/lib/api"
 
 export function usePaginacion<T>(
   fetcher: (offset: number) => Promise<Paginado<T>>,
-  limit = 20
+  limit = 20,
+  initial?: { items: T[]; hasMore: boolean }
 ) {
-  const [items, setItems] = useState<T[]>([])
-  const [offset, setOffset] = useState(0)
-  const [hasMore, setHasMore] = useState(true)
+  const [items, setItems] = useState<T[]>(initial?.items ?? [])
+  const [offset, setOffset] = useState(initial?.items.length ?? 0)
+  const [hasMore, setHasMore] = useState(initial?.hasMore ?? true)
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

@@ -80,7 +80,7 @@ export function getMe() {
   return apiFetch("/usuarios/me")
 }
 
-export function actualizarMe(datos: { ciudad?: string; telefono?: string; nombre?: string }) {
+export function actualizarMe(datos: { ciudad?: string; telefono?: string; nombre?: string; foto_url?: string }) {
   return apiFetch("/usuarios/me", {
     method: "PATCH",
     body: JSON.stringify(datos),
@@ -88,7 +88,7 @@ export function actualizarMe(datos: { ciudad?: string; telefono?: string; nombre
 }
 
 export function getMiPerfilProveedor() {
-  return apiFetch("/proveedor/me")
+  return apiFetch<MiPerfilProveedor>("/proveedor/me")
 }
 
 export function iniciarVerificacionIdentidad() {
@@ -119,6 +119,7 @@ export function crearPerfilProveedor(datos: {
   descripcion: string
   radio_km_disponible: number
   experiencia_años?: number
+  codigo_referido?: string
 }) {
   return apiFetch("/proveedor/", {
     method: "POST",
@@ -142,24 +143,35 @@ export interface ServicioBackend {
   distancia_km: number | null
   proveedor_nombre: string | null
   proveedor_avatar: string | null
+  proveedor_ciudad?: string | null
+  proveedor_perfil_publico?: boolean
   proveedor_valoracion_media: number | null
   proveedor_num_valoraciones: number | null
   categoria_nombre: string | null
   es_favorito: boolean
+  proveedor_destacado_hasta: string | null
 }
 
 let busquedaServiciosCache: { key: string; data: ServicioBackend[]; timestamp: number } | null = null
 const BUSQUEDA_TTL_MS = 30 * 1000
 
-function claveBusqueda(params: { lat: number; lng: number; radio_km: number; categoria_id?: string; texto?: string }) {
+function claveBusqueda(params: {
+  lat?: number
+  lng?: number
+  radio_km?: number
+  categoria_id?: string
+  texto?: string
+  ciudad?: string
+}) {
   // Redondeamos lat/lng a 4 decimales (~11m de precisión) para que
   // micro-variaciones del GPS no invaliden el caché sin necesidad.
   return JSON.stringify({
-    lat: params.lat.toFixed(4),
-    lng: params.lng.toFixed(4),
-    radio_km: params.radio_km,
+    lat: params.lat?.toFixed(4) ?? null,
+    lng: params.lng?.toFixed(4) ?? null,
+    radio_km: params.radio_km ?? null,
     categoria_id: params.categoria_id || null,
     texto: params.texto || null,
+    ciudad: params.ciudad || null,
   })
 }
 
@@ -170,9 +182,10 @@ export function invalidarCacheBusquedaServicios() {
 }
 
 export async function buscarServicios(params: {
-  lat: number
-  lng: number
-  radio_km: number
+  lat?: number
+  lng?: number
+  radio_km?: number
+  ciudad?: string
   categoria_id?: string
   texto?: string
   limit?: number
@@ -183,7 +196,7 @@ export async function buscarServicios(params: {
 
   // El caché de 30s solo tiene sentido para la primera página (offset 0);
   // páginas siguientes son "cargar más" y no deben servirse desde caché.
-  const key = claveBusqueda({ ...params, limit } as any)
+  const key = claveBusqueda(params)
   const ahora = Date.now()
   if (
     offset === 0 &&
@@ -195,12 +208,15 @@ export async function buscarServicios(params: {
   }
 
   const query = new URLSearchParams({
-    lat: String(params.lat),
-    lng: String(params.lng),
-    radio_km: String(params.radio_km),
     limit: String(limit),
     offset: String(offset),
   })
+  if (params.lat != null && params.lng != null) {
+    query.set("lat", String(params.lat))
+    query.set("lng", String(params.lng))
+    if (params.radio_km != null) query.set("radio_km", String(params.radio_km))
+  }
+  if (params.ciudad) query.set("ciudad", params.ciudad)
   if (params.categoria_id) query.set("categoria_id", params.categoria_id)
   if (params.texto) query.set("texto", params.texto)
 
@@ -630,7 +646,80 @@ export function crearOfertaPorHoras(solicitudId: string, horas: number, descripc
   })
 }
 
-export interface PerfilProveedorPublico {
+export function getPerfilProveedorPublico(perfilId: string) {
+  return apiFetch<PerfilPublicoCompleto>(`/proveedor/${perfilId}`)
+}
+
+export interface CrearLeadInput {
+  servicio_id?: string
+  perfil_id?: string
+  nombre: string
+  contacto: string
+  canal_contacto: "whatsapp" | "email"
+  mensaje: string
+  consentimiento: boolean
+  website?: string
+  ref?: string
+  utm_source?: string
+  utm_medium?: string
+  utm_campaign?: string
+  utm_content?: string
+  utm_term?: string
+  pagina_origen?: string
+}
+
+export function crearLead(datos: CrearLeadInput) {
+  return apiFetch<{ ok: true }>("/leads/", {
+    method: "POST",
+    body: JSON.stringify(datos),
+  })
+}
+
+export interface ResenaPublica {
+  puntuacion: number
+  comentario: string | null
+  fecha: string | null
+  autor_nombre: string
+}
+
+export interface ServicioResumen {
+  id: string
+  titulo: string
+  descripcion: string | null
+  precio: string
+  tipo_precio: string
+  imagen_url: string | null
+  categoria_nombre: string | null
+}
+
+export interface PerfilPublicoCompleto {
+  id: string
+  nombre_publico: string
+  avatar_publico: string | null
+  descripcion: string | null
+  experiencia_años: number | null
+  radio_km_disponible: number
+  ciudad: string | null
+  zona: string | null
+  materias: string[]
+  niveles: string[]
+  valoracion_media: string | null
+  num_valoraciones: number
+  verificado: boolean | null
+  dias_disponibles: string | null
+  hora_inicio: string | null
+  hora_fin: string | null
+  perfil_publico: boolean
+  servicios: ServicioResumen[]
+  resenas: ResenaPublica[]
+}
+
+export interface SitemapItem {
+  id: string
+  fecha_creacion: string | null
+}
+
+export interface MiPerfilProveedor {
   id: string
   usuario_id: string
   descripcion: string | null
@@ -639,13 +728,20 @@ export interface PerfilProveedorPublico {
   valoracion_media: string | null
   num_valoraciones: number
   verificado: boolean | null
+  fecha_creacion: string | null
   dias_disponibles: string | null
   hora_inicio: string | null
   hora_fin: string | null
-}
-
-export function getPerfilProveedorPublico(perfilId: string) {
-  return apiFetch<PerfilProveedorPublico>(`/proveedor/${perfilId}`)
+  destacado_hasta: string | null
+  url_documento: string | null
+  motivo_rechazo: string | null
+  codigo_referido: string | null
+  ciudad: string | null
+  zona: string | null
+  materias: string[]
+  niveles: string[]
+  perfil_publico: boolean
+  consentimiento_marketing: boolean
 }
 
 export function actualizarPerfilProveedor(datos: {
@@ -655,8 +751,14 @@ export function actualizarPerfilProveedor(datos: {
   dias_disponibles?: string
   hora_inicio?: string
   hora_fin?: string
+  ciudad?: string | null
+  zona?: string | null
+  materias?: string[]
+  niveles?: string[]
+  perfil_publico?: boolean
+  consentimiento_marketing?: boolean
 }) {
-  return apiFetch(`/proveedor/`, {
+  return apiFetch<MiPerfilProveedor>(`/proveedor/`, {
     method: "PATCH",
     body: JSON.stringify(datos),
   })
@@ -715,4 +817,16 @@ export function enviarFeedback(datos: { tipo: "sugerencia" | "bug" | "otro"; men
     method: "POST",
     body: JSON.stringify(datos),
   })
+}
+
+export function esDestacado(destacadoHasta: string | null | undefined): boolean {
+  if (!destacadoHasta) return false
+  return new Date(destacadoHasta) > new Date()
+}
+
+export function getSignedUrlAvatar() {
+  return apiFetch<{ signed_url: string; path: string; token: string }>(
+    "/usuarios/me/foto/signed-url",
+    { method: "POST" }
+  )
 }

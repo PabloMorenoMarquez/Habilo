@@ -1,19 +1,36 @@
 from uuid import UUID
 from decimal import Decimal
 from repositories.servicio_repository import ServicioRepository
+from repositories.proveedor_repository import ProveedorRepository
 from repositories.favorito_repository import FavoritoRepository
 from datetime import datetime, timezone
 from utils.paginacion import paginar
+from repositories.referido_repository import ReferidoRepository
+
+DIAS_DESTACADO_REFERIDO = 15
 class ServicioService:
     def __init__(self):
         self.servicio_repository = ServicioRepository()
         self.favorito_repository = FavoritoRepository()
+        self.referido_repository = ReferidoRepository()
+        self.proveedor_repository = ProveedorRepository()
 
     def crear(self, proveedor_id:UUID, categoria_id:UUID, titulo:str, descripcion:str,
-              precio:Decimal, tipo_precio:str, latitud:float=None, longitud:float=None):
-        return self.servicio_repository.crear(
-            proveedor_id, categoria_id, titulo, descripcion, precio, tipo_precio, latitud, longitud
+              precio:Decimal, tipo_precio:str, latitud:float=None, longitud:float=None,
+              ciudad:str=None, zona:str=None, materias:list[str]=[], niveles:list[str]=[]):
+        es_primer_servicio = self.servicio_repository.contar_por_proveedor(proveedor_id) == 0
+
+        servicio = self.servicio_repository.crear(
+            proveedor_id, categoria_id, titulo, descripcion, precio, tipo_precio, latitud, longitud,
+            ciudad=ciudad, zona=zona, materias=materias, niveles=niveles,
         )
+
+        if es_primer_servicio:
+            referido = self.referido_repository.obtener_por_referido(proveedor_id)
+            if referido:
+                self.proveedor_repository.aplicar_destacado(referido.referidor_perfil_id, DIAS_DESTACADO_REFERIDO)
+
+        return servicio
 
     def obtener(self, servicio_id:UUID):
         return self.servicio_repository.get_by_id(servicio_id)
@@ -38,8 +55,18 @@ class ServicioService:
             return False
         return self.servicio_repository.eliminar(servicio_id)
 
-    def buscar(self, lat:float, lng:float, radio_km:float, categoria_id:UUID=None, texto:str=None, usuario_id:UUID=None, limit: int = 20, offset: int = 0):
-        servicios = self.servicio_repository.buscar_por_proximidad(lat, lng, radio_km, categoria_id, texto, usuario_id, limit=limit, offset=offset)
+    def buscar(self, lat:float, lng:float, radio_km:float, categoria_id:UUID=None, texto:str=None, ciudad:str=None, usuario_id:UUID=None, limit: int = 20, offset: int = 0):
+        servicios = self.servicio_repository.buscar_por_proximidad(
+            lat=lat,
+            lng=lng,
+            radio_km=radio_km,
+            categoria_id=categoria_id,
+            texto=texto,
+            ciudad=ciudad,
+            usuario_id=usuario_id,
+            limit=limit,
+            offset=offset,
+        )
         
         servicios, has_more = paginar(servicios, limit)
         
@@ -49,6 +76,9 @@ class ServicioService:
             servicio["es_favorito"] = servicio["id"] in favoritos
 
         return servicios, has_more
+
+    def resumen(self):
+        return self.servicio_repository.resumen()
     
     def obtener_detalle_publico(self, servicio_id:UUID, usuario_id:UUID=None):
         servicio = self.servicio_repository.obtener_detalle_publico(servicio_id)

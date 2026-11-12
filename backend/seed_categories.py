@@ -193,6 +193,12 @@ def seed_categories():
                 ),
                 Categoria(
                     id=str(uuid.uuid4()),
+                    nombre='clases_particulares',
+                    icono='📚',
+                    descripcion='Clases particulares de matemáticas, inglés, lengua, ciencias y apoyo escolar.'
+                ),
+                Categoria(
+                    id=str(uuid.uuid4()),
                     nombre='otros',
                     icono='🔨',
                     descripcion='Otros servicios y trabajos profesionales que no encajan en las categorías disponibles.'

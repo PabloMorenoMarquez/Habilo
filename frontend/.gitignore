@@ -17,6 +17,8 @@ node_modules
 # Sentry Config File
 .env.sentry-build-plugin
 
-e2e
+e2e/.env
+e2e/.env.*
+!e2e/.env.example
 playwright-report
 test-results

@@ -16,6 +16,7 @@ import {
   desmarcarProveedorFavorito,
   ServicioBackend,
   ProveedorFavorito,
+  esDestacado
 } from "@/lib/api"
 import { formatCategoryName } from "@/lib/category"
 
@@ -40,7 +41,7 @@ function mapServicioParaTarjeta(s: ServicioBackend) {
       location: s.distancia_km != null ? `a ${s.distancia_km.toFixed(1)} km` : "",
     },
     tags: [] as string[],
-    featured: false,
+    featured: esDestacado(s.proveedor_destacado_hasta),
   }
 }
 
@@ -56,7 +57,7 @@ export default function FavoritosPage() {
 
   useEffect(() => {
     if (isLoading) return
-    if (!isAuthenticated) router.replace("/")
+    if (!isAuthenticated) router.replace("/login")
   }, [isAuthenticated, isLoading, router])
 
   useEffect(() => {

@@ -1,4 +1,5 @@
 import { LegalDocument } from "@/components/legal-document"
+import { ConsentSettingsButton } from "@/components/consent-settings-button"
 
 export const metadata = { title: "Política de privacidad | Habilo" }
 
@@ -19,6 +20,8 @@ export default function PrivacyPage() {
           <li>Teléfono y ciudad, si decides completarlos en tu perfil.</li>
           <li>Si te registras como Profesional: descripción de tu actividad, años de experiencia, radio de acción, horario de disponibilidad y el documento acreditativo que subas para la verificación cuando esta funcionalidad esté activa.</li>
           <li>El contenido de los mensajes que envías a través del chat.</li>
+          <li>Si contactas con un profesional sin crear cuenta: nombre, WhatsApp o email, mensaje, página de origen, parámetros UTM y código de referido.</li>
+          <li>Si activas tu perfil público como Profesional: nombre, foto, ciudad, zona, materias, niveles, precio y tu consentimiento expreso para publicarlos. El consentimiento para usar tu imagen o voz en redes sociales es separado y opcional.</li>
           <li>Valoraciones, comentarios y reportes que redactes sobre otros usuarios.</li>
         </ul>
         <h3>2.2. Datos que se generan por el uso</h3>
@@ -39,6 +42,8 @@ export default function PrivacyPage() {
           <li>Gestionar reportes, bloqueos y suspensiones: interés legítimo en mantener un entorno seguro y cumplimiento de estos Términos.</li>
           <li>Enviarte comunicaciones esenciales sobre tu cuenta o solicitudes: ejecución del contrato.</li>
           <li>Cumplir obligaciones legales aplicables: cumplimiento de una obligación legal (art. 6.1.c RGPD).</li>
+          <li>Registrar errores técnicos: interés legítimo en la seguridad y estabilidad de la Plataforma (art. 6.1.f RGPD). Sentry no recibe datos de usuario, cuerpos de petición, cookies, cabeceras, parámetros de URL ni variables locales.</li>
+          <li>Medir el uso de la Plataforma con analítica: tu consentimiento (art. 6.1.a RGPD). Solo se activa si aceptas y puedes retirarlo en cualquier momento.</li>
         </ul>
       </section>
 
@@ -48,6 +53,10 @@ export default function PrivacyPage() {
         <ul>
           <li>Supabase (base de datos y almacenamiento de archivos).</li>
           <li>Google LLC y Meta Platforms, Inc. (autenticación mediante OAuth).</li>
+          <li>PostHog, Inc. (analítica de producto, solo si aceptas la analítica).</li>
+          <li>Functional Software, Inc. (Sentry, registro de errores técnicos).</li>
+          <li>Vercel, Inc. (Vercel Analytics, solo si aceptas la analítica).</li>
+          <li>Resend (envío de emails transaccionales y confirmación de la lista de espera con doble opt-in).</li>
         </ul>
         <p>Habilo no vende tus datos personales a terceros ni los utiliza con fines publicitarios ajenos a la propia Plataforma.</p>
       </section>
@@ -55,6 +64,7 @@ export default function PrivacyPage() {
       <section>
         <h2>5. Cuánto tiempo conservamos tus datos</h2>
         <p>Conservamos tus datos mientras mantengas una cuenta activa. Tras la baja, conservaremos determinados datos durante los plazos legalmente exigidos, en particular a efectos de posibles reclamaciones.</p>
+        <p>Los datos de los formularios de contacto sin cuenta se conservan durante 12 meses desde el último contacto, salvo que ejerzas antes tu derecho de supresión.</p>
       </section>
 
       <section>
@@ -75,7 +85,10 @@ export default function PrivacyPage() {
 
       <section>
         <h2>9. Cookies</h2>
-        <p>Habilo utiliza cookies técnicas necesarias para el funcionamiento de la Plataforma, por ejemplo, para mantener tu sesión iniciada.</p>
+        <p>Habilo utiliza almacenamiento técnico necesario para el funcionamiento de la Plataforma, por ejemplo, para mantener tu sesión iniciada. Estas cookies no requieren consentimiento.</p>
+        <p>La analítica es opcional. PostHog y Vercel Analytics solo se inicializan y empiezan a medir después de que pulses “Aceptar analítica”. Antes de esa decisión, o si eliges “Solo esenciales”, no se inicializan, no se envían eventos y no se guardan identificadores analíticos. La base legal es tu consentimiento (art. 6.1.a RGPD).</p>
+        <p>Si retiras el consentimiento, dejamos de enviar eventos y eliminamos las cookies y los identificadores analíticos de PostHog. Solo conservamos un marcador técnico de tu decisión. Puedes cambiar o retirar tu consentimiento en cualquier momento:</p>
+        <p><ConsentSettingsButton /></p>
       </section>
 
       <section>

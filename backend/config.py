@@ -14,7 +14,7 @@ class Config:
     OAUTH_GOOGLE_SCOPES = ["openid", "email", "profile"]
     OAUTH_FACEBOOK_SCOPES = ["email", "public_profile"]
     
-    FRONTEND_URL = os.getenv("FRONTEND_URL")
+    FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
     FRONTEND_URLS = [
         origen.strip().rstrip("/")
         for origen in os.getenv("CORS_ALLOWED_ORIGINS", FRONTEND_URL or "").split(",")

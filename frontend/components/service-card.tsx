@@ -2,18 +2,14 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Star, Clock, MapPin, Heart } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuth } from "@/context/auth-context"
 import { marcarServicioFavorito, desmarcarServicioFavorito } from "@/lib/api"
 import { AuthRequiredDialog } from "@/components/auth-required-dialog"
-import posthog from "posthog-js"
-
-const isPostHogConfigured = Boolean(
-  process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST
-)
+import { captureIfConsented } from "@/lib/analytics"
 
 interface ServiceCardProps {
   service: {
@@ -55,6 +51,12 @@ export default function ServiceCard({ service, onFavoritoChange }: ServiceCardPr
   const [cargandoFavorito, setCargandoFavorito] = useState(false)
   const [authDialogOpen, setAuthDialogOpen] = useState(false)
 
+  // El catálogo puede refrescarse en segundo plano (p. ej. al restaurar la
+  // sesión). Sincronizamos el estado local cuando llega el dato del servidor.
+  useEffect(() => {
+    setFavorito(!!service.favorito)
+  }, [service.favorito])
+
   const handleToggleFavorito = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -74,12 +76,10 @@ export default function ServiceCard({ service, onFavoritoChange }: ServiceCardPr
       } else {
         await marcarServicioFavorito(service.id)
       }
-      if (isPostHogConfigured) {
-        posthog.capture("service_favorite_changed", {
-          service_id: service.id,
-          is_favorited: !previo,
-        })
-      }
+      captureIfConsented("service_favorite_changed", {
+        service_id: service.id,
+        is_favorited: !previo,
+      })
       onFavoritoChange?.(!previo)
     } catch (err) {
       setFavorito(previo)
@@ -114,6 +114,8 @@ export default function ServiceCard({ service, onFavoritoChange }: ServiceCardPr
             <button
               type="button"
               onClick={handleToggleFavorito}
+              aria-label={favorito ? "Quitar de favoritos" : "Añadir a favoritos"}
+              aria-pressed={favorito}
               className="absolute bottom-3 right-3 p-2 rounded-full bg-card/90 backdrop-blur-sm hover:bg-card transition-colors"
             >
               <Heart size={16} className={favorito ? "fill-red-500 text-red-500" : "text-foreground"} />

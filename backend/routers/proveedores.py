@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
 from uuid import UUID
 from utils.auth_middleware import get_current_user
-from schemas.proveedor_schema import CrearPerfilProveedor, ConfirmarDocumento, PerfilProveedorOut, ActualizarPerfilProveedor, PerfilProveedorPublico
+from schemas.proveedor_schema import CrearPerfilProveedor, ConfirmarDocumento, PerfilProveedorOut, ActualizarPerfilProveedor, PerfilProveedorPublicoOut
 from services.proveedor_service import ProveedorService
 from utils.storage import generar_signed_upload_url
 from config import Config
@@ -15,7 +15,19 @@ router = APIRouter(prefix="/proveedor", tags=["proveedor"])
 async def crear_proveedor(request: Request, perfil: CrearPerfilProveedor, current_user=Depends(get_current_user)):
     user_id = current_user["user_id"]
     service = ProveedorService()
-    resultado = service.create_or_update(user_id, perfil.descripcion, perfil.radio_km_disponible, perfil.experiencia_años)
+    resultado = service.create_or_update(
+        usuario_id=user_id,
+        descripcion=perfil.descripcion,
+        radio_km_disponible=perfil.radio_km_disponible,
+        experiencia_años=perfil.experiencia_años,
+        codigo_referido=perfil.codigo_referido,
+        ciudad=perfil.ciudad,
+        zona=perfil.zona,
+        materias=perfil.materias,
+        niveles=perfil.niveles,
+        perfil_publico=perfil.perfil_publico,
+        consentimiento_marketing=perfil.consentimiento_marketing,
+    )
     return resultado
 
 @router.patch("/", response_model=PerfilProveedorOut)
@@ -26,7 +38,12 @@ async def actualizar_perfil(request: Request, datos: ActualizarPerfilProveedor, 
     perfil = service.obtener_por_usuario(usuario_id)
     if not perfil:
         raise HTTPException(status_code=404, detail="No tienes perfil de proveedor")
-    return service.actualizar_perfil(perfil.id, **datos.model_dump(exclude_none=True))
+    return service.actualizar_perfil(perfil.id, **datos.model_dump(exclude_unset=True))
+
+
+@router.get("/sitemap")
+async def listar_perfiles_para_sitemap():
+    return ProveedorService().listar_para_sitemap()
 
 
 @router.get("/me", response_model=PerfilProveedorOut)
@@ -48,10 +65,10 @@ async def ver_mi_documento(current_user=Depends(get_current_user)):
         "url": url
     }
 
-@router.get("/{perfil_id}", response_model=PerfilProveedorPublico)
+@router.get("/{perfil_id}", response_model=PerfilProveedorPublicoOut)
 async def obtener_perfil_proveedor(perfil_id: UUID):
     service = ProveedorService()
-    perfil = service.obtener_por_id(perfil_id)
+    perfil = service.obtener_perfil_publico(perfil_id)
     if not perfil:
         raise HTTPException(status_code=404, detail="Perfil de proveedor no encontrado")
     return perfil

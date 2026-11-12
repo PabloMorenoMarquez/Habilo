@@ -9,11 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Search, Briefcase, ArrowRight, CheckCircle, Loader } from "lucide-react"
 import { getMiPerfilProveedor, crearPerfilProveedor, ApiError } from "@/lib/api"
-import posthog from "posthog-js"
-
-const isPostHogConfigured = Boolean(
-  process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST
-)
+import { captureIfConsented } from "@/lib/analytics"
 
 export default function SelectRolePage() {
   const { isAuthenticated, isLoading, role, selectRole } = useAuth()
@@ -29,7 +25,7 @@ export default function SelectRolePage() {
   useEffect(() => {
     if (isLoading) return
     if (!isAuthenticated) {
-      router.replace("/")
+      router.replace("/login")
     } else if (role) {
       router.replace(role === "cliente" ? "/home" : "/dashboard")
     }
@@ -78,10 +74,14 @@ export default function SelectRolePage() {
     setSubmitting(true)
     setFormError(null)
     try {
-      await crearPerfilProveedor({ descripcion, radio_km_disponible: radio })
-      if (isPostHogConfigured) {
-        posthog.capture("provider_profile_created", { service_radius_km: radio })
-      }
+      const codigoReferido = localStorage.getItem("habilo_referido_codigo") || undefined
+      await crearPerfilProveedor({
+        descripcion,
+        radio_km_disponible: radio,
+        codigo_referido: codigoReferido,
+      })
+      if (codigoReferido) localStorage.removeItem("habilo_referido_codigo")
+      captureIfConsented("provider_profile_created", { service_radius_km: radio })
       goToProfesional()
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "No se pudo crear tu perfil de proveedor."
@@ -178,7 +178,7 @@ export default function SelectRolePage() {
               </p>
             </div>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              {["Busca entre miles de servicios", "Compara precios y valoraciones", "Contrata de forma segura"].map((item) => (
+              {["Busca entre los servicios publicados", "Compara precios y valoraciones", "Contrata de forma segura"].map((item) => (
                 <li key={item} className="flex items-center gap-2">
                   <CheckCircle size={14} className="text-primary shrink-0" />
                   {item}

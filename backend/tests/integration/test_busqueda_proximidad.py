@@ -124,3 +124,14 @@ def test_ordena_por_distancia(seed_data):
     assert dist_centro < dist_periferia
     assert dist_centro < 1.0, f"El servicio de Madrid centro debería estar a <1 km del origen, está a {dist_centro:.2f} km"
     assert 14 < dist_periferia < 17, f"Madrid periferia debería estar ≈15.6 km, está a {dist_periferia:.2f} km"
+
+
+def test_busqueda_sin_coordenadas_devuelve_todos_los_activos(seed_data):
+    from repositories.servicio_repository import ServicioRepository
+
+    resultados = ServicioRepository().buscar_por_proximidad(None, None, 50)
+    ids = [str(r["id"]) for r in resultados]
+    assert str(seed_data["s_madrid_centro_id"]) in ids
+    assert str(seed_data["s_madrid_periferia_id"]) in ids
+    assert str(seed_data["s_barcelona_id"]) in ids
+    assert all(r["distancia_km"] is None for r in resultados)

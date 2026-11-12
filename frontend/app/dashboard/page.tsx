@@ -36,19 +36,18 @@ import {
   confirmarImagenServicio,
   ServicioDetalle,
   ApiError,
+  type MiPerfilProveedor,
 } from "@/lib/api"
 import { subirImagenServicio } from "@/lib/storage"
 import { geocodeCiudad, getBrowserLocation } from "@/lib/geocode"
 import GaleriaImagenes from "@/components/galeria-imagenes"
 import HorarioDisponibilidad from "@/components/horario-disponibilidad"
+import PerfilPublicoForm from "@/components/perfil-publico-form"
 import { useFeatureFlags } from "@/context/feature-flags-context"
 import { OnboardingModal } from "@/components/onboarding-modal"
 import { formatCategoryName } from "@/lib/category"
-import posthog from "posthog-js"
-
-const isPostHogConfigured = Boolean(
-  process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST
-)
+import { InviteProviderDialog } from "@/components/invite-provider-dialog"
+import { captureIfConsented } from "@/lib/analytics"
 
 // loadStripe se llama UNA vez fuera del componente (mismo patrón que stripe-provider.tsx)
 //const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
@@ -64,7 +63,7 @@ export default function DashboardPage() {
   const [cargandoServicios, setCargandoServicios] = useState(true)
   const [valoracionMedia, setValoracionMedia] = useState<number | null>(null)
   const [mensajesNoLeidos, setMensajesNoLeidos] = useState<number | null>(null)
-  const [perfilProveedor, setPerfilProveedor] = useState<any>(null)
+  const [perfilProveedor, setPerfilProveedor] = useState<MiPerfilProveedor | null>(null)
   //const [verificandoIdentidad, setVerificandoIdentidad] = useState(false)
   //const [errorVerificacion, setErrorVerificacion] = useState<string | null>(null)
 
@@ -88,6 +87,8 @@ export default function DashboardPage() {
 
   const { verificacionIdentidadHabilitada } = useFeatureFlags()
 
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
+
   const yaSugerido = useRef(false)
 
   const [form, setForm] = useState({
@@ -101,7 +102,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (isLoading) return
-    if (!isAuthenticated) router.replace("/")
+    if (!isAuthenticated) router.replace("/login")
     else if (role === "cliente") router.replace("/home")
   }, [isAuthenticated, isLoading, role, router])
 
@@ -114,8 +115,8 @@ export default function DashboardPage() {
       .catch((err) => console.error("No se pudieron cargar las categorías:", err))
 
     getMiPerfilProveedor()
-      .then((p: any) => {
-        setValoracionMedia(parseFloat(p.valoracion_media))
+      .then((p) => {
+        setValoracionMedia(p.valoracion_media ? parseFloat(p.valoracion_media) : null)
         setPerfilProveedor(p)
       })
       .catch(() => {})
@@ -195,6 +196,8 @@ export default function DashboardPage() {
   const handleCreate = async () => {
     if (!form.title || !form.description || !form.price || !form.categoriaId) return
 
+    const esPrimerServicio = misServicios.length === 0
+
     setCreando(true)
     setCreateError(null)
     try {
@@ -238,20 +241,22 @@ export default function DashboardPage() {
         }
       }
 
-      if (isPostHogConfigured) {
-        posthog.capture("service_created", {
-          service_id: nuevo.id,
-          category_id: form.categoriaId,
-          price_type: form.priceType,
-          image_count: imagenesNuevas.length,
-        })
-      }
+      captureIfConsented("service_created", {
+        service_id: nuevo.id,
+        category_id: form.categoriaId,
+        price_type: form.priceType,
+        image_count: imagenesNuevas.length,
+      })
       resetForm()
       setDialogOpen(false)
       cargarMisServicios()
 
       if (fallosImagenes > 0) {
         setErrorAcciones(`El servicio se creó, pero ${fallosImagenes} imagen(es) no se pudieron subir. Puedes añadirlas editando el servicio.`)
+      }
+
+      if (esPrimerServicio) {
+        setInviteDialogOpen(true)
       }
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "No se pudo publicar el servicio."
@@ -320,13 +325,11 @@ export default function DashboardPage() {
         ...(coords ? { latitud: coords.lat, longitud: coords.lng } : {}),
       })
 
-      if (isPostHogConfigured) {
-        posthog.capture("service_updated", {
-          service_id: editingService.id,
-          category_id: editForm.categoriaId,
-          price_type: editForm.priceType,
-        })
-      }
+      captureIfConsented("service_updated", {
+        service_id: editingService.id,
+        category_id: editForm.categoriaId,
+        price_type: editForm.priceType,
+      })
       closeEdit()
       cargarMisServicios()
     } catch (err) {
@@ -341,9 +344,7 @@ export default function DashboardPage() {
     setErrorAcciones(null)
     try {
       await eliminarServicio(id)
-      if (isPostHogConfigured) {
-        posthog.capture("service_deleted", { service_id: id })
-      }
+      captureIfConsented("service_deleted", { service_id: id })
       setMisServicios((prev) => prev.filter((s) => s.id !== id))
     } catch (err) {
       setErrorAcciones(err instanceof ApiError ? err.message : "No se pudo eliminar el servicio")
@@ -382,12 +383,10 @@ export default function DashboardPage() {
     setErrorAcciones(null)
     try {
       const actualizado = await actualizarServicio(servicio.id, { activo: !servicio.activo })
-      if (isPostHogConfigured) {
-        posthog.capture("service_availability_changed", {
-          service_id: servicio.id,
-          is_active: actualizado.activo,
-        })
-      }
+      captureIfConsented("service_availability_changed", {
+        service_id: servicio.id,
+        is_active: actualizado.activo,
+      })
       setMisServicios((prev) => prev.map((s) => (s.id === servicio.id ? actualizado : s)))
     } catch (err) {
       setErrorAcciones(err instanceof ApiError ? err.message : "No se pudo actualizar el servicio")
@@ -672,8 +671,19 @@ export default function DashboardPage() {
                 horaInicioInicial={perfilProveedor.hora_inicio}
                 horaFinInicial={perfilProveedor.hora_fin}
                 onGuardado={(datos) =>
-                  setPerfilProveedor((prev: any) => (prev ? { ...prev, ...datos } : prev))
+                  setPerfilProveedor((prev) => (prev ? { ...prev, ...datos } : prev))
                 }
+              />
+            </CardContent>
+          </Card>
+        )}
+
+        {perfilProveedor && (
+          <Card>
+            <CardContent className="p-5">
+              <PerfilPublicoForm
+                perfil={perfilProveedor}
+                onGuardado={(perfilActualizado) => setPerfilProveedor(perfilActualizado)}
               />
             </CardContent>
           </Card>
@@ -747,6 +757,11 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </main>
+      <InviteProviderDialog
+        open={inviteDialogOpen}
+        onOpenChange={setInviteDialogOpen}
+        codigoReferido={perfilProveedor?.codigo_referido}
+      />
     </div>
   )
 }

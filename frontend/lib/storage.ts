@@ -33,3 +33,10 @@ export async function subirImagenServicio(path: string, token: string, file: Fil
 export async function subirDocumentoProveedor(path: string, token: string, file: File): Promise<boolean> {
   return subirArchivo("documentos", path, token, file)
 }
+
+export async function subirAvatarUsuario(path: string, token: string, file: File): Promise<string | null> {
+  const ok = await subirArchivo("servicios", path, token, file)
+  if (!ok) return null
+  const { data } = supabase.storage.from("servicios").getPublicUrl(path)
+  return data.publicUrl
+}
