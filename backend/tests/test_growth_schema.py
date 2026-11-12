@@ -34,6 +34,36 @@ def test_lead_acepta_whatsapp_y_utm():
     assert lead.ref == "PROFE123"
 
 
+def test_lead_rechaza_nombre_o_mensaje_en_blanco():
+    with pytest.raises(ValidationError):
+        CrearLead(
+            servicio_id=uuid4(), nombre="   ", contacto="+34600111222",
+            canal_contacto="whatsapp", mensaje="Necesito un profesor",
+            consentimiento=True,
+        )
+    with pytest.raises(ValidationError):
+        CrearLead(
+            servicio_id=uuid4(), nombre="Ana", contacto="+34600111222",
+            canal_contacto="whatsapp", mensaje="          ",
+            consentimiento=True,
+        )
+
+
+def test_lead_rechaza_contacto_invalido():
+    with pytest.raises(ValidationError):
+        CrearLead(
+            servicio_id=uuid4(), nombre="Ana", contacto="no-es-un-email",
+            canal_contacto="email", mensaje="Necesito un profesor",
+            consentimiento=True,
+        )
+    with pytest.raises(ValidationError):
+        CrearLead(
+            servicio_id=uuid4(), nombre="Ana", contacto="123",
+            canal_contacto="whatsapp", mensaje="Necesito un profesor",
+            consentimiento=True,
+        )
+
+
 def test_modelos_tienen_columnas_nuevas():
     from models.perfil_proveedor import Perfil_Proveedor
     from models.servicio import Servicio

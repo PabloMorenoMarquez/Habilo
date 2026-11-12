@@ -11,6 +11,17 @@ from schemas.lead_schema import CrearLead
 from services.notificacion_email_service import NotificacionEmailService
 
 
+def normalizar_whatsapp(contacto: str) -> str:
+    """Devuelve el número en formato E.164 sin el signo +. Los móviles y fijos
+    españoles de 9 dígitos necesitan el prefijo 34 para que wa.me funcione."""
+    digitos = "".join(caracter for caracter in contacto if caracter.isdigit())
+    if digitos.startswith("0034"):
+        digitos = digitos[2:]
+    if len(digitos) == 9 and digitos[0] in "6789":
+        return "34" + digitos
+    return digitos
+
+
 class LeadService:
 
     def __init__(self):
@@ -83,8 +94,7 @@ class LeadService:
             lineas.append(f"<p><strong>Ref:</strong> {html.escape(datos.ref)}</p>")
 
         if datos.canal_contacto == "whatsapp":
-            digitos = "".join(caracter for caracter in datos.contacto if caracter.isdigit())
-            enlace = f"https://wa.me/{digitos}"
+            enlace = f"https://wa.me/{normalizar_whatsapp(datos.contacto)}"
         else:
             enlace = f"mailto:{datos.contacto}"
         lineas.append(f'<p><a href="{html.escape(enlace)}">Responder</a></p>')

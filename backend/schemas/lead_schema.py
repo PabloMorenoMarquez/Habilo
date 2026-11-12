@@ -1,6 +1,8 @@
 from typing import Literal, Optional
 from uuid import UUID
 
+import re
+
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 
@@ -22,6 +24,12 @@ class CrearLead(BaseModel):
     utm_term: Optional[str] = Field(default=None, max_length=100)
     pagina_origen: Optional[str] = Field(default=None, max_length=500)
 
+    @field_validator("nombre", "contacto", "mensaje", mode="before")
+    @classmethod
+    def recortar_texto(cls, valor):
+        # Sin esto, "   " supera min_length porque se valida antes de limpiar.
+        return valor.strip() if isinstance(valor, str) else valor
+
     @field_validator("consentimiento")
     @classmethod
     def validar_consentimiento(cls, valor: bool) -> bool:
@@ -33,4 +41,13 @@ class CrearLead(BaseModel):
     def validar_destino(self):
         if (self.servicio_id is None) == (self.perfil_id is None):
             raise ValueError("Debe indicarse exactamente uno de servicio_id o perfil_id")
+
+        if self.canal_contacto == "email":
+            if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", self.contacto):
+                raise ValueError("El email no es válido")
+        else:
+            digitos = "".join(caracter for caracter in self.contacto if caracter.isdigit())
+            if not 9 <= len(digitos) <= 15:
+                raise ValueError("El WhatsApp no es válido")
+
         return self

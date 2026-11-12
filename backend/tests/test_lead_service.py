@@ -15,11 +15,11 @@ def _make_service():
     return svc
 
 
-def _datos(servicio_id=None, perfil_id=None):
+def _datos(servicio_id=None, perfil_id=None, contacto="+34600111222"):
     from schemas.lead_schema import CrearLead
     return CrearLead(
         servicio_id=servicio_id, perfil_id=perfil_id,
-        nombre="Ana", contacto="+34600111222", canal_contacto="whatsapp",
+        nombre="Ana", contacto=contacto, canal_contacto="whatsapp",
         mensaje="Necesito un profesor de matemáticas", consentimiento=True,
         utm_source="tiktok",
     )
@@ -56,3 +56,26 @@ def test_lead_de_servicio_inactivo_devuelve_400():
         svc.crear(_datos(servicio_id=uuid4()))
 
     assert exc.value.status_code == 400
+
+
+@pytest.mark.parametrize(
+    ("entrada", "esperado"),
+    [
+        ("600 111 222", "34600111222"),
+        ("+34 600 111 222", "34600111222"),
+        ("0034 600 111 222", "34600111222"),
+        ("+44 7700 900123", "447700900123"),
+    ],
+)
+def test_normalizar_whatsapp_a_formato_internacional(entrada, esperado):
+    from services.lead_service import normalizar_whatsapp
+
+    assert normalizar_whatsapp(entrada) == esperado
+
+
+def test_cuerpo_whatsapp_usa_enlace_wa_me_con_prefijo_34():
+    svc = _make_service()
+    cuerpo = svc._cuerpo_html(_datos(servicio_id=uuid4(), contacto="600 111 222"))
+
+    assert 'href="https://wa.me/34600111222"' in cuerpo
+    assert "https://wa.me/600111222" not in cuerpo

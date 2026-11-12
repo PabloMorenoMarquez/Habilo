@@ -203,6 +203,7 @@ export function LeadContactDialog({
                 }}
                 autoComplete={canal === "email" ? "email" : "tel"}
                 inputMode={canal === "email" ? "email" : "tel"}
+                placeholder={canal === "email" ? "tu@email.com" : "+34 600 111 222"}
                 aria-invalid={Boolean(errores.contacto)}
                 aria-describedby={errores.contacto ? "lead-contacto-error" : undefined}
               />
