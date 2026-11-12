@@ -19,6 +19,12 @@ def _url_redirect_token(token: str) -> str:
     return f"{Config.FRONTEND_URL.rstrip('/')}/login?token={token}"
 
 
+_CABECERAS_REDIRECT_LOGIN = {
+    "Cache-Control": "no-store",
+    "Referrer-Policy": "no-referrer",
+}
+
+
 @router.get("/google/login")
 @limiter.limit("10/minute")
 async def google_login(request: Request):
@@ -52,7 +58,7 @@ async def google_callback(request: Request):
 
         jwt_token = create_access_token(user_data)
 
-        return RedirectResponse(_url_redirect_token(jwt_token))
+        return RedirectResponse(_url_redirect_token(jwt_token), headers=_CABECERAS_REDIRECT_LOGIN)
 
     except HTTPException:
         raise
@@ -102,7 +108,7 @@ async def facebook_callback(request: Request):
 
         jwt_token = create_access_token(user_data)
 
-        return RedirectResponse(_url_redirect_token(jwt_token))
+        return RedirectResponse(_url_redirect_token(jwt_token), headers=_CABECERAS_REDIRECT_LOGIN)
 
     except HTTPException:
         raise

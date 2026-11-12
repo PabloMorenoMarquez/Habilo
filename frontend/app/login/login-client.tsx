@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
-import { useEffect, useState, Suspense } from "react"
+import { useEffect, useRef, useState, Suspense } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Search, Star, Shield, Loader } from "lucide-react"
@@ -27,6 +27,24 @@ const FacebookIcon = () => (
   </svg>
 )
 
+/**
+ * Extrae el token de la URL y borra el parámetro de la barra de direcciones
+ * antes de que se ejecute cualquier efecto de autenticación o analítica. El
+ * `ref` se conserva para que LandingTracker mantenga la atribución.
+ */
+function extraerTokenYLimpiarUrl(): string | null {
+  if (typeof window === "undefined") return null
+  const params = new URLSearchParams(window.location.search)
+  const token = params.get("token")
+  if (!token) return null
+
+  params.delete("token")
+  const query = params.toString()
+  const url = `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`
+  window.history.replaceState(window.history.state, "", url)
+  return token
+}
+
 function LoginPageInner() {
   const { isAuthenticated, isLoading, role, loginWithToken } = useAuth()
   const router = useRouter()
@@ -34,9 +52,17 @@ function LoginPageInner() {
   const [isProcessingToken, setIsProcessingToken] = useState(false)
   const [loginError, setLoginError] = useState<string | null>(null)
 
+  // Se captura una sola vez. Bajo StrictMode el inicializador puede ejecutarse
+  // dos veces; la segunda encuentra la URL ya limpia y el ref evita perderlo.
+  const tokenRef = useRef<string | null>(null)
+  if (typeof window !== "undefined" && tokenRef.current === null) {
+    tokenRef.current = extraerTokenYLimpiarUrl()
+  }
+
   useEffect(() => {
-    const token = searchParams.get("token")
+    const token = tokenRef.current
     if (!token) return
+    tokenRef.current = null
 
     setIsProcessingToken(true)
     loginWithToken(token)
@@ -47,8 +73,7 @@ function LoginPageInner() {
         setLoginError("No se pudo iniciar sesión. Inténtalo de nuevo.")
       })
       .finally(() => setIsProcessingToken(false))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams])
+  }, [loginWithToken, router])
 
   useEffect(() => {
     if (isLoading || isProcessingToken) return
@@ -62,7 +87,11 @@ function LoginPageInner() {
   useEffect(() => {
     const ref = searchParams.get("ref")
     if (ref) {
-      localStorage.setItem("habilo_referido_codigo", ref)
+      try {
+        localStorage.setItem("habilo_referido_codigo", ref)
+      } catch {
+        // Almacenamiento bloqueado: el login sigue funcionando sin referido.
+      }
     }
   }, [searchParams])
 

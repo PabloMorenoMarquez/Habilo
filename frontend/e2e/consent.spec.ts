@@ -424,3 +424,48 @@ test("un consentimiento guardado afirmativo inicializa PostHog sin mostrar el ba
   await expect(page.getByRole("dialog", { name: /cookies/i })).toHaveCount(0)
   await expect.poll(() => analyticsIniciado(page), { timeout: 15_000 }).toBe(true)
 })
+
+test("el token de login no llega a PostHog ni queda en la URL", async ({ page }) => {
+  const cuerpos: string[] = []
+  await page.route(POSTHOG, async (route) => {
+    const cuerpo = route.request().postData()
+    if (cuerpo) cuerpos.push(cuerpo)
+    await route.fulfill({ status: 200, contentType: "application/json", body: "{}" })
+  })
+
+  await page.addInitScript((clave) => {
+    localStorage.setItem(clave, JSON.stringify({ analytics: true, ts: new Date().toISOString() }))
+  }, CLAVE_CONSENTIMIENTO)
+
+  await page.goto("/login?token=TOKEN_SECRETO_E2E&ref=REF_E2E")
+  await expect.poll(() => analyticsIniciado(page), { timeout: 15_000 }).toBe(true)
+
+  const url = new URL(page.url())
+  expect(url.searchParams.get("token")).toBeNull()
+  expect(url.searchParams.get("ref")).toBe("REF_E2E")
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem("habilo_referido_codigo")))
+    .toBe("REF_E2E")
+
+  // Se fuerza el token también como propiedad del evento: before_send debe
+  // borrarlo aunque la URL ya esté limpia.
+  await page.evaluate(() => {
+    const ventana = window as Window & {
+      __habiloAnalyticsCapturar?: (
+        evento: string,
+        propiedades?: Record<string, unknown>
+      ) => void
+    }
+    ventana.__habiloAnalyticsCapturar?.("e2e_token_login", {
+      enlace: "https://habilo.es/login?token=TOKEN_SECRETO_E2E",
+      token: "TOKEN_SECRETO_E2E",
+    })
+  })
+
+  await expect
+    .poll(() => cuerpos.some((cuerpo) => cuerpo.includes("e2e_token_login")), {
+      timeout: 15_000,
+    })
+    .toBe(true)
+  expect(cuerpos.every((cuerpo) => !cuerpo.includes("TOKEN_SECRETO_E2E"))).toBe(true)
+})

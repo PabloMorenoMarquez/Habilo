@@ -88,9 +88,8 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null)
 
 function identifyUser(user: User) {
+  // Solo IDs y rol: ni email ni nombre viajan a la analítica.
   identifyIfConsented(user.id, {
-    email: user.email,
-    name: user.name,
     ...(user.role ? { role: user.role } : {}),
     is_admin: user.es_admin ?? false,
   })

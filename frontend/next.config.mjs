@@ -13,6 +13,18 @@ const nextConfig = {
       },
     ],
   },
+  async headers() {
+    return [
+      {
+        // La URL puede llegar con ?token= desde el callback OAuth.
+        source: '/login',
+        headers: [
+          { key: 'Referrer-Policy', value: 'no-referrer' },
+          { key: 'Cache-Control', value: 'no-store' },
+        ],
+      },
+    ]
+  },
 }
 
 export default withSentryConfig(nextConfig, {

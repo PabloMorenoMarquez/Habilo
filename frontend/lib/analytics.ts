@@ -1,6 +1,61 @@
-import type { PostHog, Properties } from "posthog-js"
+import type { CaptureResult, PostHog, Properties } from "posthog-js"
 
 export const CONSENT_STORAGE_KEY = "habilo_consent_v1"
+
+// `token` no está aquí: PostHog exige `properties.token` y descarta el evento
+// si `before_send` lo elimina. Esa clave se sustituye por el token público del
+// proyecto, nunca por un valor que venga del evento o de la URL.
+const CLAVES_SENSIBLES =
+  /^(?:access_token|refresh_token|id_token|jwt|authorization|password|cookie)$/i
+const PARAMETRO_SENSIBLE =
+  /([?&#])(?:token|access_token|refresh_token|id_token|jwt|authorization)=[^&\s#]*/gi
+
+/**
+ * Elimina credenciales de cualquier cadena que vaya a PostHog. No toca el
+ * resto del texto: solo los parámetros cuyo nombre es sensible.
+ */
+function limpiarParametrosSensibles(valor: string): string {
+  return valor
+    .replace(PARAMETRO_SENSIBLE, "$1")
+    .replace(/([?&])&+/g, "$1")
+    .replace(/[?&]+(?=#|$)/g, "")
+}
+
+function sanearPropiedades(valor: unknown, profundidad = 0): unknown {
+  if (profundidad > 4 || valor === null || typeof valor !== "object") return valor
+  if (Array.isArray(valor)) {
+    return valor.map((item) => sanearPropiedades(item, profundidad + 1))
+  }
+  if (valor instanceof Date) return valor
+
+  const resultado: Record<string, unknown> = {}
+  for (const [clave, item] of Object.entries(valor as Record<string, unknown>)) {
+    if (CLAVES_SENSIBLES.test(clave)) continue
+    if (clave === "token") {
+      resultado[clave] = posthogProjectToken ?? ""
+      continue
+    }
+    resultado[clave] =
+      typeof item === "string" ? limpiarParametrosSensibles(item) : sanearPropiedades(item, profundidad + 1)
+  }
+  return resultado
+}
+
+/**
+ * Última barrera antes de la red: aunque la URL se limpia al arrancar, ningún
+ * evento puede llevar un token en `$current_url`, propiedades o `$set`.
+ */
+function sanearEvento(evento: CaptureResult | null): CaptureResult | null {
+  if (!evento) return null
+  return {
+    ...evento,
+    properties: sanearPropiedades(evento.properties) as Properties,
+    ...(evento.$set ? { $set: sanearPropiedades(evento.$set) as Properties } : {}),
+    ...(evento.$set_once
+      ? { $set_once: sanearPropiedades(evento.$set_once) as Properties }
+      : {}),
+  }
+}
 
 const posthogProjectToken = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN
 const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST
@@ -84,6 +139,9 @@ export function initAnalytics(): Promise<void> {
             autocapture: false,
             capture_pageleave: false,
             capture_exceptions: true,
+            // La URL se limpia antes de inicializar, pero si algún evento
+            // llegara con un token, este hook lo elimina antes del envío.
+            before_send: sanearEvento,
             disable_surveys: true,
             advanced_disable_flags: true,
             // Sin batching no queda una ventana de 3 s con eventos sin enviar.
@@ -267,11 +325,12 @@ function detenerTransporte() {
 if (process.env.NODE_ENV !== "production" && typeof window !== "undefined") {
   const destino = window as Window & {
     __habiloAnalyticsOptOut?: () => boolean | null
-    __habiloAnalyticsCapturar?: (evento: string) => void
+    __habiloAnalyticsCapturar?: (evento: string, propiedades?: Properties) => void
   }
   destino.__habiloAnalyticsOptOut = () =>
     cliente?.__loaded ? cliente.has_opted_out_capturing() : null
-  destino.__habiloAnalyticsCapturar = (evento) => captureIfConsented(evento)
+  destino.__habiloAnalyticsCapturar = (evento, propiedades) =>
+    captureIfConsented(evento, propiedades)
 }
 
 /**
