@@ -4,6 +4,10 @@ import type { SitemapItem } from '@/lib/api'
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://habilo.es').replace(/\/+$/, '')
 
+// sitemap.ts es un Route Handler cacheado por defecto. Sin esto, el XML queda
+// congelado en el build y las altas de perfiles no entran hasta el siguiente deploy.
+export const revalidate = 300
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const estaticas: MetadataRoute.Sitemap = [
     { url: SITE_URL, changeFrequency: 'daily', priority: 1 },
