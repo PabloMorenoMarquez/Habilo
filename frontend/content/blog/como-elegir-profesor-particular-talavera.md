@@ -70,6 +70,63 @@ En Talavera hay perfiles muy distintos: estudiantes de últimos cursos, titulado
 
 Compara con los mismos criterios: precio, nivel, método, disponibilidad y forma de pago. Puedes ver los perfiles y precios publicados en [Habilo](/home?q=clases%20particulares&ciudad=Talavera%20de%20la%20Reina) y contactar directamente con cada profesor.
 
+## Qué preguntar según el curso
+
+Las preguntas anteriores valen para cualquier edad, pero su peso cambia con el curso. Lo que importa a los ocho años no es lo que importa a los diecisiete.
+
+### Primaria
+
+En Primaria casi nunca falla el temario. Fallan los hábitos: sentarse a una hora fija, leer con atención, apuntar los deberes y terminarlos sin que nadie los haga por él. Pregunta al profesor:
+
+- ¿Cómo organiza la hora? Un niño pequeño no aguanta sesenta minutos seguidos de la misma tarea.
+- ¿Trabaja la lectura y la comprensión, o solo resuelve los deberes del día?
+- ¿Qué hace cuando el niño se frustra o se distrae?
+- ¿Deja al alumno intentarlo solo antes de dar la respuesta?
+
+Si el profesor termina los deberes más rápido que el niño, la libreta llega perfecta al colegio y el problema sigue igual. Busca a alguien que enseñe a trabajar, no que entregue la tarea hecha.
+
+### ESO
+
+En la ESO se juntan más asignaturas, más exámenes y menos supervisión del centro. Muchos alumnos no suspenden por falta de capacidad, sino porque estudian la víspera y sin método. Pregunta:
+
+- ¿Revisa los exámenes ya corregidos para ver dónde se pierden los puntos?
+- ¿Enseña a planificar la semana cuando coinciden varios exámenes?
+- ¿Trabaja técnicas de estudio: esquemas, resúmenes, repaso espaciado?
+- Si necesita dos asignaturas, ¿domina las dos o solo una?
+
+Con una carga alta conviene decidir qué asignatura va primero. Un profesor honesto dirá cuál puede cubrir bien y cuál no.
+
+### Bachillerato
+
+En Bachillerato el margen es menor. El temario es amplio, la nota cuenta para el acceso a la universidad y el alumno debe trabajar solo entre clase y clase. Pregunta:
+
+- ¿Conoce el temario actual de esa asignatura y el formato del examen de Selectividad?
+- ¿Trabaja con exámenes de convocatorias anteriores y con tiempo medido?
+- ¿Qué espera que haga el alumno por su cuenta durante la semana?
+- ¿Puede reforzar las semanas previas a los exámenes finales?
+
+A esta edad la clase particular no sustituye al estudio. Un buen profesor resuelve dudas, corrige errores de planteamiento y marca el ritmo. El resto es trabajo del alumno, y conviene que el profesor lo diga claro desde el primer día.
+
+## Ejemplo de una familia
+
+*Ejemplo ilustrativo, no un caso real.*
+
+Imagina a un alumno de 3.º de la ESO con dos asignaturas flojas: Matemáticas e Inglés. La familia puede pagar dos clases por semana y quiere decidir antes del siguiente examen.
+
+Primero concretan el objetivo: aprobar las dos asignaturas en la próxima evaluación. Después escriben a tres profesores con el mismo mensaje: curso, asignaturas, dos sesiones semanales y la pregunta de qué harían en las cuatro primeras clases.
+
+Las respuestas son distintas:
+
+- **El primero** contesta solo con el precio por hora y dice que "ya se verá según vaya el alumno".
+- **El segundo** domina Matemáticas, reconoce que no da Inglés y propone empezar revisando los dos últimos exámenes.
+- **El tercero** cubre las dos asignaturas, ofrece una clase de prueba suelta y explica qué pasa si se cancela una sesión.
+
+Con esa información la familia compara por coste mensual, no por hora, y suma el desplazamiento. Descarta al primero porque no concreta nada. Entre los otros dos tiene una decisión real: un profesor para todo, o el especialista en Matemáticas y otra solución para Inglés.
+
+Hacen la clase de prueba con el tercero. Si el alumno sale entendiendo algo que antes no entendía, siguen cuatro semanas y revisan. Si no, prueban con el segundo sin haber pagado ningún bono.
+
+El resultado no está garantizado en ningún caso. Lo que cambia es que la familia decide con datos comparables y sin dinero comprometido por adelantado.
+
 ## Señales de alarma
 
 - **Garantiza un aprobado.** Nadie serio puede prometer una nota.

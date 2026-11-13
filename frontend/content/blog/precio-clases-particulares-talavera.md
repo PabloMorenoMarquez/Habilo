@@ -66,6 +66,44 @@ Antes de aceptar, confirma por escrito:
 5. **Pagos.** Por clase, por semana o por bono.
 6. **Recibos.** Si necesitas justificante para la declaración, pídelo desde el principio.
 
+## Ejemplo de presupuesto mensual para dos familias
+
+Dos escenarios con las tarifas observadas. Los importes de desplazamiento y material son supuestos para mostrar la operación, no precios publicados: sustitúyelos por los que te dé cada profesor.
+
+**Familia A: una clase semanal a 13 €/h.**
+
+- Clases: 13 € × 1 clase × 4 semanas = **52 €**.
+- Desplazamiento, si el profesor lo cobrara aparte a 2 € por visita: 2 € × 4 = 8 €.
+- Material, si hubiera que pagar 5 € de fotocopias al mes: 5 €.
+- Total del mes: 52 + 8 + 5 = **65 €**.
+
+**Familia B: dos clases semanales a 10 €/h.**
+
+- Clases: 10 € × 2 clases × 4 semanas = **80 €**.
+- Desplazamiento con el mismo supuesto: 2 € × 8 visitas = 16 €.
+- Material: 5 €.
+- Total del mes: 80 + 16 + 5 = **101 €**.
+
+Dos conclusiones. La primera: la familia B paga menos por hora y bastante más al mes, porque la frecuencia pesa más que la tarifa. La segunda: los extras suponen 13 € en un caso y 21 € en el otro. Parecen poco, pero cambian la comparación entre dos profesores con precios parecidos.
+
+Ten en cuenta también que un mes no siempre tiene cuatro semanas exactas. Si la clase cae en un día que se repite cinco veces, habrá una sesión más. Pregunta si se cobra por clase dada o una cuota fija mensual.
+
+Haz esta misma cuenta con cada profesor antes de decidir. Lleva dos minutos y evita sorpresas a final de mes.
+
+## Qué hacer si el presupuesto no llega
+
+Que la cuenta no salga no obliga a renunciar a las clases. Hay ajustes razonables antes de descartar la ayuda:
+
+- **Bajar la frecuencia.** Una clase semanal bien aprovechada, con tarea entre sesiones, rinde más que dos sin trabajo en casa. Se puede empezar con una y añadir otra solo antes de los exámenes.
+- **Combinar online y presencial.** Si el desplazamiento se cobra aparte, alternar una sesión presencial con una online reduce ese gasto. Pregunta primero si el profesor ofrece las dos modalidades y a qué precio.
+- **Priorizar la asignatura con más riesgo.** Con dos asignaturas flojas y dinero para una, empieza por la que está más cerca del suspenso o por la que bloquea a las demás. Intentar cubrir todo con pocas horas suele dejar todo a medias.
+- **Compartir clase, si el profesor lo permite.** Algunos profesores aceptan grupos de dos o tres alumnos del mismo curso. No todos lo hacen ni tiene por qué salir más barato: pregúntalo y pide el precio por alumno.
+- **Acotar el periodo.** Seis u ocho semanas con un objetivo concreto pueden bastar para un examen. No hace falta comprometerse todo el curso.
+
+Lo que no conviene es pedir una rebaja a cambio de pagar muchas clases por adelantado sin haber hecho una prueba. Tampoco elegir al profesor más barato sin comprobar que domina el nivel. Ahorrar en la tarifa y perder un trimestre sale caro.
+
+Explica tu presupuesto al profesor desde el primer mensaje. Quien trabaja con método sabrá decirte qué se puede conseguir con esas horas y qué no.
+
 ## Errores caros al comparar precios
 
 - **Comparar profesores de niveles distintos.** Un precio de Primaria no se compara con uno de Bachillerato.
