@@ -99,3 +99,14 @@ test("el CTA no envía nada a PostHog sin consentimiento", async ({ page, contex
 
   expect(peticiones).toHaveLength(0)
 })
+
+test("el sitemap incluye el blog y los dos artículos", async ({ request }) => {
+  const respuesta = await request.get("/sitemap.xml")
+  expect(respuesta.status()).toBe(200)
+
+  const xml = await respuesta.text()
+  expect(xml).toContain("<urlset")
+  expect(xml).toContain("/blog</loc>")
+  expect(xml).toContain("/blog/como-elegir-profesor-particular-talavera</loc>")
+  expect(xml).toContain("/blog/precio-clases-particulares-talavera</loc>")
+})
