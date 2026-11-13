@@ -106,6 +106,9 @@ export default async function LandingPage({
             <Link href="#como-funciona" className="transition-colors hover:text-foreground">
               Cómo funciona
             </Link>
+            <Link href="/blog" className="transition-colors hover:text-foreground">
+              Guías
+            </Link>
           </nav>
 
           <div className="flex items-center gap-2">
@@ -309,6 +312,9 @@ export default async function LandingPage({
             <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
               <Link href="/home" className="transition-colors hover:text-foreground">
                 Buscar profesores
+              </Link>
+              <Link href="/blog" className="transition-colors hover:text-foreground">
+                Blog
               </Link>
               <Link href="/login" className="transition-colors hover:text-foreground">
                 Soy profesor

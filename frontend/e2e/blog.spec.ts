@@ -110,3 +110,15 @@ test("el sitemap incluye el blog y los dos artículos", async ({ request }) => {
   expect(xml).toContain("/blog/como-elegir-profesor-particular-talavera</loc>")
   expect(xml).toContain("/blog/precio-clases-particulares-talavera</loc>")
 })
+
+test("la portada enlaza al blog en cabecera y pie", async ({ page }) => {
+  await page.goto("/")
+
+  const enlaces = page.locator('a[href="/blog"]')
+  expect(await enlaces.count()).toBeGreaterThanOrEqual(2)
+
+  const visibles = await enlaces.evaluateAll((nodos) =>
+    nodos.filter((nodo) => (nodo as HTMLElement).offsetParent !== null).length
+  )
+  expect(visibles).toBeGreaterThanOrEqual(1)
+})
