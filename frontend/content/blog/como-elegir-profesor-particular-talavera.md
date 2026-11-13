@@ -109,7 +109,7 @@ A esta edad la clase particular no sustituye al estudio. Un buen profesor resuel
 
 ## Ejemplo de una familia
 
-*Ejemplo ilustrativo, no un caso real.*
+> **Ejemplo ilustrativo, no un caso real.**
 
 Imagina a un alumno de 3.º de la ESO con dos asignaturas flojas: Matemáticas e Inglés. La familia puede pagar dos clases por semana y quiere decidir antes del siguiente examen.
 

@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import "./blog.css"
 
 export default function BlogLayout({ children }: { children: React.ReactNode }) {
   return (

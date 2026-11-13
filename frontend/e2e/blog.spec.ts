@@ -33,7 +33,7 @@ test("el artículo renderiza el contenido y los datos estructurados", async ({ p
   await page.goto(URL_POST)
 
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Cómo elegir profesor particular")
-  await expect(page.getByText("Define el objetivo antes de buscar")).toBeVisible()
+  await expect(page.locator(".article-body").getByText("Define el objetivo antes de buscar")).toBeVisible()
   await expect(page.locator(".article-body a[href^='/home?']").first()).toBeVisible()
 
   const canonical = await page.locator('link[rel="canonical"]').getAttribute("href")
@@ -121,4 +121,41 @@ test("la portada enlaza al blog en cabecera y pie", async ({ page }) => {
     nodos.filter((nodo) => (nodo as HTMLElement).offsetParent !== null).length
   )
   expect(visibles).toBeGreaterThanOrEqual(1)
+})
+
+test("el artículo es legible: jerarquía, índice y ancho de línea", async ({ page }) => {
+  await page.goto(URL_POST)
+
+  const estilos = await page.evaluate(() => {
+    const cuerpo = document.querySelector(".article-body")!
+    const css = (selector: string) => getComputedStyle(cuerpo.querySelector(selector)!)
+    return {
+      parrafo: parseFloat(css("p:not(:first-child)").fontSize),
+      margenParrafo: parseFloat(css("p:not(:first-child)").marginBottom),
+      h2: parseFloat(css("h2").fontSize),
+      pesoH2: Number(css("h2").fontWeight),
+      margenH2: parseFloat(css("h2").marginTop),
+      sangriaLista: parseFloat(css("ul li").paddingLeft) + parseFloat(css("ul").paddingLeft),
+      ancho: cuerpo.clientWidth,
+    }
+  })
+
+  expect(estilos.parrafo).toBeGreaterThanOrEqual(17)
+  expect(estilos.margenParrafo).toBeGreaterThanOrEqual(16)
+  expect(estilos.h2).toBeGreaterThanOrEqual(estilos.parrafo * 1.4)
+  expect(estilos.pesoH2).toBeGreaterThanOrEqual(700)
+  expect(estilos.margenH2).toBeGreaterThanOrEqual(40)
+  expect(estilos.sangriaLista).toBeGreaterThanOrEqual(16)
+  // Línea de lectura: unos 75 caracteres como máximo.
+  expect(estilos.ancho).toBeLessThanOrEqual(720)
+
+  const indice = page.locator(".article-toc a")
+  expect(await indice.count()).toBeGreaterThanOrEqual(8)
+  const destinos = await indice.evaluateAll((enlaces) =>
+    enlaces.map((enlace) => {
+      const id = decodeURIComponent(enlace.getAttribute("href")!.slice(1))
+      return document.getElementById(id)?.tagName ?? null
+    })
+  )
+  expect(destinos.every((etiqueta) => etiqueta === "H2")).toBe(true)
 })

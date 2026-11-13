@@ -87,7 +87,7 @@ export default async function PostPage({ params }: PostPageProps) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
 
-      <div className="mx-auto max-w-3xl">
+      <div className="mx-auto max-w-2xl">
         <nav aria-label="Migas de pan" className="text-sm text-muted-foreground">
           <ol className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <li>
@@ -122,6 +122,27 @@ export default async function PostPage({ params }: PostPageProps) {
             {post.tiempoLectura} min de lectura
           </p>
         </header>
+
+        {post.indice.length > 0 && (
+          <nav
+            aria-label="En esta guía"
+            className="article-toc mt-8 rounded-2xl border border-border bg-card p-5 md:p-6"
+          >
+            <p className="text-sm font-semibold text-foreground">En esta guía</p>
+            <ol className="mt-3 space-y-2 text-[0.9375rem] leading-snug">
+              {post.indice.map((seccion) => (
+                <li key={seccion.id}>
+                  <a
+                    href={`#${seccion.id}`}
+                    className="text-muted-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
+                  >
+                    {seccion.titulo}
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </nav>
+        )}
 
         <div
           className="article-body mt-10"

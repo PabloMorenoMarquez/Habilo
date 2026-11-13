@@ -1,7 +1,9 @@
 import fs from "fs"
 import path from "path"
 import matter from "gray-matter"
-import { marked } from "marked"
+import { Marked } from "marked"
+
+export type BlogSeccion = { id: string; titulo: string }
 
 export type BlogPost = {
   slug: string
@@ -11,6 +13,7 @@ export type BlogPost = {
   autor: string
   categoria: string
   contenido: string
+  indice: BlogSeccion[]
   tiempoLectura: number
 }
 
@@ -24,6 +27,42 @@ function contarPalabras(markdown: string): number {
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
     .replace(/[#*`>|_~-]/g, " ")
   return texto.split(/\s+/).filter((palabra) => /[\p{L}\p{N}]/u.test(palabra)).length
+}
+
+function crearId(titulo: string): string {
+  return titulo
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+}
+
+// Los h2 llevan id para que el índice del artículo pueda enlazarlos.
+const markdown = new Marked({
+  gfm: true,
+  async: false,
+  renderer: {
+    heading({ tokens, depth, text }) {
+      const html = this.parser.parseInline(tokens)
+      const id = depth === 2 ? ` id="${crearId(text)}"` : ""
+      return `<h${depth}${id}>${html}</h${depth}>
+`
+    },
+  },
+})
+
+function extraerIndice(contenido: string, archivo: string): BlogSeccion[] {
+  const ids = new Set<string>()
+  return markdown.lexer(contenido).flatMap((token) => {
+    if (token.type !== "heading" || token.depth !== 2) return []
+    const id = crearId(token.text)
+    if (!id || ids.has(id)) {
+      throw new Error(`Blog: el apartado "${token.text}" está vacío o repetido en ${archivo}`)
+    }
+    ids.add(id)
+    return [{ id, titulo: token.text }]
+  })
 }
 
 function cargarPosts(): BlogPost[] {
@@ -53,7 +92,8 @@ function cargarPosts(): BlogPost[] {
       fecha: data.fecha,
       autor: data.autor,
       categoria: data.categoria,
-      contenido: marked.parse(content, { gfm: true, async: false }) as string,
+      contenido: markdown.parse(content) as string,
+      indice: extraerIndice(content, archivo),
       tiempoLectura: Math.max(1, Math.ceil(contarPalabras(content) / PALABRAS_POR_MINUTO)),
     }
   })
