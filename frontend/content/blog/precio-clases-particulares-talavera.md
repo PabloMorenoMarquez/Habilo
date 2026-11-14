@@ -122,7 +122,7 @@ Pide a cada profesor la misma información:
 - Experiencia con el curso concreto.
 - Disponibilidad y forma de pago.
 
-Con tres respuestas comparables ya se ve quién está improvisando. En [Habilo](/home?q=clases%20particulares&ciudad=Talavera%20de%20la%20Reina) puedes ver el precio publicado de cada servicio antes de contactar, y hablar directamente con el profesor.
+Con tres respuestas comparables ya se ve quién está improvisando. En [Habilo](/home?q=clases%20particulares) puedes ver el precio publicado de cada servicio antes de contactar, y hablar directamente con el profesor.
 
 Si aún no has decidido qué preguntar, empieza por la guía de [cómo elegir profesor particular en Talavera](/blog/como-elegir-profesor-particular-talavera).
 

@@ -68,7 +68,7 @@ Un profesor que solo aparece para cobrar no sirve. La comunicación no tiene que
 
 En Talavera hay perfiles muy distintos: estudiantes de últimos cursos, titulados y profesores con años de experiencia.
 
-Compara con los mismos criterios: precio, nivel, método, disponibilidad y forma de pago. Puedes ver los perfiles y precios publicados en [Habilo](/home?q=clases%20particulares&ciudad=Talavera%20de%20la%20Reina) y contactar directamente con cada profesor.
+Compara con los mismos criterios: precio, nivel, método, disponibilidad y forma de pago. Puedes ver los perfiles y precios publicados en [Habilo](/home?q=clases%20particulares) y contactar directamente con cada profesor.
 
 ## Qué preguntar según el curso
 

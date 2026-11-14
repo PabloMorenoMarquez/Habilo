@@ -5,7 +5,7 @@ import BlogCta from "@/components/blog/blog-cta"
 import { formatFecha, getAllPosts, getPostBySlug, getSlugs } from "@/lib/blog"
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://habilo.es").replace(/\/+$/, "")
-const CTA_HREF = "/home?q=clases%20particulares&ciudad=Talavera%20de%20la%20Reina"
+const CTA_HREF = "/home?q=clases%20particulares"
 
 type PostPageProps = {
   params: Promise<{ slug: string }>
@@ -156,7 +156,7 @@ export default async function PostPage({ params }: PostPageProps) {
           </p>
           <div className="mt-5">
             <BlogCta href={CTA_HREF} slug={post.slug}>
-              Ver profesores en Talavera
+              Ver profesores disponibles
             </BlogCta>
           </div>
         </div>
