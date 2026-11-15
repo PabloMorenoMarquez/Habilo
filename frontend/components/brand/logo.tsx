@@ -5,6 +5,11 @@ import { cn } from "@/lib/utils"
 // geometría en scripts/generate-icons.mjs.
 export const BRAND_CORAL = "#FF6B4A"
 
+// La fuente va en línea a propósito: las reglas nuevas de app/globals.css no llegan al CSS
+// de producción en Vercel (ya pasó con el blog), así que una utilidad `font-brand` definida
+// allí funcionaba en local y se perdía al desplegar.
+const BRAND_FONT = "var(--font-bricolage), var(--font-jakarta), system-ui, sans-serif"
+
 interface LogoProps {
   /** `brand`: sobre fondos claros u oscuros de la interfaz. `onPrimary`: sobre el azul de marca. */
   tone?: "brand" | "onPrimary"
@@ -15,10 +20,11 @@ export function Logo({ tone = "brand", className }: LogoProps) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-[0.28em] font-brand font-extrabold leading-none tracking-[-0.035em]",
+        "inline-flex items-center gap-[0.28em] font-extrabold leading-none tracking-[-0.035em]",
         tone === "brand" ? "text-primary" : "text-primary-foreground",
         className,
       )}
+      style={{ fontFamily: BRAND_FONT }}
     >
       <svg viewBox="40 18 142 154" aria-hidden="true" className="h-[1.2em] w-auto shrink-0">
         <path
