@@ -257,7 +257,8 @@ export default function HomeClient({
 
   return (
     <div className="min-h-screen bg-background">
-      <OnboardingModal role="cliente" />
+      {/* Quien llega con una búsqueda en la URL ve los resultados sin el tutorial delante. */}
+      {!initialQuery && !initialCiudad && <OnboardingModal role="cliente" />}
       <Navbar />
 
       <section className="bg-primary text-primary-foreground py-12 px-4">
