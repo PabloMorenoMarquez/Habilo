@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button"
 import { fetchPublic } from "@/lib/server-api"
 import { mapServicioParaTarjeta } from "@/lib/service-mapper"
 import type { Paginado, ServicioBackend } from "@/lib/api"
+import { Logo } from "@/components/brand/logo"
 
 export const revalidate = 300
 
@@ -97,8 +98,8 @@ export default async function LandingPage({
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 w-full border-b border-border bg-card/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4">
-          <Link href="/" className="text-xl font-bold tracking-tight text-primary">
-            Habilo
+          <Link href="/" aria-label="Habilo, inicio" className="text-2xl">
+            <Logo />
           </Link>
 
           <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
@@ -304,7 +305,7 @@ export default async function LandingPage({
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-lg font-bold text-primary">Habilo</p>
+              <Logo className="text-xl" />
               <p className="text-sm text-muted-foreground">
                 Clases particulares con profesores reales.
               </p>

@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Search, Briefcase, ArrowRight, CheckCircle, Loader } from "lucide-react"
 import { getMiPerfilProveedor, crearPerfilProveedor, ApiError } from "@/lib/api"
 import { captureIfConsented } from "@/lib/analytics"
+import { Logo } from "@/components/brand/logo"
 
 export default function SelectRolePage() {
   const { isAuthenticated, isLoading, role, selectRole } = useAuth()
@@ -151,7 +152,7 @@ export default function SelectRolePage() {
     <main className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-2xl space-y-10">
         <div className="text-center space-y-3">
-          <span className="text-2xl font-bold text-primary tracking-tight">Habilo</span>
+          <Logo className="text-3xl" />
           <h1 className="text-3xl font-bold text-foreground">
             ¿Cómo quieres usar Habilo?
           </h1>

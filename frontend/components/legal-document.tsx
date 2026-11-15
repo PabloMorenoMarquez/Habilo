@@ -1,5 +1,6 @@
 import Link from "next/link"
 import type { ReactNode } from "react"
+import { Logo } from "@/components/brand/logo"
 
 type LegalDocumentProps = {
   title: string
@@ -11,8 +12,8 @@ export function LegalDocument({ title, children }: LegalDocumentProps) {
     <main className="min-h-screen bg-background px-5 py-8 sm:px-8 sm:py-12">
       <article className="mx-auto max-w-3xl rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-10">
         <header className="mb-10 border-b border-border pb-8">
-          <Link href="/" className="text-xl font-bold tracking-tight text-primary hover:underline">
-            Habilo
+          <Link href="/" aria-label="Habilo, inicio" className="inline-block text-2xl">
+            <Logo />
           </Link>
           <p className="mt-8 text-sm font-medium uppercase tracking-[0.16em] text-muted-foreground">Información legal</p>
           <h1 className="mt-3 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">{title}</h1>

@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Bell, MessageCircle, LogOut, User, ChevronDown, Briefcase, Shield, Heart } from "lucide-react"
 import { getConversaciones } from "@/lib/api"
+import { Logo } from "@/components/brand/logo"
 
 const POLL_INTERVAL = 15000 // mismo intervalo que la lista de chats, en ms
 
@@ -58,8 +59,8 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 w-full bg-card/80 backdrop-blur-md border-b border-border">
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
         {/* Logo */}
-        <Link href={isAuthenticated && role === "profesional" ? "/dashboard" : "/home"} className="text-xl font-bold text-primary tracking-tight shrink-0">
-          Habilo
+        <Link href={isAuthenticated && role === "profesional" ? "/dashboard" : "/home"} aria-label="Habilo, inicio" className="text-2xl shrink-0">
+          <Logo />
         </Link>
 
         {/* Role badge */}

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter, Plus_Jakarta_Sans } from 'next/font/google'
+import { Bricolage_Grotesque, Inter, Plus_Jakarta_Sans } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/context/auth-context'
 import { ConsentProvider } from '@/context/consent-context'
@@ -18,6 +18,13 @@ const inter = Inter({
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
   variable: "--font-jakarta",
+});
+
+// Solo para el nombre de la marca (components/brand/logo.tsx).
+const bricolage = Bricolage_Grotesque({
+  subsets: ["latin"],
+  weight: ["800"],
+  variable: "--font-bricolage",
 });
 
 export const metadata: Metadata = {
@@ -54,7 +61,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="es" className={`${inter.variable} ${jakarta.variable}`}>
+    <html lang="es" className={`${inter.variable} ${jakarta.variable} ${bricolage.variable}`}>
       <body suppressHydrationWarning className="font-sans antialiased bg-background text-foreground">
         <ConsentProvider>
           <GoogleOAuthProvider clientId="942976025153-ogog1r1e33lh9dr5gmamtb10dk67rtsf.apps.googleusercontent.com">

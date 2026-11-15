@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Search, Star, Shield, Loader } from "lucide-react"
 import { API_URL, clearToken } from "@/lib/api"
 import { captureIfConsented } from "@/lib/analytics"
+import { Logo } from "@/components/brand/logo"
 
 const GoogleIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -111,7 +112,7 @@ function LoginPageInner() {
     <main className="min-h-screen flex flex-col lg:flex-row">
       <div className="hidden lg:flex lg:w-1/2 bg-primary flex-col justify-between p-12 text-primary-foreground">
         <div>
-          <span className="text-2xl font-bold font-sans tracking-tight">Habilo</span>
+          <Logo tone="onPrimary" className="text-3xl" />
         </div>
         <div className="space-y-8">
           <h1 className="text-5xl font-bold leading-tight text-balance">
@@ -141,7 +142,7 @@ function LoginPageInner() {
       <div className="flex-1 flex items-center justify-center p-8 bg-background">
         <div className="w-full max-w-md space-y-8">
           <div className="lg:hidden text-center">
-            <span className="text-3xl font-bold text-primary font-sans tracking-tight">Habilo</span>
+            <Logo className="text-4xl" />
             <p className="text-muted-foreground mt-2">El marketplace de servicios</p>
           </div>
 
