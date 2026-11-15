@@ -15,8 +15,7 @@ import LandingTeacherCta from "@/components/landing/landing-teacher-cta"
 import { Button } from "@/components/ui/button"
 import { fetchPublic } from "@/lib/server-api"
 import { mapServicioParaTarjeta } from "@/lib/service-mapper"
-import { formatCategoryName } from "@/lib/category"
-import type { Categoria, Paginado, ServicioBackend } from "@/lib/api"
+import type { Paginado, ServicioBackend } from "@/lib/api"
 
 export const revalidate = 300
 
@@ -43,6 +42,11 @@ interface ResumenPublico {
   profesores_activos: number
   resenas: number
 }
+
+// La portada es la entrada de la campaña de clases particulares. Las categorías
+// del marketplace siguen disponibles en el catálogo (/home). Solo se listan
+// términos que hoy devuelven resultados en la búsqueda por texto.
+const ACCESOS_RAPIDOS = ["Inglés", "Francés", "Lengua", "Primaria", "ESO", "Bachillerato"]
 
 const PASOS = [
   {
@@ -76,14 +80,12 @@ export default async function LandingPage({
     redirect(`/login?${query.toString()}`)
   }
 
-  const [resumen, serviciosData, categoriasData] = await Promise.all([
+  const [resumen, serviciosData] = await Promise.all([
     fetchPublic<ResumenPublico>("/servicio/resumen"),
     fetchPublic<Paginado<ServicioBackend>>("/servicio/?limit=6"),
-    fetchPublic<Categoria[]>("/categorias/"),
   ])
 
   const servicios = (serviciosData?.items ?? []).slice(0, 6).map(mapServicioParaTarjeta)
-  const categorias = categoriasData ?? []
   const serviciosActivos = resumen?.servicios_activos ?? 0
   const profesoresActivos = resumen?.profesores_activos ?? 0
   const resenas = resumen?.resenas ?? 0
@@ -131,20 +133,18 @@ export default async function LandingPage({
               contacta directamente con el profesor que encaje contigo.
             </p>
             <LandingSearch />
-            {categorias.length > 0 && (
-              <div className="flex flex-wrap items-center justify-center gap-2">
-                <span className="text-sm text-primary-foreground/70">Explora por materia:</span>
-                {categorias.slice(0, 6).map((categoria) => (
-                  <Link
-                    key={categoria.id}
-                    href={`/home?q=${encodeURIComponent(categoria.nombre)}`}
-                    className="rounded-full border border-primary-foreground/25 px-3 py-1 text-sm text-primary-foreground/85 transition-colors hover:bg-primary-foreground/10"
-                  >
-                    {formatCategoryName(categoria.nombre)}
-                  </Link>
-                ))}
-              </div>
-            )}
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <span className="text-sm text-primary-foreground/70">Explora por materia o nivel:</span>
+              {ACCESOS_RAPIDOS.map((termino) => (
+                <Link
+                  key={termino}
+                  href={`/home?q=${encodeURIComponent(termino)}`}
+                  className="rounded-full border border-primary-foreground/25 px-3 py-1 text-sm text-primary-foreground/85 transition-colors hover:bg-primary-foreground/10"
+                >
+                  {termino}
+                </Link>
+              ))}
+            </div>
           </div>
         </section>
 
