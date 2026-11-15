@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -11,6 +12,13 @@ import { Search, Briefcase, ArrowRight, CheckCircle, Loader } from "lucide-react
 import { getMiPerfilProveedor, crearPerfilProveedor, ApiError } from "@/lib/api"
 import { captureIfConsented } from "@/lib/analytics"
 import { Logo } from "@/components/brand/logo"
+
+function parseLista(valor: string): string[] {
+  return valor
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+}
 
 export default function SelectRolePage() {
   const { isAuthenticated, isLoading, role, selectRole } = useAuth()
@@ -20,6 +28,11 @@ export default function SelectRolePage() {
   const [showProviderForm, setShowProviderForm] = useState(false)
   const [descripcion, setDescripcion] = useState("")
   const [radioKm, setRadioKm] = useState("10")
+  const [ciudad, setCiudad] = useState("")
+  const [materias, setMaterias] = useState("")
+  const [niveles, setNiveles] = useState("")
+  // El permiso de perfil público es un consentimiento: nunca viene marcado.
+  const [perfilPublico, setPerfilPublico] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
@@ -66,11 +79,17 @@ export default function SelectRolePage() {
       setFormError("Cuéntanos brevemente a qué te dedicas.")
       return
     }
+    if (!ciudad.trim()) {
+      setFormError("Indica la ciudad en la que trabajas.")
+      return
+    }
     const radio = Number(radioKm)
     if (!radio || radio <= 0) {
       setFormError("Indica un radio de acción válido en km.")
       return
     }
+    const listaMaterias = parseLista(materias)
+    const listaNiveles = parseLista(niveles)
 
     setSubmitting(true)
     setFormError(null)
@@ -80,9 +99,17 @@ export default function SelectRolePage() {
         descripcion,
         radio_km_disponible: radio,
         codigo_referido: codigoReferido,
+        ciudad: ciudad.trim(),
+        materias: listaMaterias,
+        niveles: listaNiveles,
+        perfil_publico: perfilPublico,
       })
       if (codigoReferido) localStorage.removeItem("habilo_referido_codigo")
-      captureIfConsented("provider_profile_created", { service_radius_km: radio })
+      captureIfConsented("provider_profile_created", {
+        service_radius_km: radio,
+        public_profile: perfilPublico,
+        subjects_count: listaMaterias.length,
+      })
       goToProfesional()
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "No se pudo crear tu perfil de proveedor."
@@ -102,7 +129,7 @@ export default function SelectRolePage() {
             </div>
             <h1 className="text-2xl font-bold text-foreground">Cuéntanos sobre tu servicio</h1>
             <p className="text-muted-foreground">
-              Con esto creamos tu perfil de proveedor. Podrás editarlo más adelante.
+              Con esto creamos tu perfil. Es gratis y podrás editarlo cuando quieras.
             </p>
           </div>
 
@@ -113,8 +140,20 @@ export default function SelectRolePage() {
                 id="descripcion"
                 value={descripcion}
                 onChange={(e) => setDescripcion(e.target.value)}
-                placeholder="Ej: Fontanero con 8 años de experiencia en reparaciones domésticas"
+                placeholder="Ej: Doy clases de inglés y refuerzo escolar desde hace 5 años, a domicilio y online"
                 rows={4}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="ciudad">Ciudad donde trabajas</Label>
+              <Input
+                id="ciudad"
+                value={ciudad}
+                onChange={(e) => setCiudad(e.target.value)}
+                placeholder="Talavera de la Reina"
+                maxLength={120}
+                autoComplete="address-level2"
               />
             </div>
 
@@ -129,10 +168,53 @@ export default function SelectRolePage() {
               />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="materias">Materias, si das clases</Label>
+              <Input
+                id="materias"
+                value={materias}
+                onChange={(e) => setMaterias(e.target.value)}
+                placeholder="Matemáticas, Inglés"
+                aria-describedby="materias-ayuda"
+              />
+              <p id="materias-ayuda" className="text-xs text-muted-foreground">
+                Separa con comas. Déjalo vacío si ofreces otro tipo de servicio.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="niveles">Niveles</Label>
+              <Input
+                id="niveles"
+                value={niveles}
+                onChange={(e) => setNiveles(e.target.value)}
+                placeholder="Primaria, ESO, Bachillerato"
+              />
+            </div>
+
+            <div className="rounded-xl border border-border bg-card p-4">
+              <div className="flex items-start gap-3">
+                <Checkbox
+                  id="perfil-publico"
+                  checked={perfilPublico}
+                  onCheckedChange={(valor) => setPerfilPublico(valor === true)}
+                  aria-describedby="perfil-publico-ayuda"
+                />
+                <Label htmlFor="perfil-publico" className="text-sm font-normal leading-snug">
+                  Quiero un perfil público con mi nombre, foto, ciudad y precio, para que me
+                  encuentren en Habilo y en Google.
+                </Label>
+              </div>
+              <p id="perfil-publico-ayuda" className="mt-2 pl-7 text-xs text-muted-foreground">
+                Si no la marcas, apareces como «Profesional de Habilo», sin nombre ni ciudad.
+                Puedes cambiarlo cuando quieras desde tu panel.
+              </p>
+            </div>
+
             {formError && <p className="text-sm text-destructive">{formError}</p>}
 
             <Button onClick={handleCrearPerfil} disabled={submitting} className="w-full h-12">
-              {submitting ? <Loader size={18} className="animate-spin" /> : "Crear perfil de proveedor"}
+              {submitting ? <Loader size={18} className="animate-spin" /> : "Crear mi perfil"}
             </Button>
             <Button
               variant="ghost"

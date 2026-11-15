@@ -120,6 +120,10 @@ export function crearPerfilProveedor(datos: {
   radio_km_disponible: number
   experiencia_años?: number
   codigo_referido?: string
+  ciudad?: string
+  materias?: string[]
+  niveles?: string[]
+  perfil_publico?: boolean
 }) {
   return apiFetch("/proveedor/", {
     method: "POST",
