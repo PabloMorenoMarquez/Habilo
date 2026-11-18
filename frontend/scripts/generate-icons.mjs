@@ -34,7 +34,8 @@ const bleed = svg()
 
 await writeFile("public/icon.svg", rounded)
 await Promise.all([
-  png(rounded, 512, "app/icon.png"), // pestaña del navegador
+  // Pestaña y resultados de Google: Google exige un cuadrado múltiplo de 48 px.
+  png(rounded, 192, "app/icon.png"),
   png(rounded, 32, "public/icon-light-32x32.png"),
   png(rounded, 32, "public/icon-dark-32x32.png"),
   png(bleed, 192, "public/icon-192.png"),
@@ -43,4 +44,25 @@ await Promise.all([
   // Maskable: la marca cabe en el 80 % central, que es la zona que ningún recorte toca.
   png(svg({ scale: 0.66 }), 512, "public/icon-maskable-512.png"),
 ])
+// favicon.ico (16, 32 y 48 px) para navegadores y rastreadores que lo piden en la raíz.
+const icoSizes = [16, 32, 48]
+const icoPngs = await Promise.all(
+  icoSizes.map((size) => sharp(Buffer.from(rounded), { density: 72 * (size / 200) * 4 }).resize(size, size).png().toBuffer())
+)
+const header = Buffer.alloc(6 + 16 * icoSizes.length)
+header.writeUInt16LE(0, 0)
+header.writeUInt16LE(1, 2)
+header.writeUInt16LE(icoSizes.length, 4)
+let offset = header.length
+icoSizes.forEach((size, i) => {
+  const entry = 6 + 16 * i
+  header.writeUInt8(size, entry)
+  header.writeUInt8(size, entry + 1)
+  header.writeUInt16LE(1, entry + 4)
+  header.writeUInt16LE(32, entry + 6)
+  header.writeUInt32LE(icoPngs[i].length, entry + 8)
+  header.writeUInt32LE(offset, entry + 12)
+  offset += icoPngs[i].length
+})
+await writeFile("app/favicon.ico", Buffer.concat([header, ...icoPngs]))
 console.log("Iconos regenerados")
