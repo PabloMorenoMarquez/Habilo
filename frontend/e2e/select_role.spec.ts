@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test"
 
 // Alta de profesional con sesión simulada: no necesita backend ni tokens reales.
-async function prepararAlta(page: Page) {
+async function prepararAlta(page: Page, { responderCookies = true } = {}) {
   await page.route("**/usuarios/me", (route) =>
     route.fulfill({
       status: 200,
@@ -40,8 +40,9 @@ async function prepararAlta(page: Page) {
   })
 
   await page.goto("/select-role")
-  // El aviso de cookies queda fijo abajo y tapa el botón de enviar hasta que se responde.
-  await page.getByRole("button", { name: "Solo esenciales" }).click()
+  if (responderCookies) {
+    await page.getByRole("button", { name: "Solo esenciales" }).click()
+  }
   await page.getByRole("button", { name: /soy profesional/i }).click()
   await expect(page.getByRole("heading", { name: /cuéntanos sobre tu servicio/i })).toBeVisible()
   return altas
@@ -81,4 +82,16 @@ test("el alta envía ciudad, materias, niveles y el permiso elegido", async ({ p
     niveles: ["Primaria", "ESO"],
     perfil_publico: true,
   })
+})
+
+test("el aviso de cookies no impide enviar el alta", async ({ page }) => {
+  const altas = await prepararAlta(page, { responderCookies: false })
+  await expect(page.getByRole("dialog", { name: "Preferencias de cookies" })).toBeVisible()
+
+  await page.getByLabel("Descripción").fill("Doy clases de inglés")
+  await page.getByLabel("Ciudad donde trabajas").fill("Talavera de la Reina")
+  // Sin timeout largo: si el aviso tapa el botón, el clic falla en vez de esperar.
+  await page.getByRole("button", { name: "Crear mi perfil" }).click({ timeout: 5000 })
+
+  await expect.poll(() => altas.length).toBe(1)
 })
