@@ -5,6 +5,8 @@ Enlace de destino: `https://habilo.es/da-clases`, con UTM por canal:
 | Canal | Enlace |
 | --- | --- |
 | Chat de Milanuncios | `https://habilo.es/da-clases?utm_source=milanuncios&utm_medium=dm&utm_campaign=captacion-profesores` |
+| Formulario de TusClasesParticulares | `https://habilo.es/da-clases?utm_source=tusclases&utm_medium=dm&utm_campaign=captacion-profesores` |
+| Apprentus | `https://habilo.es/da-clases?utm_source=apprentus&utm_medium=dm&utm_campaign=captacion-profesores` |
 | Chat de Wallapop | `https://habilo.es/da-clases?utm_source=wallapop&utm_medium=dm&utm_campaign=captacion-profesores` |
 | WhatsApp | `https://habilo.es/da-clases?utm_source=whatsapp&utm_medium=dm&utm_campaign=captacion-profesores` |
 | Email | `https://habilo.es/da-clases?utm_source=email&utm_medium=dm&utm_campaign=captacion-profesores` |
@@ -63,6 +65,8 @@ Título: `Profesores particulares en Talavera: publica tus clases gratis`
 > - Primaria, ESO, Bachillerato, idiomas, universidad, música… cualquier materia.
 >
 > Date de alta en dos minutos: [enlace del canal]
+
+Dónde publicarlo (gratis): Milanuncios y Wallapop en Talavera, y tablondeanuncios.com (Estudiantes > Clases particulares, localidad Talavera de la Reina). Para Facebook, buscar con la sesión iniciada «Talavera de la Reina» con «compra venta», «anuncios», «vecinos» o «mamás»; los grupos no se ven sin cuenta.
 
 En los grupos de Facebook, leer antes las normas: muchos prohíben publicidad o la limitan a un día de la semana.
 
