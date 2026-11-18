@@ -139,7 +139,7 @@ export default function Navbar() {
           ) : (
             <>
               <Button asChild variant="ghost">
-                <Link href="/login">Soy profesor</Link>
+                <Link href="/da-clases">Soy profesor</Link>
               </Button>
               <Button asChild>
                 <Link href="/login">Iniciar sesión</Link>

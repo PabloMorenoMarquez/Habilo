@@ -116,7 +116,7 @@ export default async function LandingPage({
 
           <div className="flex items-center gap-2">
             <Button asChild variant="ghost" className="hidden sm:inline-flex">
-              <Link href="/login">Soy profesor</Link>
+              <Link href="/da-clases">Soy profesor</Link>
             </Button>
             <Button asChild>
               <Link href="/login">Iniciar sesión</Link>
@@ -317,7 +317,7 @@ export default async function LandingPage({
               <Link href="/blog" className="transition-colors hover:text-foreground">
                 Blog
               </Link>
-              <Link href="/login" className="transition-colors hover:text-foreground">
+              <Link href="/da-clases" className="transition-colors hover:text-foreground">
                 Soy profesor
               </Link>
               <Link href="/legal/aviso-legal" className="transition-colors hover:text-foreground">
