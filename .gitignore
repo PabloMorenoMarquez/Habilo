@@ -30,3 +30,6 @@ build/
 # IDE
 .vscode/
 .idea/
+
+# Captación de profesores: datos personales y material interno, no publicar (repo público)
+docs/growth/captacion/
