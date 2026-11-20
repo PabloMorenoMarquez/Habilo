@@ -118,7 +118,10 @@ def test_crear_codigo_inexistente_404():
     svc.resena_alumno_repository.crear.assert_not_called()
 
 
-def test_crear_duplicado_409():
+def test_crear_duplicado_no_guarda_y_no_lo_delata():
+    # Un 409 diría a cualquiera si un email o teléfono ya opinó sobre el
+    # profesor (incluso pendiente o rechazada). Se responde igual que un envío
+    # nuevo, sin guardar ni avisar.
     svc = _make_resena_service()
     perfil = _con_profesor(svc)
     # En la base ya hay una reseña con "ana@x.com": el repositorio solo
@@ -126,25 +129,44 @@ def test_crear_duplicado_409():
     svc.resena_alumno_repository.existe.side_effect = (
         lambda perfil_id, contacto: perfil_id == perfil.id and contacto == "ana@x.com")
 
-    with pytest.raises(HTTPException) as error:
-        svc.crear("abcd1234", _datos_resena(contacto=" Ana@X.com"))
+    assert svc.crear("abcd1234", _datos_resena(contacto=" Ana@X.com")) is None
 
-    assert error.value.status_code == 409
-    assert error.value.detail == "Ya has dejado una opinión para este profesor. ¡Gracias!"
     svc.resena_alumno_repository.crear.assert_not_called()
+    svc.notificacion_email_service.enviar_a_email.assert_not_called()
 
 
-def test_crear_duplicado_por_carrera_409():
+def test_crear_duplicado_por_carrera_no_lo_delata():
     from sqlalchemy.exc import IntegrityError
     svc = _make_resena_service()
     _con_profesor(svc)
     svc.resena_alumno_repository.existe.return_value = False
     svc.resena_alumno_repository.crear.side_effect = IntegrityError("INSERT", {}, Exception("duplicado"))
 
-    with pytest.raises(HTTPException) as error:
+    assert svc.crear("abcd1234", _datos_resena()) is None
+    svc.notificacion_email_service.enviar_a_email.assert_not_called()
+
+
+@pytest.mark.parametrize("metodo", ["existe", "crear"])
+def test_crear_error_de_base_no_filtra_el_contacto(metodo, caplog):
+    # SQLAlchemy mete los parámetros ligados (el contacto) en el texto del
+    # error; ese texto no debe llegar ni al log ni a Sentry.
+    from sqlalchemy.exc import OperationalError
+    svc = _make_resena_service()
+    _con_profesor(svc)
+    svc.resena_alumno_repository.existe.return_value = False
+    getattr(svc.resena_alumno_repository, metodo).side_effect = OperationalError(
+        "INSERT INTO resenas_alumnos ...", {"contacto": "ana@x.com"}, Exception("statement timeout"))
+
+    with caplog.at_level("DEBUG"), pytest.raises(HTTPException) as error:
         svc.crear("abcd1234", _datos_resena())
 
-    assert error.value.status_code == 409
+    assert error.value.status_code == 500
+    assert "ana@x.com" not in str(error.value.detail)
+    # Sin la excepción original encadenada (Sentry recorre la cadena).
+    assert error.value.__cause__ is None
+    assert error.value.__suppress_context__ is True
+    assert "ana@x.com" not in caplog.text
+    assert all(r.exc_info is None for r in caplog.records)
 
 
 def test_crear_avisa_a_soporte_sin_contacto_en_asunto():
@@ -201,6 +223,18 @@ def test_schema_exige_consentimiento():
         _datos_resena(consentimiento=False)
 
 
+@pytest.mark.parametrize("campo, valor", [
+    ("comentario", "Muy buena profesora\x00 y muy paciente."),
+    ("autor_nombre", "Marta\x00 G."),
+    ("contacto", "a\x00@x.com"),
+    ("website", "\x00"),
+])
+def test_schema_rechaza_caracter_nulo(campo, valor):
+    # Postgres no admite U+0000 en text: sin esto el INSERT da un 500.
+    with pytest.raises(ValidationError):
+        _datos_resena(**{campo: valor})
+
+
 # ── Repositorio ──────────────────────────────────────────────────────────────
 
 def test_existe_compara_contacto_normalizado_como_el_indice():
@@ -239,10 +273,13 @@ from fastapi.testclient import TestClient
 
 
 def _cliente_resenas():
+    from slowapi import _rate_limit_exceeded_handler
+    from slowapi.errors import RateLimitExceeded
     from routers.resenas import router
     from utils.rate_limiter import limiter
     app = FastAPI()
     app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
     app.include_router(router)
     return TestClient(app)
 
@@ -298,6 +335,71 @@ def test_post_ok_201():
     codigo, datos = service.return_value.crear.call_args.args
     assert codigo == "abc12345"
     assert datos.contacto == "ana@x.com"
+
+
+def test_post_duplicado_responde_igual_que_uno_nuevo():
+    with patch("routers.resenas.ResenaAlumnoService") as service:
+        service.return_value.crear.return_value = None  # duplicado: no se guarda
+        response = _cliente_resenas().post("/resenas/abc12345", json=_cuerpo_post())
+
+    assert response.status_code == 201
+    assert response.json() == {"ok": True}
+
+
+def test_post_caracter_nulo_422():
+    with patch("routers.resenas.ResenaAlumnoService") as service:
+        response = _cliente_resenas().post(
+            "/resenas/abc12345", json=_cuerpo_post(contacto="a\u0000@x.com"))
+
+    assert response.status_code == 422
+    service.return_value.crear.assert_not_called()
+
+
+# ── Límite por IP detrás de Caddy ────────────────────────────────────────────
+# En producción todas las peticiones llegan desde el contenedor de Caddy, que
+# pone la IP real del cliente al final de X-Forwarded-For.
+
+def _peticion(host="172.18.0.3", xff=None):
+    from starlette.requests import Request
+    headers = [(b"x-forwarded-for", xff.encode())] if xff else []
+    return Request({"type": "http", "headers": headers, "client": (host, 1234)})
+
+
+def test_ip_cliente_usa_la_ultima_ip_de_x_forwarded_for():
+    from utils.rate_limiter import get_user_id
+    # La primera la puede inventar el cliente; la última la añade Caddy.
+    assert get_user_id(_peticion(xff="1.2.3.4, 203.0.113.9")) == "203.0.113.9"
+    assert get_user_id(_peticion(xff="203.0.113.7")) == "203.0.113.7"
+    assert get_user_id(_peticion()) == "172.18.0.3"
+
+
+def test_post_limite_por_ip_real_y_no_global():
+    from utils.rate_limiter import limiter
+    limiter.reset()
+    cliente = _cliente_resenas()
+    with patch("routers.resenas.ResenaAlumnoService"):
+        de_a = [cliente.post("/resenas/abc12345", json=_cuerpo_post(),
+                             headers={"X-Forwarded-For": "203.0.113.1"}).status_code
+                for _ in range(6)]
+        de_b = cliente.post("/resenas/abc12345", json=_cuerpo_post(),
+                            headers={"X-Forwarded-For": "203.0.113.2"}).status_code
+    limiter.reset()
+
+    assert de_a == [201] * 5 + [429]
+    assert de_b == 201
+
+
+def test_get_formulario_tiene_limite_por_ip():
+    from utils.rate_limiter import limiter
+    limiter.reset()
+    cliente = _cliente_resenas()
+    with patch("routers.resenas.ResenaAlumnoService") as service:
+        service.return_value.formulario.return_value = None
+        estados = [cliente.get("/resenas/noexiste", headers={"X-Forwarded-For": "203.0.113.5"}).status_code
+                   for _ in range(31)]
+    limiter.reset()
+
+    assert estados == [404] * 30 + [429]
 
 
 # ── Ficha: unión de valoraciones y reseñas de alumnos ───────────────────────
@@ -504,3 +606,92 @@ def test_scheduler_registra_borrado_diario_de_contactos():
     with patch("repositories.resena_alumno_repository.ResenaAlumnoRepository") as repo:
         job.args[0]()
     repo.return_value.borrar_contactos_caducados.assert_called_once_with(90)
+    repo.return_value.borrar_rechazadas_caducadas.assert_called_once_with(90)
+
+
+def test_borrar_rechazadas_caducadas_solo_rechazadas_moderadas_hace_dias():
+    # Una opinión rechazada nunca se publica: se borra entera a los 90 días.
+    from sqlalchemy.dialects import postgresql
+    import repositories.resena_alumno_repository as modulo
+    sesion = MagicMock()
+    sesion.execute.return_value.rowcount = 2
+    with patch.object(modulo, "SessionLocal", return_value=sesion):
+        assert modulo.ResenaAlumnoRepository().borrar_rechazadas_caducadas(90) == 2
+
+    sql = str(sesion.execute.call_args.args[0].compile(
+        dialect=postgresql.dialect(), compile_kwargs={"literal_binds": True}))
+    assert sql.startswith("DELETE FROM resenas_alumnos")
+    assert "resenas_alumnos.estado = 'rechazada'" in sql
+    assert "resenas_alumnos.fecha_moderacion <" in sql
+    sesion.commit.assert_called_once()
+
+
+# ── Sentry y logs: el contacto no sale de la app ─────────────────────────────
+
+def test_sentry_no_envia_cuerpo_ni_variables_locales():
+    from utils.sentry_config import opciones_sentry
+    opciones = opciones_sentry()
+
+    assert opciones["max_request_body_size"] == "never"
+    assert opciones["include_local_variables"] is False
+    assert opciones.get("send_default_pii", False) is False
+
+
+def test_sentry_before_send_quita_cuerpo_y_variables():
+    from utils.sentry_config import opciones_sentry
+    opciones = opciones_sentry()
+    evento = {
+        "request": {"url": "https://api.habilo.es/resenas/abc", "data": {"contacto": "ana@x.com"}},
+        "exception": {"values": [{"stacktrace": {"frames": [
+            {"function": "crear", "vars": {"datos": "contacto='ana@x.com'"}}]}}]},
+        "threads": {"values": [{"stacktrace": {"frames": [{"vars": {"x": "ana@x.com"}}]}}]},
+    }
+
+    for hook in ("before_send", "before_send_transaction"):
+        limpio = opciones[hook]({**evento, "request": dict(evento["request"])}, {})
+        assert "ana@x.com" not in repr(limpio), hook
+        assert limpio["request"]["url"] == "https://api.habilo.es/resenas/abc"
+
+
+def test_engine_oculta_parametros_sql_en_los_errores():
+    from database.engine import engine
+    assert engine.hide_parameters is True
+
+
+# ── Migración SQL (sin Docker: comprobación del texto) ───────────────────────
+
+def _migracion_sin_comentarios():
+    from pathlib import Path
+    ruta = Path(__file__).resolve().parent.parent / "migrations" / "2026-11-20_resenas_alumnos.sql"
+    lineas = ruta.read_text(encoding="utf-8").splitlines()
+    return "\n".join(l for l in lineas if not l.lstrip().startswith("--"))
+
+
+def test_migracion_codigos_con_azar_criptografico():
+    sql = _migracion_sin_comentarios()
+    assert "md5(random()" not in sql
+    assert "gen_random_uuid()" in sql
+
+
+def test_migracion_sustituye_el_trigger_de_valoraciones():
+    sql = _migracion_sin_comentarios()
+    assert "<trigger_antiguo>" not in sql
+    assert "FROM pg_trigger" in sql  # busca y borra el trigger antiguo
+    assert "CREATE TRIGGER valoraciones_recalcular" in sql
+    assert "AFTER INSERT OR UPDATE OR DELETE ON valoraciones" in sql
+    # Todos los perfiles parten de la fórmula nueva.
+    assert "recalcular_valoracion(id) FROM perfiles_proveedor" in sql
+
+
+def test_migracion_recalculo_bloquea_el_perfil_antes_de_leer():
+    import re
+    sql = _migracion_sin_comentarios()
+    cuerpo = re.search(
+        r"CREATE OR REPLACE FUNCTION recalcular_valoracion\(p_perfil uuid\)(.*?)\$\$ LANGUAGE (\w+);",
+        sql, re.S)
+    assert cuerpo, "falta recalcular_valoracion"
+    assert cuerpo.group(2) == "plpgsql"
+    texto = cuerpo.group(1)
+    bloqueo = texto.find("FOR UPDATE")
+    assert bloqueo != -1
+    assert bloqueo < texto.find("UPDATE perfiles_proveedor")

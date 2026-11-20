@@ -2,7 +2,7 @@ import html
 import logging
 
 from fastapi import HTTPException
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from models.resena_alumno import ResenaAlumno
 from repositories.proveedor_repository import ProveedorRepository
@@ -13,7 +13,6 @@ from services.notificacion_email_service import NotificacionEmailService
 logger = logging.getLogger(__name__)
 
 EMAIL_SOPORTE = "soporte@habilo.es"
-MENSAJE_DUPLICADO = "Ya has dejado una opinión para este profesor. ¡Gracias!"
 
 _RELACIONES = {"alumno": "Alumno/a", "padre_madre": "Madre/padre de alumno"}
 _ANTIGUEDADES = {
@@ -37,21 +36,30 @@ class ResenaAlumnoService:
         perfil, nombre_completo = profesor
         return {"nombre_profesor": self._nombre_publico(perfil, nombre_completo)}
 
-    def crear(self, codigo: str, datos: CrearResenaAlumno) -> ResenaAlumno:
+    def crear(self, codigo: str, datos: CrearResenaAlumno) -> ResenaAlumno | None:
+        """Guarda la reseña como pendiente. Devuelve None si ese contacto ya
+        había opinado sobre el profesor: no se guarda, pero la respuesta es la
+        misma que la de un envío nuevo para no delatar quién ha opinado."""
         profesor = self._profesor(codigo)
         if profesor is None:
             raise HTTPException(status_code=404, detail="No existe el enlace de opiniones")
         perfil, nombre_completo = profesor
 
-        if self.resena_alumno_repository.existe(perfil.id, normalizar_contacto(datos.contacto)):
-            raise HTTPException(status_code=409, detail=MENSAJE_DUPLICADO)
-
         datos_resena = datos.model_dump(exclude={"website"})
         try:
+            if self.resena_alumno_repository.existe(perfil.id, normalizar_contacto(datos.contacto)):
+                return None
             resena = self.resena_alumno_repository.crear(perfil.id, datos_resena)
         except IntegrityError:
             # Dos envíos a la vez: el índice único de la base frena el segundo.
-            raise HTTPException(status_code=409, detail=MENSAJE_DUPLICADO)
+            return None
+        except SQLAlchemyError as error:
+            # El texto del error lleva los parámetros SQL (el contacto): solo
+            # se registra el tipo y el perfil, y no se encadena la excepción
+            # para que Sentry no la recorra.
+            logger.error("Error de base de datos al guardar una reseña del perfil %s: %s",
+                         perfil.id, type(error).__name__)
+            raise HTTPException(status_code=500, detail="Error interno del servidor") from None
 
         self._avisar_a_soporte(resena, datos, nombre_completo)
         return resena

@@ -10,9 +10,12 @@ def _run_async(coro_func, *args, **kwargs):
 
 
 def _borrar_contactos_resenas():
-    # Borra el contacto de las reseñas de alumnos moderadas hace más de 90 días.
+    # Reseñas de alumnos moderadas hace más de 90 días: se borra el contacto
+    # y, si se rechazaron, la reseña entera (nunca se va a publicar).
     from repositories.resena_alumno_repository import ResenaAlumnoRepository
-    ResenaAlumnoRepository().borrar_contactos_caducados(90)
+    repositorio = ResenaAlumnoRepository()
+    repositorio.borrar_contactos_caducados(90)
+    repositorio.borrar_rechazadas_caducadas(90)
 
 
 def iniciar_jobs():

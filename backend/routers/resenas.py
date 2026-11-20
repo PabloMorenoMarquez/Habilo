@@ -8,7 +8,9 @@ router = APIRouter(prefix="/resenas", tags=["resenas"])
 
 
 @router.get("/{codigo}", response_model=FormularioResenaOut)
-async def obtener_formulario(codigo: str):
+# El 200/404 dice si un código existe: sin límite se podrían probar códigos.
+@limiter.limit("30/minute")
+async def obtener_formulario(request: Request, codigo: str):
     formulario = ResenaAlumnoService().formulario(codigo)
     if formulario is None:
         raise HTTPException(status_code=404, detail="No existe el enlace de opiniones")
@@ -22,5 +24,6 @@ async def crear_resena(request: Request, codigo: str, datos: CrearResenaAlumno):
     if datos.website.strip():
         return {"ok": True}
 
+    # Un duplicado tampoco se guarda, pero responde igual (ver el servicio).
     ResenaAlumnoService().crear(codigo, datos)
     return {"ok": True}

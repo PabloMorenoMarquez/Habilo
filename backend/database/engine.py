@@ -10,6 +10,9 @@ engine = create_engine(
     pool_timeout=10,      
     pool_recycle=1800,    
     pool_pre_ping=True,
+    # Los parámetros SQL (emails, teléfonos...) no salen en el texto de los
+    # errores, que acaba en los logs y en Sentry.
+    hide_parameters=True,
     connect_args={
         "options": "-c statement_timeout=15000"  
     },

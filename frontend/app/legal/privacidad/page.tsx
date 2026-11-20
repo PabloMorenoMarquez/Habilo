@@ -74,7 +74,8 @@ export default function PrivacyPage() {
           <li><strong>Datos:</strong> la opinión y su puntuación, el nombre con el que quieres que se publique, tu relación con el profesor (alumno o madre/padre de alumno), cuánto tiempo llevas con él y un email o teléfono de contacto.</li>
           <li><strong>Finalidad:</strong> publicar la opinión en el perfil del profesor y comprobar que es real. Para ello podemos escribirte al email o teléfono que indiques. Ese contacto es privado: no se publica ni se comparte con el profesor.</li>
           <li><strong>Base legal:</strong> tu consentimiento (art. 6.1.a RGPD), que das al marcar la casilla del formulario.</li>
-          <li><strong>Conservación:</strong> el email o teléfono se borra 90 días después de revisar la opinión. La opinión, el nombre mostrado, la relación y el tiempo con el profesor se conservan mientras la opinión esté publicada.</li>
+          <li><strong>Menores:</strong> si el alumno tiene menos de 14 años, la opinión debe escribirla y aceptarla su madre, padre o tutor, porque antes de esa edad el consentimiento no es válido sin ellos (art. 7 LOPDGDD). Los alumnos de 14 años o más pueden escribirla ellos mismos.</li>
+          <li><strong>Conservación:</strong> mientras la opinión está pendiente de revisión conservamos todos sus datos. El email o teléfono se borra 90 días después de revisarla. Si la publicamos, la opinión, el nombre mostrado, la relación y el tiempo con el profesor se conservan mientras siga publicada. Las opiniones rechazadas se borran enteras 90 días después de revisarlas.</li>
           <li><strong>Retirada:</strong> puedes pedir que retiremos tu opinión en cualquier momento escribiendo a <a href="mailto:soporte@habilo.es" className="text-primary hover:underline">soporte@habilo.es</a>.</li>
         </ul>
       </section>
@@ -93,6 +94,7 @@ export default function PrivacyPage() {
       <section>
         <h2>9. Menores de edad</h2>
         <p>La Plataforma no está dirigida a menores de 18 años. Si detectamos una cuenta registrada por un menor, procederemos a su cancelación.</p>
+        <p>La única excepción son las opiniones sobre profesores, que no requieren cuenta: puede dejarlas un alumno de 14 años o más; si es menor de 14, su madre, padre o tutor (ver el apartado 6).</p>
       </section>
 
       <section>

@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
-from sqlalchemy import func, select, update
+from sqlalchemy import delete, func, select, update
 
 from database.session import SessionLocal
 from models.resena_alumno import ResenaAlumno
@@ -84,6 +84,29 @@ class ResenaAlumnoRepository:
                     ResenaAlumno.fecha_moderacion < limite,
                 )
                 .values(contacto=None)
+            )
+            resultado = session.execute(stmt)
+            session.commit()
+            return resultado.rowcount or 0
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.close()
+
+    def borrar_rechazadas_caducadas(self, dias: int = 90) -> int:
+        """Borra las reseñas rechazadas hace más de `dias` días.
+
+        Nunca se publican, así que no hay motivo para guardarlas más. Se
+        conservan ese tiempo para que el mismo contacto no pueda repetir.
+        """
+        limite = datetime.now(timezone.utc) - timedelta(days=dias)
+        session = SessionLocal()
+        try:
+            stmt = delete(ResenaAlumno).where(
+                ResenaAlumno.estado == "rechazada",
+                ResenaAlumno.fecha_moderacion.is_not(None),
+                ResenaAlumno.fecha_moderacion < limite,
             )
             resultado = session.execute(stmt)
             session.commit()

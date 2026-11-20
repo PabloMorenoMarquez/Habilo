@@ -91,17 +91,38 @@ test("código inexistente", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Enviar opinión" })).toHaveCount(0)
 })
 
-test("duplicado", async ({ page }) => {
+test("cuenta los emojis como un carácter, igual que el servidor", async ({ page }) => {
+  const envios = await prepararApi(page)
+  await abrir(page)
+  await rellenar(page)
+  // 15 letras + 3 emojis = 18 caracteres (en UTF-16 serían 21).
+  await page.getByLabel("Tu opinión").fill("Muy buen profe 👍👍👍")
+  await expect(page.getByText("18/1000")).toBeVisible()
+  await page.getByRole("button", { name: "Enviar opinión" }).click()
+
+  await expect(page.getByText(/cuéntanos un poco más/i)).toBeVisible()
+  expect(envios).toHaveLength(0)
+})
+
+test("si el servidor rechaza los datos, dice qué revisar", async ({ page }) => {
   await prepararApi(page, {
-    postStatus: 409,
-    postBody: { detail: "Ya has dejado una opinión para este profesor. ¡Gracias!" },
+    postStatus: 422,
+    postBody: { detail: [{ loc: ["body", "comentario"], msg: "String should have at least 20 characters" }] },
   })
   await abrir(page)
   await rellenar(page)
   await page.getByRole("button", { name: "Enviar opinión" }).click()
-  await expect(
-    page.getByText("Ya has dejado una opinión para este profesor. ¡Gracias!")
-  ).toBeVisible()
+
+  const aviso = page.getByRole("alert").filter({ hasText: /revisa tu opinión/i })
+  await expect(aviso).toBeVisible()
+  await expect(aviso).toContainText("20 caracteres")
+  await expect(page.getByText("No se pudo enviar. Inténtalo de nuevo.")).toHaveCount(0)
+})
+
+test("los menores de 14 años opinan a través de su madre o padre", async ({ page }) => {
+  await prepararApi(page)
+  await abrir(page)
+  await expect(page.getByText(/menos de 14 años/i)).toBeVisible()
 })
 
 test("no envía sin consentimiento", async ({ page }) => {
@@ -133,6 +154,40 @@ test("la política de privacidad explica las opiniones sobre profesores", async 
     "href",
     "mailto:soporte@habilo.es",
   )
+  // Plazo para las que no se publican y base válida para menores de 14.
+  await expect(apartado).toContainText(/rechazadas se borran/i)
+  await expect(apartado).toContainText(/pendiente/i)
+  await expect(apartado).toContainText(/menos de 14 años/i)
+  await expect(page.getByRole("heading", { name: /menores de edad/i }).locator("..")).toContainText(
+    /opiniones sobre profesores/i,
+  )
+})
+
+// --- Ficha: frase sobre cómo se revisan las reseñas ---
+// La ficha se pinta en el servidor con datos del backend, así que se prueba la
+// función que elige la frase.
+
+test("la frase de revisión solo afirma lo que Habilo revisa", async () => {
+  const { fraseRevisionResenas } = await import("../lib/resenas")
+  const alumno = { origen: "alumno" as const }
+  const habilo = { origen: "habilo" as const }
+  const SOLO_ALUMNOS =
+    "Las reseñas las escriben alumnos y familias del profesor. Habilo revisa cada una antes de publicarla y comprueba algunas con quien la escribió."
+
+  expect(fraseRevisionResenas([])).toBe(SOLO_ALUMNOS)
+  expect(fraseRevisionResenas([alumno])).toBe(SOLO_ALUMNOS)
+  // Las valoraciones de clases reservadas se publican sin revisión previa.
+  for (const lista of [[habilo], [habilo, alumno], [{}]]) {
+    const frase = fraseRevisionResenas(lista)
+    expect(frase).not.toContain("revisa cada una")
+    expect(frase).toMatch(/clase reservada en Habilo/i)
+  }
+})
+
+test("los caracteres se cuentan como en el servidor", async () => {
+  const { contarCaracteres } = await import("../lib/resenas")
+  expect(contarCaracteres("  hola  ")).toBe(4)
+  expect(contarCaracteres("Muy buen profe 👍👍👍")).toBe(18)
 })
 
 // --- Panel del profesor: tarjeta «Pide opiniones a tus alumnos» ---

@@ -15,9 +15,12 @@ class CrearResenaAlumno(BaseModel):
     # Campo trampa: los bots lo rellenan, los humanos lo dejan vacío
     website: str = Field(default="", max_length=200)
 
-    @field_validator("comentario", "autor_nombre", "contacto", mode="before")
+    @field_validator("comentario", "autor_nombre", "contacto", "website", mode="before")
     @classmethod
     def recortar_texto(cls, valor):
+        if isinstance(valor, str) and "\x00" in valor:
+            # Postgres no admite U+0000 en text: el INSERT acabaría en un 500.
+            raise ValueError("El texto contiene caracteres no válidos")
         # Sin esto, "   " supera min_length porque se valida antes de limpiar.
         return valor.strip() if isinstance(valor, str) else valor
 

@@ -11,6 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
 import { Logo } from "@/components/brand/logo"
 import { ApiError, crearResenaAlumno, getFormularioResena, type CrearResenaAlumnoInput } from "@/lib/api"
+import { contarCaracteres } from "@/lib/resenas"
 import { cn } from "@/lib/utils"
 
 type Relacion = CrearResenaAlumnoInput["relacion"]
@@ -195,7 +196,7 @@ export default function OpinaForm({ codigo }: { codigo: string }) {
   const validar = (): Errores => {
     const nuevos: Errores = {}
     if (puntuacion < 1 || puntuacion > 5) nuevos.puntuacion = "Elige de 1 a 5 estrellas."
-    const largo = comentario.trim().length
+    const largo = contarCaracteres(comentario)
     if (largo < COMENTARIO_MIN) {
       nuevos.comentario = `Cuéntanos un poco más (mínimo ${COMENTARIO_MIN} caracteres).`
     } else if (largo > COMENTARIO_MAX) {
@@ -236,8 +237,13 @@ export default function OpinaForm({ codigo }: { codigo: string }) {
       })
       setEnviado(true)
     } catch (err) {
-      if (err instanceof ApiError && err.status === 409) {
-        setErrorEnvio(err.message)
+      // Un duplicado responde igual que un envío nuevo: no hay 409 que tratar.
+      if (err instanceof ApiError && err.status === 422) {
+        // La validación de aquí copia la del servidor; si aun así la rechaza,
+        // el reintento no sirve: hay que decir qué revisar.
+        setErrorEnvio(
+          "Revisa tu opinión (mínimo 20 caracteres, máximo 1000) y tu email o teléfono: no se han podido aceptar."
+        )
       } else if (err instanceof ApiError && err.status === 429) {
         setErrorEnvio("Se han enviado demasiadas opiniones desde esta conexión. Inténtalo dentro de un rato.")
       } else if (err instanceof ApiError && err.status === 404) {
@@ -322,7 +328,7 @@ export default function OpinaForm({ codigo }: { codigo: string }) {
             aria-describedby={cn("opina-comentario-cuenta", errores.comentario && "opina-comentario-error")}
           />
           <p id="opina-comentario-cuenta" className="text-right text-xs text-muted-foreground">
-            {comentario.trim().length}/{COMENTARIO_MAX}
+            {contarCaracteres(comentario)}/{COMENTARIO_MAX}
           </p>
           <ErrorCampo id="opina-comentario-error" texto={errores.comentario} />
         </div>
@@ -350,6 +356,9 @@ export default function OpinaForm({ codigo }: { codigo: string }) {
 
         <fieldset className="space-y-3">
           <legend className="mb-3 text-sm font-medium leading-none">¿Quién escribe?</legend>
+          <p id="opina-relacion-ayuda" className="text-xs text-muted-foreground">
+            Si el alumno tiene menos de 14 años, la opinión la escribe su madre, padre o tutor.
+          </p>
           <RadioGroup
             value={relacion}
             onValueChange={(valor) => {
@@ -357,7 +366,7 @@ export default function OpinaForm({ codigo }: { codigo: string }) {
               limpiarError("relacion")
             }}
             aria-invalid={Boolean(errores.relacion)}
-            aria-describedby={errores.relacion ? "opina-relacion-error" : undefined}
+            aria-describedby={cn("opina-relacion-ayuda", errores.relacion && "opina-relacion-error")}
             className="gap-2"
           >
             {RELACIONES.map((opcion) => (

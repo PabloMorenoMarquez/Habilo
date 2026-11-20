@@ -38,6 +38,7 @@ from utils.rate_limiter import limiter
 from slowapi.middleware import SlowAPIMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 import sentry_sdk
+from utils.sentry_config import opciones_sentry
 load_dotenv()
 import logging
 logger = logging.getLogger(__name__)
@@ -50,11 +51,7 @@ async def lifespan(app: FastAPI):
     
     scheduler.shutdown()
     
-sentry_sdk.init(
-    dsn=os.getenv("SENTRY_DSN"),
-    environment=os.getenv("ENVIRONMENT", "production"),
-    traces_sample_rate=0.2,
-)
+sentry_sdk.init(**opciones_sentry())
 
 app = FastAPI(lifespan=lifespan)
 @app.exception_handler(Exception)

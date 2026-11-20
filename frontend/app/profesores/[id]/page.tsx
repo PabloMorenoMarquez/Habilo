@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { PublicProfileContact } from '@/components/public-profile-contact'
 import { fetchPublicResponse } from '@/lib/server-api'
 import { formatCategoryName } from '@/lib/category'
+import { fraseRevisionResenas } from '@/lib/resenas'
 import type { PerfilPublicoCompleto, ResenaPublica, ServicioResumen } from '@/lib/api'
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://habilo.es').replace(/\/+$/, '')
@@ -373,8 +374,7 @@ export default async function ProfesorPage({ params }: ProfesorPageProps) {
                     <div className="space-y-1">
                       <h2 className="text-lg font-semibold text-foreground">Reseñas</h2>
                       <p className="text-sm text-muted-foreground">
-                        Las reseñas las escriben alumnos y familias del profesor. Habilo revisa cada
-                        una antes de publicarla y comprueba algunas con quien la escribió.
+                        {fraseRevisionResenas(perfil.resenas)}
                       </p>
                     </div>
                     {perfil.resenas.length === 0 ? (
@@ -409,11 +409,13 @@ export default async function ProfesorPage({ params }: ProfesorPageProps) {
                             {resena.comentario && (
                               <p className="text-sm text-muted-foreground">{resena.comentario}</p>
                             )}
-                            {resena.origen === 'alumno' && (
+                            {resena.origen === 'alumno' ? (
                               <p className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                                 <BadgeCheck size={12} aria-hidden="true" />
                                 Alumno/a de {nombreDePila(perfil.nombre_publico)} antes de Habilo · revisada por Habilo
                               </p>
+                            ) : (
+                              <p className="text-xs text-muted-foreground">Clase reservada en Habilo</p>
                             )}
                           </article>
                         ))}
