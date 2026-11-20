@@ -22,6 +22,17 @@ const nextConfig = {
         destination: '/da-clases?utm_source=wallapop&utm_medium=dm&utm_campaign=captacion-profesores',
         permanent: false,
       },
+      {
+        // Anuncios propios de Habilo (texto 4 de mensajes.md).
+        source: '/wa',
+        destination: '/da-clases?utm_source=wallapop&utm_medium=anuncio&utm_campaign=captacion-profesores',
+        permanent: false,
+      },
+      {
+        source: '/m',
+        destination: '/da-clases?utm_source=milanuncios&utm_medium=anuncio&utm_campaign=captacion-profesores',
+        permanent: false,
+      },
     ]
   },
   async headers() {

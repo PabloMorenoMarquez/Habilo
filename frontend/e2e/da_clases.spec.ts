@@ -43,3 +43,15 @@ test("habilo.es/w lleva a la página para profesores con la UTM de Wallapop", as
   expect(destino.searchParams.get("utm_medium")).toBe("dm")
   expect(destino.searchParams.get("utm_campaign")).toBe("captacion-profesores")
 })
+
+for (const [ruta, fuente] of [["/wa", "wallapop"], ["/m", "milanuncios"]] as const) {
+  test(`habilo.es${ruta} (anuncio propio) lleva a /da-clases con la UTM de ${fuente}`, async ({ request }) => {
+    const response = await request.get(ruta, { maxRedirects: 0 })
+    expect(response.status()).toBe(307)
+    const destino = new URL(response.headers()["location"], "http://localhost:3000")
+    expect(destino.pathname).toBe("/da-clases")
+    expect(destino.searchParams.get("utm_source")).toBe(fuente)
+    expect(destino.searchParams.get("utm_medium")).toBe("anuncio")
+    expect(destino.searchParams.get("utm_campaign")).toBe("captacion-profesores")
+  })
+}
