@@ -396,3 +396,111 @@ def test_ficha_no_muestra_pendientes():
     # Solo se consulta la lista de aprobadas: pendientes y rechazadas no llegan.
     svc.resena_alumno_repository.listar_aprobadas.assert_called_once_with(perfil.id)
     assert resultado["resenas"] == []
+
+
+# ── Enlace del profesor: GET /proveedor/me/codigo-resenas ────────────────────
+
+def _cliente_proveedores(usuario_id):
+    from routers.proveedores import router
+    from utils.auth_middleware import get_current_user
+    from utils.rate_limiter import limiter
+    app = FastAPI()
+    app.state.limiter = limiter
+    app.include_router(router)
+    app.dependency_overrides[get_current_user] = lambda: {"user_id": usuario_id}
+    return TestClient(app)
+
+
+def test_me_codigo_resenas_no_choca_con_perfil_id():
+    usuario_id = str(uuid4())
+    with patch("routers.proveedores.ProveedorService") as service:
+        service.return_value.obtener_codigo_resenas.return_value = "abc12345"
+        response = _cliente_proveedores(usuario_id).get("/proveedor/me/codigo-resenas")
+
+    assert response.status_code == 200
+    assert response.json() == {"codigo": "abc12345"}
+    service.return_value.obtener_codigo_resenas.assert_called_once_with(usuario_id)
+    service.return_value.obtener_perfil_publico.assert_not_called()
+
+
+def test_me_codigo_resenas_404_sin_perfil():
+    with patch("routers.proveedores.ProveedorService") as service:
+        service.return_value.obtener_codigo_resenas.return_value = None
+        response = _cliente_proveedores(str(uuid4())).get("/proveedor/me/codigo-resenas")
+
+    assert response.status_code == 404
+    # El 404 viene de la ruta (no es profesor), no de una ruta inexistente.
+    service.return_value.obtener_codigo_resenas.assert_called_once()
+
+
+def test_obtener_codigo_resenas_devuelve_el_existente():
+    svc = _make_proveedor_service()
+    perfil = MagicMock()
+    perfil.codigo_resenas = "abc12345"
+    svc.proveedor_repository.get_by_usuario_id.return_value = perfil
+
+    assert svc.obtener_codigo_resenas(uuid4()) == "abc12345"
+    svc.proveedor_repository.asignar_codigo_resenas.assert_not_called()
+
+
+def test_obtener_codigo_resenas_genera_si_falta():
+    svc = _make_proveedor_service()
+    perfil = MagicMock()
+    perfil.codigo_resenas = None
+    svc.proveedor_repository.get_by_usuario_id.return_value = perfil
+    svc.proveedor_repository.asignar_codigo_resenas.return_value = "nuevo123"
+
+    assert svc.obtener_codigo_resenas(uuid4()) == "nuevo123"
+    svc.proveedor_repository.asignar_codigo_resenas.assert_called_once_with(perfil.id)
+
+
+def test_obtener_codigo_resenas_none_si_no_es_profesor():
+    svc = _make_proveedor_service()
+    svc.proveedor_repository.get_by_usuario_id.return_value = None
+
+    assert svc.obtener_codigo_resenas(uuid4()) is None
+
+
+def test_asignar_codigo_resenas_respeta_el_existente():
+    import repositories.proveedor_repository as modulo
+    sesion = MagicMock()
+    perfil = MagicMock()
+    perfil.codigo_resenas = "yaestaba"
+    sesion.scalar.return_value = perfil
+    with patch.object(modulo, "SessionLocal", return_value=sesion):
+        assert modulo.ProveedorRepository().asignar_codigo_resenas(uuid4()) == "yaestaba"
+
+    sesion.commit.assert_not_called()
+
+
+# ── Borrado de contactos a los 90 días ───────────────────────────────────────
+
+def test_borrar_contactos_caducados_filtra_por_fecha_moderacion():
+    from sqlalchemy.dialects import postgresql
+    import repositories.resena_alumno_repository as modulo
+    sesion = MagicMock()
+    sesion.execute.return_value.rowcount = 3
+    with patch.object(modulo, "SessionLocal", return_value=sesion):
+        assert modulo.ResenaAlumnoRepository().borrar_contactos_caducados(90) == 3
+
+    sql = str(sesion.execute.call_args.args[0].compile(
+        dialect=postgresql.dialect(), compile_kwargs={"literal_binds": True}))
+    assert sql.startswith("UPDATE resenas_alumnos SET contacto=NULL")
+    assert "resenas_alumnos.fecha_moderacion <" in sql
+    assert "resenas_alumnos.estado != 'pendiente'" in sql
+    sesion.commit.assert_called_once()
+
+
+def test_scheduler_registra_borrado_diario_de_contactos():
+    import utils.scheduler as modulo
+    with patch.object(modulo, "scheduler") as scheduler:
+        modulo.iniciar_jobs()
+
+    jobs = {c.kwargs["id"]: c for c in scheduler.add_job.call_args_list}
+    job = jobs["borrar_contactos_resenas"]
+    assert job.args[1] == "interval"
+    assert job.kwargs["hours"] == 24
+
+    with patch("repositories.resena_alumno_repository.ResenaAlumnoRepository") as repo:
+        job.args[0]()
+    repo.return_value.borrar_contactos_caducados.assert_called_once_with(90)

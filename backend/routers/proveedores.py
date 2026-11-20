@@ -56,6 +56,15 @@ async def obtener_mi_perfil_proveedor(current_user=Depends(get_current_user)):
     return perfil
 
 
+@router.get("/me/codigo-resenas")
+async def obtener_mi_codigo_resenas(current_user=Depends(get_current_user)):
+    # Declarada antes de /{perfil_id}: "me" no es un UUID.
+    codigo = ProveedorService().obtener_codigo_resenas(current_user["user_id"])
+    if not codigo:
+        raise HTTPException(status_code=404, detail="No tienes perfil de proveedor")
+    return {"codigo": codigo}
+
+
 @router.get("/documento")
 async def ver_mi_documento(current_user=Depends(get_current_user)):
     usuario_id = current_user["user_id"]

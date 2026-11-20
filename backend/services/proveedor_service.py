@@ -51,6 +51,15 @@ class ProveedorService:
     def obtener_por_usuario(self, usuario_id:UUID):
         return self.proveedor_repository.get_by_usuario_id(usuario_id)
 
+    def obtener_codigo_resenas(self, usuario_id: UUID) -> str | None:
+        """Código del enlace habilo.es/opina/<código>. None si no es profesor."""
+        perfil = self.proveedor_repository.get_by_usuario_id(usuario_id)
+        if not perfil:
+            return None
+        if perfil.codigo_resenas:
+            return perfil.codigo_resenas
+        return self.proveedor_repository.asignar_codigo_resenas(perfil.id)
+
     def obtener_por_id(self, perfil_id:UUID):
         clave = str(perfil_id)
         if clave in _perfil_publico_cache:

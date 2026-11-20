@@ -55,6 +55,26 @@ class ProveedorRepository:
             if not existe:
                 return codigo
 
+    def asignar_codigo_resenas(self, perfil_id: UUID) -> str | None:
+        # Para perfiles que no tienen código de reseñas: lo genera y lo guarda.
+        # Si ya tenía uno, lo devuelve sin cambiarlo (el enlace no caduca).
+        session = SessionLocal()
+        try:
+            stmt = select(Perfil_Proveedor).where(Perfil_Proveedor.id == perfil_id)
+            perfil = session.scalar(stmt)
+            if not perfil:
+                return None
+            if perfil.codigo_resenas:
+                return perfil.codigo_resenas
+            perfil.codigo_resenas = self._generar_codigo_resenas(session)
+            session.commit()
+            return perfil.codigo_resenas
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.close()
+
     def actualizar(self, perfil_id: UUID, **campos):
         # `ciudad` y `zona` se pueden borrar con un null explícito. El resto de
         # campos conserva la semántica anterior: null significa "no cambiar".
