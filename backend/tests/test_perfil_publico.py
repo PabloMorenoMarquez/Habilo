@@ -70,7 +70,8 @@ def test_perfil_publico_muestra_nombre_real():
     resultado = svc.obtener_perfil_publico(uuid4())
 
     assert resultado["nombre_publico"] == "Ana García"
-    assert resultado["avatar_publico"] == "https://img/ana.jpg"
+    # Foto externa (de login): no se publica. Ver test_avatar_publico.py.
+    assert resultado["avatar_publico"] is None
     assert resultado["ciudad"] == "Talavera de la Reina"
 
 

@@ -1,3 +1,4 @@
+from utils.avatar import avatar_publico
 from uuid import UUID
 from repositories.proveedor_repository import ProveedorRepository
 from repositories.servicio_repository import ServicioRepository
@@ -75,7 +76,7 @@ class ProveedorService:
         return {
             "id": perfil.id,
             "nombre_publico": datos.get("usuario_nombre") if es_publico else "Profesional de Habilo",
-            "avatar_publico": datos.get("usuario_avatar") if es_publico else None,
+            "avatar_publico": avatar_publico(datos.get("usuario_avatar"), perfil.usuario_id) if es_publico else None,
             "descripcion": perfil.descripcion if es_publico else None,
             "experiencia_años": perfil.experiencia_años,
             "radio_km_disponible": perfil.radio_km_disponible,

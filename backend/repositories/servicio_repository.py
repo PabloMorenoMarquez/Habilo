@@ -1,3 +1,4 @@
+from utils.avatar import avatar_publico
 from sqlalchemy import select, func, case, or_
 from geoalchemy2.functions import ST_SetSRID, ST_MakePoint
 from models.servicio import Servicio
@@ -181,6 +182,7 @@ class ServicioRepository:
                 Servicio,
                 Usuario.nombre.label("proveedor_nombre"),
                 Usuario.foto_url.label("proveedor_avatar"),
+                Usuario.id.label("proveedor_usuario_id"),
                 Perfil_Proveedor.ciudad.label("proveedor_ciudad"),
                 Perfil_Proveedor.perfil_publico.label("proveedor_perfil_publico"),
                 Perfil_Proveedor.valoracion_media.label("proveedor_valoracion_media"),
@@ -262,7 +264,7 @@ class ServicioRepository:
                     "niveles": servicio.niveles or [],
                     "distancia_km": row.distancia_km if punto is not None and es_publico else None,
                     "proveedor_nombre": row.proveedor_nombre if es_publico else "Profesional de Habilo",
-                    "proveedor_avatar": row.proveedor_avatar if es_publico else None,
+                    "proveedor_avatar": avatar_publico(row.proveedor_avatar, row.proveedor_usuario_id) if es_publico else None,
                     "proveedor_ciudad": row.proveedor_ciudad if es_publico else None,
                     "proveedor_perfil_publico": es_publico,
                     "proveedor_valoracion_media": row.proveedor_valoracion_media,
@@ -308,6 +310,7 @@ class ServicioRepository:
                     Servicio,
                     Usuario.nombre.label("proveedor_nombre"),
                     Usuario.foto_url.label("proveedor_avatar"),
+                    Usuario.id.label("proveedor_usuario_id"),
                     Perfil_Proveedor.ciudad.label("proveedor_ciudad"),
                     Perfil_Proveedor.perfil_publico.label("proveedor_perfil_publico"),
                     Perfil_Proveedor.valoracion_media.label("proveedor_valoracion_media"),
@@ -345,7 +348,7 @@ class ServicioRepository:
                 "longitud": to_shape(servicio.ubicacion).x if servicio.ubicacion is not None else None,
                 "distancia_km": None,
                 "proveedor_nombre": row.proveedor_nombre if es_publico else "Profesional de Habilo",
-                "proveedor_avatar": row.proveedor_avatar if es_publico else None,
+                "proveedor_avatar": avatar_publico(row.proveedor_avatar, row.proveedor_usuario_id) if es_publico else None,
                 "proveedor_ciudad": row.proveedor_ciudad if es_publico else None,
                 "proveedor_perfil_publico": es_publico,
                 "proveedor_valoracion_media": row.proveedor_valoracion_media,

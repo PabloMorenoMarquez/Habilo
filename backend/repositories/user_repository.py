@@ -1,3 +1,4 @@
+from utils.avatar import es_foto_subida
 from sqlalchemy import select
 from models.usuario import Usuario
 from database.session import SessionLocal
@@ -17,7 +18,10 @@ class UserRepository:
                 session.add(user)
             else:
                 user.nombre = nombre
-                user.foto_url = foto_url
+                # La foto que el usuario subió desde «Mi perfil» manda sobre la
+                # del proveedor de login; si no, se perdería en cada inicio de sesión.
+                if not es_foto_subida(user.foto_url, user.id):
+                    user.foto_url = foto_url
 
             session.commit()
             session.refresh(user)
