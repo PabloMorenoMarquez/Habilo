@@ -121,3 +121,143 @@ test("la página no es indexable", async ({ page }) => {
   await page.goto(`/opina/${CODIGO}`)
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/)
 })
+
+// --- Panel del profesor: tarjeta «Pide opiniones a tus alumnos» ---
+// El panel carga sus datos en el navegador con la sesión, así que se simulan
+// la sesión y las llamadas a la API (no hace falta backend).
+
+const ENLACE = `https://habilo.es/opina/${CODIGO}`
+
+async function prepararPanel(page: Page, { codigoStatus = 200 } = {}) {
+  const json = (body: unknown, status = 200) => ({
+    status,
+    contentType: "application/json",
+    body: JSON.stringify(body),
+  })
+
+  await page.route("**/usuarios/me", (route) =>
+    route.fulfill(
+      json({
+        id: "00000000-0000-0000-0000-000000000002",
+        email: "profesor-e2e@habilo.test",
+        nombre: "Profesor E2E",
+        foto_url: null,
+        telefono: null,
+        telefono_verificado: null,
+        ciudad: null,
+        fecha_registro: null,
+      })
+    )
+  )
+  await page.route("**/proveedor/me", (route) =>
+    route.fulfill(
+      json({
+        id: "00000000-0000-0000-0000-000000000010",
+        usuario_id: "00000000-0000-0000-0000-000000000002",
+        descripcion: "Clases de matemáticas",
+        experiencia_años: 3,
+        radio_km_disponible: 5,
+        valoracion_media: null,
+        num_valoraciones: 0,
+        verificado: false,
+        fecha_creacion: null,
+        dias_disponibles: null,
+        hora_inicio: null,
+        hora_fin: null,
+        destacado_hasta: null,
+        url_documento: null,
+        motivo_rechazo: null,
+        codigo_referido: null,
+        ciudad: "Talavera de la Reina",
+        zona: null,
+        materias: ["Matemáticas"],
+        niveles: ["ESO"],
+        perfil_publico: true,
+        consentimiento_marketing: false,
+      })
+    )
+  )
+  await page.route("**/proveedor/me/codigo-resenas", (route) =>
+    codigoStatus === 200
+      ? route.fulfill(json({ codigo: CODIGO }))
+      : route.fulfill(json({ detail: "No tienes perfil de proveedor" }, codigoStatus))
+  )
+  await page.route("**/categorias/", (route) => route.fulfill(json([])))
+  await page.route("**/solicitudes/conversaciones**", (route) =>
+    route.fulfill(json({ items: [], total: 0 }))
+  )
+  // Con un servicio publicado el panel no abre el diálogo de «crear servicio».
+  await page.route("**/servicio/mios", (route) =>
+    route.fulfill(
+      json({
+        items: [
+          {
+            id: "00000000-0000-0000-0000-000000000020",
+            proveedor_id: "00000000-0000-0000-0000-000000000010",
+            categoria_id: null,
+            titulo: "Clases de matemáticas",
+            descripcion: null,
+            precio: "15",
+            tipo_precio: "hora",
+            activo: true,
+            fecha_creacion: "2026-11-01T10:00:00Z",
+            imagen_url: null,
+            latitud: null,
+            longitud: null,
+            distancia_km: null,
+            proveedor_nombre: null,
+            proveedor_avatar: null,
+            proveedor_valoracion_media: null,
+            proveedor_num_valoraciones: null,
+            categoria_nombre: null,
+            es_favorito: false,
+            proveedor_destacado_hasta: null,
+          },
+        ],
+        total: 1,
+      })
+    )
+  )
+
+  await page.addInitScript(() => {
+    localStorage.setItem("token", "token-de-prueba")
+    localStorage.setItem("serviclick_role", "profesional")
+    localStorage.setItem("onboarding_visto_v1_profesional", "1")
+  })
+
+  await page.goto("/dashboard")
+  await page.getByRole("button", { name: "Solo esenciales" }).click()
+}
+
+test("el panel muestra el enlace para pedir opiniones", async ({ page }) => {
+  await prepararPanel(page)
+  const tarjeta = page.getByRole("region", { name: "Pide opiniones a tus alumnos" })
+  await expect(tarjeta).toBeVisible()
+  await expect(tarjeta.getByText(ENLACE)).toBeVisible()
+})
+
+test("el botón de WhatsApp lleva el mensaje con el enlace", async ({ page }) => {
+  await prepararPanel(page)
+  const texto =
+    "Hola, estoy en Habilo, una web de profesores de Talavera. Si te están sirviendo mis clases, " +
+    `¿me dejas una opinión? Son dos minutos: ${ENLACE}`
+  await expect(page.getByRole("link", { name: "Enviar por WhatsApp" })).toHaveAttribute(
+    "href",
+    `https://wa.me/?text=${encodeURIComponent(texto)}`
+  )
+})
+
+test("copiar deja el enlace en el portapapeles", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"])
+  await prepararPanel(page)
+  await page.getByRole("button", { name: "Copiar" }).click()
+  await expect(page.getByRole("button", { name: "Copiado" })).toBeVisible()
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(ENLACE)
+})
+
+test("sin código no se muestra la tarjeta", async ({ page }) => {
+  await prepararPanel(page, { codigoStatus: 404 })
+  await expect(page.getByRole("heading", { name: "Panel Profesional" })).toBeVisible()
+  await expect(page.getByText("Mis servicios")).toBeVisible()
+  await expect(page.getByRole("region", { name: "Pide opiniones a tus alumnos" })).toHaveCount(0)
+})

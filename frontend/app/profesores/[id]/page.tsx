@@ -9,11 +9,35 @@ import { Button } from '@/components/ui/button'
 import { PublicProfileContact } from '@/components/public-profile-contact'
 import { fetchPublicResponse } from '@/lib/server-api'
 import { formatCategoryName } from '@/lib/category'
-import type { PerfilPublicoCompleto, ServicioResumen } from '@/lib/api'
+import type { PerfilPublicoCompleto, ResenaPublica, ServicioResumen } from '@/lib/api'
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://habilo.es').replace(/\/+$/, '')
 
 const DIAS_LABELS: Record<number, string> = { 1: 'L', 2: 'M', 3: 'X', 4: 'J', 5: 'V', 6: 'S', 7: 'D' }
+
+// Reseñas de alumnos por enlace: quién la escribe y desde cuándo da clase con el profesor.
+const RELACION_LABELS: Record<string, string> = {
+  alumno: 'alumno/a',
+  padre_madre: 'madre/padre de alumno',
+}
+
+const ANTIGUEDAD_LABELS: Record<string, string> = {
+  menos_3_meses: 'menos de 3 meses',
+  '3_12_meses': 'de 3 a 12 meses',
+  mas_1_ano: 'más de 1 año',
+}
+
+function detallesResenaAlumno(resena: ResenaPublica): string[] {
+  return [
+    resena.relacion ? RELACION_LABELS[resena.relacion] : undefined,
+    resena.antiguedad ? ANTIGUEDAD_LABELS[resena.antiguedad] : undefined,
+  ].filter((detalle): detalle is string => Boolean(detalle))
+}
+
+// «Nombre de pila» = primera palabra del nombre público.
+function nombreDePila(nombrePublico: string): string {
+  return nombrePublico.trim().split(/\s+/)[0] || nombrePublico
+}
 
 type ProfesorPageProps = {
   params: Promise<{ id: string }>
@@ -346,19 +370,34 @@ export default async function ProfesorPage({ params }: ProfesorPageProps) {
                   </section>
 
                   <section className="space-y-3">
-                    <h2 className="text-lg font-semibold text-foreground">Reseñas</h2>
+                    <div className="space-y-1">
+                      <h2 className="text-lg font-semibold text-foreground">Reseñas</h2>
+                      <p className="text-sm text-muted-foreground">
+                        Las reseñas las escriben alumnos y familias del profesor. Habilo revisa cada
+                        una antes de publicarla y comprueba algunas con quien la escribió.
+                      </p>
+                    </div>
                     {perfil.resenas.length === 0 ? (
                       <p className="text-muted-foreground">Todavía no hay reseñas.</p>
                     ) : (
                       <div className="space-y-3">
                         {perfil.resenas.map((resena, index) => (
                           <article
-                            key={`${resena.autor_nombre}-${resena.fecha ?? index}`}
+                            key={`${resena.origen ?? 'habilo'}-${resena.autor_nombre}-${resena.fecha ?? index}`}
                             className="p-5 rounded-2xl border border-border bg-card space-y-2"
                           >
                             <div className="flex items-center justify-between gap-3">
-                              <span className="font-medium text-foreground">{resena.autor_nombre}</span>
-                              <span className="inline-flex items-center gap-1 text-sm">
+                              <span className="text-foreground">
+                                <span className="font-medium">{resena.autor_nombre}</span>
+                                {resena.origen === 'alumno' &&
+                                  detallesResenaAlumno(resena).map((detalle) => (
+                                    <span key={detalle} className="text-sm text-muted-foreground">
+                                      {' · '}
+                                      {detalle}
+                                    </span>
+                                  ))}
+                              </span>
+                              <span className="inline-flex items-center gap-1 text-sm shrink-0">
                                 <Star
                                   size={14}
                                   className="fill-amber-400 text-amber-400"
@@ -369,6 +408,12 @@ export default async function ProfesorPage({ params }: ProfesorPageProps) {
                             </div>
                             {resena.comentario && (
                               <p className="text-sm text-muted-foreground">{resena.comentario}</p>
+                            )}
+                            {resena.origen === 'alumno' && (
+                              <p className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                                <BadgeCheck size={12} aria-hidden="true" />
+                                Alumno/a de {nombreDePila(perfil.nombre_publico)} antes de Habilo · revisada por Habilo
+                              </p>
                             )}
                           </article>
                         ))}

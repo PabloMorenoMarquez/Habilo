@@ -43,6 +43,7 @@ import { geocodeCiudad, getBrowserLocation } from "@/lib/geocode"
 import GaleriaImagenes from "@/components/galeria-imagenes"
 import HorarioDisponibilidad from "@/components/horario-disponibilidad"
 import PerfilPublicoForm from "@/components/perfil-publico-form"
+import PedirResenasCard from "@/components/pedir-resenas-card"
 import { useFeatureFlags } from "@/context/feature-flags-context"
 import { OnboardingModal } from "@/components/onboarding-modal"
 import { formatCategoryName } from "@/lib/category"
@@ -688,6 +689,8 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         )}
+
+        {perfilProveedor && <PedirResenasCard />}
 
         <Card>
           <CardHeader className="pb-3">

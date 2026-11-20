@@ -704,11 +704,20 @@ export function crearResenaAlumno(codigo: string, datos: CrearResenaAlumnoInput)
   })
 }
 
+// Enlace del profesor para pedir opiniones (habilo.es/opina/{codigo}).
+export function getMiCodigoResenas() {
+  return apiFetch<{ codigo: string }>("/proveedor/me/codigo-resenas")
+}
+
 export interface ResenaPublica {
   puntuacion: number
   comentario: string | null
   fecha: string | null
   autor_nombre: string
+  // "habilo": valoración de una clase reservada en Habilo; "alumno": reseña por enlace.
+  origen?: "habilo" | "alumno"
+  relacion?: string | null
+  antiguedad?: string | null
 }
 
 export interface ServicioResumen {
