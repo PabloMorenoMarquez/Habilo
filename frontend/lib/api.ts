@@ -679,6 +679,31 @@ export function crearLead(datos: CrearLeadInput) {
   })
 }
 
+// --- Reseñas de alumnos por enlace (/opina/[codigo]) ---
+
+export interface CrearResenaAlumnoInput {
+  puntuacion: number
+  comentario: string
+  autor_nombre: string
+  relacion: "alumno" | "padre_madre"
+  antiguedad: "menos_3_meses" | "3_12_meses" | "mas_1_ano"
+  // Email o teléfono. Privado: solo lo ve Habilo para comprobar la reseña.
+  contacto: string
+  consentimiento: true
+  website?: string
+}
+
+export function getFormularioResena(codigo: string) {
+  return apiFetch<{ nombre_profesor: string }>(`/resenas/${encodeURIComponent(codigo)}`)
+}
+
+export function crearResenaAlumno(codigo: string, datos: CrearResenaAlumnoInput) {
+  return apiFetch<{ ok: true }>(`/resenas/${encodeURIComponent(codigo)}`, {
+    method: "POST",
+    body: JSON.stringify(datos),
+  })
+}
+
 export interface ResenaPublica {
   puntuacion: number
   comentario: string | null
