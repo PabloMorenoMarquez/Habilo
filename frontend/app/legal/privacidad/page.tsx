@@ -67,24 +67,36 @@ export default function PrivacyPage() {
         <p>Los datos de los formularios de contacto sin cuenta se conservan durante 12 meses desde el último contacto, salvo que ejerzas antes tu derecho de supresión.</p>
       </section>
 
+      <section aria-labelledby="opiniones-profesores">
+        <h2 id="opiniones-profesores">6. Opiniones sobre profesores</h2>
+        <p>Cualquier alumno o familia puede dejar una opinión sobre un profesor desde el enlace que este comparte, sin crear cuenta.</p>
+        <ul>
+          <li><strong>Datos:</strong> la opinión y su puntuación, el nombre con el que quieres que se publique, tu relación con el profesor (alumno o madre/padre de alumno), cuánto tiempo llevas con él y un email o teléfono de contacto.</li>
+          <li><strong>Finalidad:</strong> publicar la opinión en el perfil del profesor y comprobar que es real. Para ello podemos escribirte al email o teléfono que indiques. Ese contacto es privado: no se publica ni se comparte con el profesor.</li>
+          <li><strong>Base legal:</strong> tu consentimiento (art. 6.1.a RGPD), que das al marcar la casilla del formulario.</li>
+          <li><strong>Conservación:</strong> el email o teléfono se borra 90 días después de revisar la opinión. La opinión, el nombre mostrado, la relación y el tiempo con el profesor se conservan mientras la opinión esté publicada.</li>
+          <li><strong>Retirada:</strong> puedes pedir que retiremos tu opinión en cualquier momento escribiendo a <a href="mailto:soporte@habilo.es" className="text-primary hover:underline">soporte@habilo.es</a>.</li>
+        </ul>
+      </section>
+
       <section>
-        <h2>6. Tus derechos</h2>
+        <h2>7. Tus derechos</h2>
         <p>Puedes ejercer en cualquier momento los derechos de acceso, rectificación, supresión, limitación del tratamiento, portabilidad y oposición a tratamientos basados en el interés legítimo.</p>
         <p>Puedes ejercerlos escribiendo a <a href="mailto:pablomorenomarquez@gmail.com" className="text-primary hover:underline">pablomorenomarquez@gmail.com</a>. También puedes reclamar ante la Agencia Española de Protección de Datos (<a href="https://www.aepd.es" target="_blank" rel="noreferrer" className="text-primary hover:underline">www.aepd.es</a>).</p>
       </section>
 
       <section>
-        <h2>7. Seguridad</h2>
+        <h2>8. Seguridad</h2>
         <p>Habilo aplica medidas técnicas y organizativas razonables para proteger tus datos, incluyendo el cifrado de las comunicaciones y el control de acceso a los sistemas. Ningún sistema es invulnerable al cien por cien.</p>
       </section>
 
       <section>
-        <h2>8. Menores de edad</h2>
+        <h2>9. Menores de edad</h2>
         <p>La Plataforma no está dirigida a menores de 18 años. Si detectamos una cuenta registrada por un menor, procederemos a su cancelación.</p>
       </section>
 
       <section>
-        <h2>9. Cookies</h2>
+        <h2>10. Cookies</h2>
         <p>Habilo utiliza almacenamiento técnico necesario para el funcionamiento de la Plataforma, por ejemplo, para mantener tu sesión iniciada. Estas cookies no requieren consentimiento.</p>
         <p>La analítica es opcional. PostHog y Vercel Analytics solo se inicializan y empiezan a medir después de que pulses “Aceptar analítica”. Antes de esa decisión, o si eliges “Solo esenciales”, no se inicializan, no se envían eventos y no se guardan identificadores analíticos. La base legal es tu consentimiento (art. 6.1.a RGPD).</p>
         <p>Si retiras el consentimiento, dejamos de enviar eventos y eliminamos las cookies y los identificadores analíticos de PostHog. Solo conservamos un marcador técnico de tu decisión. Puedes cambiar o retirar tu consentimiento en cualquier momento:</p>
@@ -92,12 +104,12 @@ export default function PrivacyPage() {
       </section>
 
       <section>
-        <h2>10. Cambios en esta Política</h2>
+        <h2>11. Cambios en esta Política</h2>
         <p>Habilo podrá actualizar esta Política para adaptarla a cambios normativos o en el funcionamiento de la Plataforma, incluyendo la constitución de una entidad o la activación del procesamiento de pagos. La versión vigente será siempre la publicada en la Plataforma.</p>
       </section>
 
       <section>
-        <h2>11. Contacto</h2>
+        <h2>12. Contacto</h2>
         <p>Para cualquier consulta: <a href="mailto:pablomorenomarquez@gmail.com" className="text-primary hover:underline">pablomorenomarquez@gmail.com</a></p>
       </section>
     </LegalDocument>

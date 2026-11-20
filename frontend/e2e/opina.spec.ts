@@ -122,6 +122,19 @@ test("la página no es indexable", async ({ page }) => {
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/)
 })
 
+test("la política de privacidad explica las opiniones sobre profesores", async ({ page }) => {
+  await page.goto("/legal/privacidad")
+  const apartado = page.getByRole("region", { name: /Opiniones sobre profesores/ })
+  await expect(apartado).toBeVisible()
+  await expect(apartado).toContainText("email o teléfono")
+  await expect(apartado).toContainText("consentimiento")
+  await expect(apartado).toContainText("90 días")
+  await expect(apartado.getByRole("link", { name: "soporte@habilo.es" })).toHaveAttribute(
+    "href",
+    "mailto:soporte@habilo.es",
+  )
+})
+
 // --- Panel del profesor: tarjeta «Pide opiniones a tus alumnos» ---
 // El panel carga sus datos en el navegador con la sesión, así que se simulan
 // la sesión y las llamadas a la API (no hace falta backend).
