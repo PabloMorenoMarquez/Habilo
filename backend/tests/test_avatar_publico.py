@@ -132,3 +132,16 @@ def test_login_actualiza_la_foto_de_google():
     usuario = MagicMock(id=uuid4(), foto_url=GOOGLE)
     nueva = "https://lh3.googleusercontent.com/a/OTRA=s96-c"
     assert _login(usuario, nueva).foto_url == nueva
+
+
+# ── Nombre al iniciar sesión ─────────────────────────────────────────────────
+
+def test_login_no_pisa_el_nombre_editado():
+    usuario = MagicMock(id=uuid4(), foto_url=GOOGLE, nombre="Ana G. (profe de mates)",
+                        cuenta_eliminada=False)
+    assert _login(usuario, GOOGLE).nombre == "Ana G. (profe de mates)"
+
+
+def test_login_rellena_el_nombre_si_esta_vacio():
+    usuario = MagicMock(id=uuid4(), foto_url=None, nombre="", cuenta_eliminada=False)
+    assert _login(usuario, GOOGLE).nombre == "Ana García"

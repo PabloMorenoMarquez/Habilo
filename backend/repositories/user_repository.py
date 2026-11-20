@@ -17,7 +17,11 @@ class UserRepository:
                 user = Usuario(email=email, nombre=nombre, foto_url=foto_url)
                 session.add(user)
             else:
-                user.nombre = nombre
+                # El nombre de la cuenta de Google/Facebook solo se usa al crear
+                # el usuario: si luego lo cambia en «Mi perfil», se respeta.
+                # Una cuenta eliminada que vuelve a entrar recupera su nombre.
+                if not (user.nombre or "").strip() or user.cuenta_eliminada:
+                    user.nombre = nombre
                 # La foto que el usuario subió desde «Mi perfil» manda sobre la
                 # del proveedor de login; si no, se perdería en cada inicio de sesión.
                 if not es_foto_subida(user.foto_url, user.id):
