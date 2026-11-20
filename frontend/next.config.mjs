@@ -13,6 +13,17 @@ const nextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        // Dirección corta para el chat de Wallapop, que bloquea enlaces con
+        // https://. Temporal (307) para poder cambiar el destino sin caché.
+        source: '/w',
+        destination: '/da-clases?utm_source=wallapop&utm_medium=dm&utm_campaign=captacion-profesores',
+        permanent: false,
+      },
+    ]
+  },
   async headers() {
     return [
       {

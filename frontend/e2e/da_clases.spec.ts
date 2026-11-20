@@ -32,3 +32,14 @@ test("la página para profesores está en el sitemap", async ({ request }) => {
   const xml = await (await request.get("/sitemap.xml")).text()
   expect(xml).toContain("/da-clases</loc>")
 })
+
+test("habilo.es/w lleva a la página para profesores con la UTM de Wallapop", async ({ request }) => {
+  // Wallapop bloquea enlaces con https:// en el chat; se escribe «habilo.es/w».
+  const response = await request.get("/w", { maxRedirects: 0 })
+  expect(response.status()).toBe(307)
+  const destino = new URL(response.headers()["location"], "http://localhost:3000")
+  expect(destino.pathname).toBe("/da-clases")
+  expect(destino.searchParams.get("utm_source")).toBe("wallapop")
+  expect(destino.searchParams.get("utm_medium")).toBe("dm")
+  expect(destino.searchParams.get("utm_campaign")).toBe("captacion-profesores")
+})
