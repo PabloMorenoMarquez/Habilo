@@ -27,6 +27,7 @@ class Perfil_Proveedor(base):
     hora_inicio = Column(Text, nullable=True)
     hora_fin = Column(Text, nullable=True)
     codigo_referido = Column(Text, unique=True, nullable=False)
+    codigo_resenas = Column(Text, unique=True, nullable=True)
     destacado_hasta = Column(DateTime, nullable=True)
     ciudad = Column(Text, nullable=True)
     zona = Column(Text, nullable=True)

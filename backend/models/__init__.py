@@ -6,6 +6,7 @@ from .solicitud import Solicitud
 from .mensaje import Mensaje
 from .valoracion import Valoracion
 from .lead import Lead
+from .resena_alumno import ResenaAlumno
 
 __all__ = [
     "Usuario",
@@ -16,4 +17,5 @@ __all__ = [
     "Mensaje",
     "Valoracion",
     "Lead",
+    "ResenaAlumno",
 ]

@@ -13,12 +13,14 @@ class ProveedorRepository:
         session = SessionLocal()
         try:
             codigo = self._generar_codigo_referido(session)
+            codigo_resenas = self._generar_codigo_resenas(session)
             perfil = Perfil_Proveedor(
                 usuario_id=usuario_id,
                 descripcion=descripcion,
                 radio_km_disponible=radio_km_disponible,
                 experiencia_años=experiencia_años,
                 codigo_referido=codigo,
+                codigo_resenas=codigo_resenas,
                 ciudad=ciudad,
                 zona=zona,
                 materias=materias,
@@ -43,7 +45,16 @@ class ProveedorRepository:
             existe = session.scalar(select(Perfil_Proveedor).where(Perfil_Proveedor.codigo_referido == codigo))
             if not existe:
                 return codigo
-            
+
+    def _generar_codigo_resenas(self, session) -> str:
+        # Código del enlace habilo.es/opina/<código>: 8 caracteres URL-safe
+        # (6 bytes aleatorios en base64); comprueba colisión y reintenta
+        while True:
+            codigo = secrets.token_urlsafe(6)
+            existe = session.scalar(select(Perfil_Proveedor).where(Perfil_Proveedor.codigo_resenas == codigo))
+            if not existe:
+                return codigo
+
     def actualizar(self, perfil_id: UUID, **campos):
         # `ciudad` y `zona` se pueden borrar con un null explícito. El resto de
         # campos conserva la semántica anterior: null significa "no cambiar".
