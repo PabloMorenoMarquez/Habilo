@@ -297,6 +297,14 @@ class ProveedorRepository:
             return session.scalar(stmt)
         finally:
             session.close()
+
+    def get_by_codigo_resenas(self, codigo: str):
+        session = SessionLocal()
+        try:
+            stmt = select(Perfil_Proveedor).where(Perfil_Proveedor.codigo_resenas == codigo)
+            return session.scalar(stmt)
+        finally:
+            session.close()
     
     def aplicar_destacado(self, perfil_id: UUID, dias: int):
         session = SessionLocal()
