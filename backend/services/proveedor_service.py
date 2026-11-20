@@ -1,6 +1,8 @@
 from utils.avatar import avatar_publico
 from uuid import UUID
+from datetime import datetime, timezone
 from repositories.proveedor_repository import ProveedorRepository
+from repositories.resena_alumno_repository import ResenaAlumnoRepository
 from repositories.servicio_repository import ServicioRepository
 from repositories.valoracion_repository import ValoracionRepository
 from utils.stripe_client import get_stripe
@@ -17,6 +19,7 @@ class ProveedorService:
         self.proveedor_repository = ProveedorRepository()
         self.servicio_repository = ServicioRepository()
         self.valoracion_repository = ValoracionRepository()
+        self.resena_alumno_repository = ResenaAlumnoRepository()
         self.stripe = get_stripe()
         self.referido_repository = ReferidoRepository()
 
@@ -68,7 +71,7 @@ class ProveedorService:
 
         if es_publico:
             servicios = self.servicio_repository.listar_por_proveedor_publico(perfil.id)
-            resenas = self._listar_resenas_publicas(perfil.usuario_id)
+            resenas = self._listar_resenas_publicas(perfil)
         else:
             servicios = []
             resenas = []
@@ -98,17 +101,46 @@ class ProveedorService:
     def listar_para_sitemap(self) -> list[dict]:
         return self.proveedor_repository.listar_para_sitemap()
 
-    def _listar_resenas_publicas(self, usuario_id: UUID) -> list[dict]:
-        resenas = self.valoracion_repository.listar_publicas_por_destinatario(usuario_id)
-        return [
+    def _listar_resenas_publicas(self, perfil) -> list[dict]:
+        """Valoraciones de clases en Habilo + reseñas de alumnos aprobadas, más recientes primero."""
+        valoraciones = [
             {
                 "puntuacion": resena["puntuacion"],
                 "comentario": resena["comentario"],
                 "fecha": resena["fecha"],
                 "autor_nombre": self._primer_nombre(resena["autor_nombre"]),
+                "origen": "habilo",
+                "relacion": None,
+                "antiguedad": None,
             }
-            for resena in resenas
+            for resena in self.valoracion_repository.listar_publicas_por_destinatario(perfil.usuario_id)
         ]
+        # Solo aprobadas. Campos copiados uno a uno: `contacto` nunca pasa.
+        # autor_nombre va tal cual («Marta G.»): quien reseña eligió cómo firmar.
+        resenas_alumnos = [
+            {
+                "puntuacion": resena["puntuacion"],
+                "comentario": resena["comentario"],
+                "fecha": resena["fecha"],
+                "autor_nombre": resena["autor_nombre"],
+                "origen": "alumno",
+                "relacion": resena["relacion"],
+                "antiguedad": resena["antiguedad"],
+            }
+            for resena in self.resena_alumno_repository.listar_aprobadas(perfil.id)
+        ]
+        return sorted(valoraciones + resenas_alumnos, key=self._clave_fecha, reverse=True)
+
+    @staticmethod
+    def _clave_fecha(resena: dict) -> datetime:
+        # valoraciones.fecha no lleva zona y resenas_alumnos.fecha sí: sin
+        # igualarlas, comparar las dos lanza TypeError. Sin fecha, al final.
+        fecha = resena.get("fecha")
+        if fecha is None:
+            return datetime.min.replace(tzinfo=timezone.utc)
+        if fecha.tzinfo is None:
+            return fecha.replace(tzinfo=timezone.utc)
+        return fecha
 
     @staticmethod
     def _primer_nombre(nombre: str):

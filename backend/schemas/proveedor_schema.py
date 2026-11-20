@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, field_validator
 from uuid import UUID
-from typing import Optional
+from typing import Literal, Optional
 from decimal import Decimal
 from datetime import datetime
 
@@ -68,10 +68,15 @@ class ServicioResumenOut(BaseModel):
 
 
 class ResenaPublicaOut(BaseModel):
+    # Sin `contacto`: el email o teléfono de quien reseña nunca sale en la ficha.
     puntuacion: int
     comentario: Optional[str] = None
     fecha: Optional[datetime] = None
     autor_nombre: str
+    # "habilo": valoración de una clase reservada; "alumno": reseña por enlace.
+    origen: Literal["habilo", "alumno"] = "habilo"
+    relacion: Optional[str] = None
+    antiguedad: Optional[str] = None
 
 
 class PerfilProveedorPublicoOut(BaseModel):

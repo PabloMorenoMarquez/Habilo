@@ -8,6 +8,8 @@ def _make_service():
     svc.proveedor_repository = MagicMock()
     svc.servicio_repository = MagicMock()
     svc.valoracion_repository = MagicMock()
+    svc.resena_alumno_repository = MagicMock()
+    svc.resena_alumno_repository.listar_aprobadas.return_value = []
     return svc
 
 

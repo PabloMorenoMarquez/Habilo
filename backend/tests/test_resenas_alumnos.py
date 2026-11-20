@@ -229,3 +229,170 @@ def test_listar_aprobadas_solo_estado_aprobada():
         dialect=postgresql.dialect(), compile_kwargs={"literal_binds": True}))
     assert "resenas_alumnos.estado = 'aprobada'" in sql
     assert "contacto" not in sql
+
+
+# ── Router público /resenas ──────────────────────────────────────────────────
+
+from datetime import datetime, timezone
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+
+
+def _cliente_resenas():
+    from routers.resenas import router
+    from utils.rate_limiter import limiter
+    app = FastAPI()
+    app.state.limiter = limiter
+    app.include_router(router)
+    return TestClient(app)
+
+
+def _cuerpo_post(**cambios):
+    cuerpo = {
+        "puntuacion": 5,
+        "comentario": "Explica muy bien y con mucha paciencia.",
+        "autor_nombre": "Marta G.",
+        "relacion": "alumno",
+        "antiguedad": "mas_1_ano",
+        "contacto": "ana@x.com",
+        "consentimiento": True,
+    }
+    cuerpo.update(cambios)
+    return cuerpo
+
+
+def test_get_formulario_404():
+    with patch("routers.resenas.ResenaAlumnoService") as service:
+        service.return_value.formulario.return_value = None
+        response = _cliente_resenas().get("/resenas/noexiste")
+
+    assert response.status_code == 404
+
+
+def test_get_formulario_ok():
+    with patch("routers.resenas.ResenaAlumnoService") as service:
+        service.return_value.formulario.return_value = {"nombre_profesor": "Lucía"}
+        response = _cliente_resenas().get("/resenas/abc12345")
+
+    assert response.status_code == 200
+    assert response.json() == {"nombre_profesor": "Lucía"}
+    service.return_value.formulario.assert_called_once_with("abc12345")
+
+
+def test_post_honeypot_no_guarda():
+    with patch("routers.resenas.ResenaAlumnoService") as service:
+        response = _cliente_resenas().post(
+            "/resenas/abc12345", json=_cuerpo_post(website="https://spam.example"))
+
+    assert response.status_code == 201
+    assert response.json() == {"ok": True}
+    service.return_value.crear.assert_not_called()
+
+
+def test_post_ok_201():
+    with patch("routers.resenas.ResenaAlumnoService") as service:
+        response = _cliente_resenas().post("/resenas/abc12345", json=_cuerpo_post())
+
+    assert response.status_code == 201
+    assert response.json() == {"ok": True}
+    codigo, datos = service.return_value.crear.call_args.args
+    assert codigo == "abc12345"
+    assert datos.contacto == "ana@x.com"
+
+
+# ── Ficha: unión de valoraciones y reseñas de alumnos ───────────────────────
+
+def _make_proveedor_service():
+    from services.proveedor_service import ProveedorService
+    svc = ProveedorService.__new__(ProveedorService)
+    svc.proveedor_repository = MagicMock()
+    svc.servicio_repository = MagicMock()
+    svc.valoracion_repository = MagicMock()
+    svc.resena_alumno_repository = MagicMock()
+    return svc
+
+
+def _perfil_publico_ficha():
+    perfil = MagicMock()
+    perfil.id = uuid4()
+    perfil.usuario_id = uuid4()
+    perfil.descripcion = "Profesora de matemáticas"
+    perfil.experiencia_años = 5
+    perfil.radio_km_disponible = 20
+    perfil.valoracion_media = 4.5
+    perfil.num_valoraciones = 2
+    perfil.verificado = False
+    perfil.dias_disponibles = None
+    perfil.hora_inicio = None
+    perfil.hora_fin = None
+    perfil.ciudad = "Talavera de la Reina"
+    perfil.zona = None
+    perfil.materias = []
+    perfil.niveles = []
+    perfil.perfil_publico = True
+    return perfil
+
+
+def _ficha_con(svc, valoraciones, resenas_alumnos):
+    perfil = _perfil_publico_ficha()
+    svc.proveedor_repository.get_publico.return_value = {
+        "perfil": perfil, "usuario_nombre": "Lucía Pérez", "usuario_avatar": None, "fecha_creacion": None,
+    }
+    svc.servicio_repository.listar_por_proveedor_publico.return_value = []
+    svc.valoracion_repository.listar_publicas_por_destinatario.return_value = valoraciones
+    svc.resena_alumno_repository.listar_aprobadas.return_value = resenas_alumnos
+    return perfil, svc.obtener_perfil_publico(perfil.id)
+
+
+def _resena_alumno_aprobada(fecha):
+    # Lo que devuelve listar_aprobadas: nunca incluye `contacto`.
+    return {
+        "puntuacion": 5, "comentario": "Mi hija ha aprobado matemáticas gracias a ella.",
+        "fecha": fecha, "autor_nombre": "Marta G.",
+        "relacion": "padre_madre", "antiguedad": "3_12_meses",
+    }
+
+
+def test_ficha_une_resenas_ordenadas_por_fecha_desc():
+    svc = _make_proveedor_service()
+    # valoraciones.fecha es timestamp sin zona; resenas_alumnos.fecha, con zona.
+    antigua = {"puntuacion": 4, "comentario": "Bien", "fecha": datetime(2026, 10, 1, 12, 0),
+               "autor_nombre": "Luis Pérez"}
+    reciente = _resena_alumno_aprobada(datetime(2026, 11, 15, 9, 0, tzinfo=timezone.utc))
+
+    perfil, resultado = _ficha_con(svc, [antigua], [reciente])
+
+    svc.resena_alumno_repository.listar_aprobadas.assert_called_once_with(perfil.id)
+    resenas = resultado["resenas"]
+    assert [r["origen"] for r in resenas] == ["alumno", "habilo"]
+    assert resenas[0]["autor_nombre"] == "Marta G."  # tal cual, sin recortar
+    assert resenas[0]["relacion"] == "padre_madre"
+    assert resenas[0]["antiguedad"] == "3_12_meses"
+    assert resenas[1]["autor_nombre"] == "Luis"
+    assert resenas[1]["relacion"] is None
+
+
+def test_ficha_no_expone_contacto():
+    from schemas.proveedor_schema import PerfilProveedorPublicoOut, ResenaPublicaOut
+    svc = _make_proveedor_service()
+    resena = _resena_alumno_aprobada(datetime(2026, 11, 15, tzinfo=timezone.utc))
+    # Aunque el repositorio devolviera el contacto por error, no debe salir.
+    resena["contacto"] = "ana@x.com"
+
+    _, resultado = _ficha_con(svc, [], [resena])
+    json_ficha = PerfilProveedorPublicoOut.model_validate(resultado).model_dump_json()
+
+    assert "contacto" not in ResenaPublicaOut.model_fields
+    assert "contacto" not in json_ficha
+    assert "ana@x.com" not in json_ficha
+    assert '"origen":"alumno"' in json_ficha
+
+
+def test_ficha_no_muestra_pendientes():
+    svc = _make_proveedor_service()
+
+    perfil, resultado = _ficha_con(svc, [], [])
+
+    # Solo se consulta la lista de aprobadas: pendientes y rechazadas no llegan.
+    svc.resena_alumno_repository.listar_aprobadas.assert_called_once_with(perfil.id)
+    assert resultado["resenas"] == []

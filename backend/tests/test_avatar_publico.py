@@ -41,6 +41,8 @@ def _servicio_perfil(avatar, usuario_id):
     svc.proveedor_repository = MagicMock()
     svc.servicio_repository = MagicMock()
     svc.valoracion_repository = MagicMock()
+    svc.resena_alumno_repository = MagicMock()
+    svc.resena_alumno_repository.listar_aprobadas.return_value = []
     perfil = MagicMock()
     perfil.perfil_publico = True
     perfil.usuario_id = usuario_id
