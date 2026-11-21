@@ -28,6 +28,28 @@ test("«Soy profesor» de la portada lleva a la página para profesores", async 
   await expect(page).toHaveURL(/\/da-clases$/)
 })
 
+for (const width of [320, 360, 390]) {
+  test(`en un móvil de ${width} px, «Soy profesor» se ve arriba en la portada`, async ({ page }) => {
+    // Los profesores que llegan de Wallapop entran por «habilo.es» a secas desde el móvil.
+    await page.setViewportSize({ width, height: 740 })
+    await page.goto("/")
+    const header = page.locator("header").first()
+    const soyProfesor = header.getByRole("link", { name: "Soy profesor" })
+    const login = header.getByRole("link", { name: "Iniciar sesión" })
+    await expect(soyProfesor).toBeVisible()
+    await expect(login).toBeVisible()
+
+    // Sin desbordar: nada se sale de la pantalla y los botones no se pisan.
+    const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth)
+    expect(scrollWidth).toBeLessThanOrEqual(width)
+    const a = (await soyProfesor.boundingBox())!
+    const b = (await login.boundingBox())!
+    expect(a.x + a.width).toBeLessThanOrEqual(b.x)
+    expect(b.x + b.width).toBeLessThanOrEqual(width)
+    expect(a.height).toBeLessThanOrEqual(40)
+  })
+}
+
 test("la página para profesores está en el sitemap", async ({ request }) => {
   const xml = await (await request.get("/sitemap.xml")).text()
   expect(xml).toContain("/da-clases</loc>")
