@@ -30,3 +30,18 @@ test("/ con token y ref conserva ambos parámetros", async ({ page }) => {
   await page.goto("/?token=abc123&ref=ABC123")
   await expect(page).toHaveURL(/\/login\?token=abc123&ref=ABC123/)
 })
+
+test("el login solo ofrece Google mientras la app de Facebook no esté publicada", async ({ page }) => {
+  // En modo desarrollo, Meta solo deja entrar a los administradores de la app:
+  // el botón de Facebook daría error a cualquier profesor.
+  await page.goto("/login")
+  await expect(page.getByRole("button", { name: "Continuar con Google" })).toBeVisible()
+  await expect(page.getByRole("button", { name: /continuar con facebook/i })).toHaveCount(0)
+  await expect(page.getByText(/te registraste con Facebook/i)).toBeVisible()
+})
+
+test("/da-clases no promete entrar con Facebook", async ({ page }) => {
+  await page.goto("/da-clases")
+  await expect(page.getByText("Entra con tu cuenta de Google.")).toBeVisible()
+  await expect(page.getByText(/Google o Facebook/)).toHaveCount(0)
+})

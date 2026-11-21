@@ -48,7 +48,7 @@ const VENTAJAS = [
 ]
 
 const PASOS = [
-  "Entra con tu cuenta de Google o Facebook.",
+  "Entra con tu cuenta de Google.",
   "Indica tu ciudad, qué enseñas y a qué niveles.",
   "Publica tu primer anuncio con precio y horario.",
 ]

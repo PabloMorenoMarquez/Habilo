@@ -19,6 +19,11 @@ const GoogleIcon = () => (
   </svg>
 )
 
+// La app de Meta sigue en modo desarrollo: solo sus administradores pueden entrar y el
+// resto ve un error de Facebook. Para publicarla Meta exige verificar una empresa
+// registrada, que Habilo aún no tiene. Volver a `true` cuando la app esté publicada.
+const FACEBOOK_LOGIN_ACTIVO = false
+
 const FacebookIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
     <path
@@ -172,17 +177,26 @@ function LoginPageInner() {
               <span className="font-medium group-hover:text-[#4285F4] transition-colors duration-300">Continuar con Google</span>
             </Button>
 
-            <Button
-              onClick={handleFacebookLogin}
-              variant="outline"
-              disabled={showSpinner}
-              className="w-full h-12 text-base gap-3 border-border rounded-full flex items-center justify-center bg-background hover:bg-white hover:border-[#1877F2] hover:shadow-[0_8px_30px_rgb(24,119,242,0.12)] hover:-translate-y-1 hover:scale-[1.01] transition-all duration-300 active:scale-95 shadow-sm group cursor-pointer"
-            >
-              <div className="group-hover:scale-110 transition-transform duration-300">
-                <FacebookIcon />
-              </div>
-              <span className="font-medium group-hover:text-[#1877F2] transition-colors duration-300">Continuar con Facebook</span>
-            </Button>
+            {FACEBOOK_LOGIN_ACTIVO ? (
+              <Button
+                onClick={handleFacebookLogin}
+                variant="outline"
+                disabled={showSpinner}
+                className="w-full h-12 text-base gap-3 border-border rounded-full flex items-center justify-center bg-background hover:bg-white hover:border-[#1877F2] hover:shadow-[0_8px_30px_rgb(24,119,242,0.12)] hover:-translate-y-1 hover:scale-[1.01] transition-all duration-300 active:scale-95 shadow-sm group cursor-pointer"
+              >
+                <div className="group-hover:scale-110 transition-transform duration-300">
+                  <FacebookIcon />
+                </div>
+                <span className="font-medium group-hover:text-[#1877F2] transition-colors duration-300">Continuar con Facebook</span>
+              </Button>
+            ) : (
+              // Las cuentas se identifican por el correo: con Google y el mismo correo
+              // se entra en la cuenta que se creó con Facebook.
+              <p className="text-center text-sm text-muted-foreground leading-relaxed">
+                ¿Te registraste con Facebook? Entra con Google usando el mismo correo, o escríbenos a{" "}
+                <a href="mailto:soporte@habilo.es" className="text-primary hover:underline">soporte@habilo.es</a>.
+              </p>
+            )}
 
             {showSpinner && (
               <div className="flex items-center justify-center py-2">
