@@ -33,3 +33,6 @@ build/
 
 # Captación de profesores: datos personales y material interno, no publicar (repo público)
 docs/growth/captacion/
+
+# Notas de sesión: contienen datos personales de profesores (repo público)
+HANDOFF.md
