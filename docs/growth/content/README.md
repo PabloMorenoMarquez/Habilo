@@ -25,7 +25,8 @@ El `campaign` identifica el contenido. El `source` identifica la plataforma. No 
 | --- | --- | --- |
 | `frontend/content/blog/como-elegir-profesor-particular-talavera.md` | Post | Publicado |
 | `frontend/content/blog/precio-clases-particulares-talavera.md` | Post | Publicado |
-| `2026-11-12-shorts-01-03.md` | 3 shorts | Borrador |
+| `2026-11-12-shorts-01-03.md` | 3 shorts | Publicado (14-18 nov) |
+| `2026-11-21-shorts-04-06.md` | 3 shorts (2 profesores, 1 familias) | Exportado, sin publicar |
 
 ## Antes de publicar
 
