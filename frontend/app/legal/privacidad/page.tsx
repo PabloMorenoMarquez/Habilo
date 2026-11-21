@@ -84,6 +84,11 @@ export default function PrivacyPage() {
         <h2>7. Tus derechos</h2>
         <p>Puedes ejercer en cualquier momento los derechos de acceso, rectificación, supresión, limitación del tratamiento, portabilidad y oposición a tratamientos basados en el interés legítimo.</p>
         <p>Puedes ejercerlos escribiendo a <a href="mailto:pablomorenomarquez@gmail.com" className="text-primary hover:underline">pablomorenomarquez@gmail.com</a>. También puedes reclamar ante la Agencia Española de Protección de Datos (<a href="https://www.aepd.es" target="_blank" rel="noreferrer" className="text-primary hover:underline">www.aepd.es</a>).</p>
+        <div id="borrar-datos" className="scroll-mt-24">
+          <h3>Cómo borrar tu cuenta y tus datos</h3>
+          <p>Da igual si entraste con Google o con Facebook: para borrar tu cuenta y todos tus datos, escribe a <a href="mailto:pablomorenomarquez@gmail.com" className="text-primary hover:underline">pablomorenomarquez@gmail.com</a> desde el correo de tu cuenta con el asunto «Borrar mi cuenta». La borramos, junto con tu perfil y tus anuncios, en un plazo máximo de 30 días y te confirmamos por correo cuando esté hecho.</p>
+          <p>Además, puedes quitar el acceso de Habilo a tu cuenta de Facebook en Facebook → Configuración y privacidad → Configuración → Apps y sitios web, o a tu cuenta de Google en myaccount.google.com → Seguridad → Aplicaciones de terceros con acceso a la cuenta.</p>
+        </div>
       </section>
 
       <section>
