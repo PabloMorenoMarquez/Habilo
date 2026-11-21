@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test"
 
-test("el índice lista los dos posts y es indexable", async ({ page }) => {
+test("el índice lista los posts y es indexable", async ({ page }) => {
   await page.goto("/blog")
 
   await expect(
@@ -13,6 +13,7 @@ test("el índice lista los dos posts y es indexable", async ({ page }) => {
   )
   expect(hrefs).toEqual([
     "/blog/como-elegir-profesor-particular-talavera",
+    "/blog/conseguir-alumnos-clases-particulares-talavera",
     "/blog/precio-clases-particulares-talavera",
   ])
   await expect(page.getByText("Cómo elegir profesor particular en Talavera de la Reina sin perder dinero ni tiempo")).toBeVisible()
@@ -158,4 +159,19 @@ test("el artículo es legible: jerarquía, índice y ancho de línea", async ({ 
     })
   )
   expect(destinos.every((etiqueta) => etiqueta === "H2")).toBe(true)
+})
+
+test("un post para profesores lleva su llamada a la acción a /da-clases", async ({ page }) => {
+  await page.goto("/blog/conseguir-alumnos-clases-particulares-talavera")
+  const cta = page.locator(".article-cta")
+  await expect(cta.getByText("Publica tus clases gratis en Habilo")).toBeVisible()
+  await expect(cta.getByRole("link", { name: "Crear mi perfil gratis" })).toHaveAttribute("href", "/da-clases")
+})
+
+test("un post para familias sigue llevando a los profesores disponibles", async ({ page }) => {
+  await page.goto("/blog/precio-clases-particulares-talavera")
+  await expect(page.locator(".article-cta").getByRole("link", { name: "Ver profesores disponibles" })).toHaveAttribute(
+    "href",
+    "/home?q=clases%20particulares",
+  )
 })

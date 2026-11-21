@@ -5,6 +5,8 @@ import { Marked } from "marked"
 
 export type BlogSeccion = { id: string; titulo: string }
 
+export type BlogPublico = "familias" | "profesores"
+
 export type BlogPost = {
   slug: string
   titulo: string
@@ -12,6 +14,8 @@ export type BlogPost = {
   fecha: string
   autor: string
   categoria: string
+  /** A quién va dirigido: decide la llamada a la acción del final. */
+  publico: BlogPublico
   contenido: string
   indice: BlogSeccion[]
   tiempoLectura: number
@@ -85,6 +89,11 @@ function cargarPosts(): BlogPost[] {
     }
     vistos.set(slug, archivo)
 
+    const publico = data.publico ?? "familias"
+    if (publico !== "familias" && publico !== "profesores") {
+      throw new Error(`Blog: "publico" debe ser "familias" o "profesores" en ${archivo}`)
+    }
+
     return {
       slug,
       titulo: data.titulo,
@@ -92,6 +101,7 @@ function cargarPosts(): BlogPost[] {
       fecha: data.fecha,
       autor: data.autor,
       categoria: data.categoria,
+      publico,
       contenido: markdown.parse(content) as string,
       indice: extraerIndice(content, archivo),
       tiempoLectura: Math.max(1, Math.ceil(contarPalabras(content) / PALABRAS_POR_MINUTO)),

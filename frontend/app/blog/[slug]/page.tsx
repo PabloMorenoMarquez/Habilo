@@ -5,7 +5,21 @@ import BlogCta from "@/components/blog/blog-cta"
 import { formatFecha, getAllPosts, getPostBySlug, getSlugs } from "@/lib/blog"
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://habilo.es").replace(/\/+$/, "")
-const CTA_HREF = "/home?q=clases%20particulares"
+// La llamada a la acción del final depende de a quién va dirigido el post.
+const CTA = {
+  familias: {
+    titulo: "Compara profesores con el precio a la vista",
+    texto: "Revisa los anuncios publicados y contacta directamente con el profesor.",
+    href: "/home?q=clases%20particulares",
+    boton: "Ver profesores disponibles",
+  },
+  profesores: {
+    titulo: "Publica tus clases gratis en Habilo",
+    texto: "Sin comisión durante la fase piloto. Las familias de tu zona te escriben directamente.",
+    href: "/da-clases",
+    boton: "Crear mi perfil gratis",
+  },
+} as const
 
 type PostPageProps = {
   params: Promise<{ slug: string }>
@@ -150,13 +164,11 @@ export default async function PostPage({ params }: PostPageProps) {
         />
 
         <div className="article-cta mt-10 rounded-2xl border border-border bg-card p-6">
-          <p className="text-lg font-semibold">Compara profesores con el precio a la vista</p>
-          <p className="mt-2 text-muted-foreground">
-            Revisa los anuncios publicados y contacta directamente con el profesor.
-          </p>
+          <p className="text-lg font-semibold">{CTA[post.publico].titulo}</p>
+          <p className="mt-2 text-muted-foreground">{CTA[post.publico].texto}</p>
           <div className="mt-5">
-            <BlogCta href={CTA_HREF} slug={post.slug}>
-              Ver profesores disponibles
+            <BlogCta href={CTA[post.publico].href} slug={post.slug}>
+              {CTA[post.publico].boton}
             </BlogCta>
           </div>
         </div>
