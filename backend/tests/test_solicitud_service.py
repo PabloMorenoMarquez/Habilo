@@ -16,6 +16,17 @@ from uuid import uuid4
 from fastapi import HTTPException
 
 
+@pytest.fixture(autouse=True)
+def pagos_habilitados(monkeypatch):
+    """Estas pruebas cubren el flujo con pago online (capturar / cancelar).
+
+    En el piloto `PAGOS_HABILITADOS=false` y SolicitudService no toca el pago, así que
+    aquí se activa para que las pruebas sigan protegiendo ese flujo para cuando se encienda.
+    """
+    from config import Config
+    monkeypatch.setattr(Config, "PAGOS_HABILITADOS", True)
+
+
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _make_service():
@@ -102,6 +113,33 @@ async def test_proveedor_acepta_solicitud_pendiente(cliente_id, proveedor_perfil
         )
 
     pago_mock.capturar_pago_de_solicitud.assert_awaited_once_with(solicitud_id)
+    svc.solicitud_repository.actualizar_estado.assert_called_once_with(solicitud_id, "aceptada", None)
+
+
+@pytest.mark.asyncio
+async def test_con_pagos_desactivados_aceptar_no_toca_el_pago(
+    monkeypatch, cliente_id, proveedor_perfil_id, solicitud_id, servicio_id
+):
+    """Piloto (PAGOS_HABILITADOS=false): aceptar cambia el estado sin capturar ningún pago."""
+    from config import Config
+    monkeypatch.setattr(Config, "PAGOS_HABILITADOS", False)
+    svc = _make_service()
+    solicitud = _make_solicitud("pendiente", cliente_id, servicio_id, id=solicitud_id)
+    svc.solicitud_repository.get_by_id.return_value = solicitud
+    svc.servicio_repository.get_by_id.return_value = _make_servicio(proveedor_perfil_id, servicio_id)
+    svc.solicitud_repository.actualizar_estado.return_value = solicitud
+
+    pago_mock = _make_pago_service_mock()
+    with patch("services.pago_service.PagoService", return_value=pago_mock):
+        await svc.cambiar_estado(
+            solicitud_id=solicitud_id,
+            nuevo_estado="aceptada",
+            usuario_id=uuid4(),
+            proveedor_id=proveedor_perfil_id,
+            motivo=None,
+        )
+
+    pago_mock.capturar_pago_de_solicitud.assert_not_awaited()
     svc.solicitud_repository.actualizar_estado.assert_called_once_with(solicitud_id, "aceptada", None)
 
 
