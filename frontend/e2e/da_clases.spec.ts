@@ -28,7 +28,7 @@ test("«Soy profesor» de la portada lleva a la página para profesores", async 
   await expect(page).toHaveURL(/\/da-clases$/)
 })
 
-for (const width of [320, 360, 390]) {
+for (const width of [320, 345, 360, 375, 390]) {
   test(`en un móvil de ${width} px, «Soy profesor» se ve arriba en la portada`, async ({ page }) => {
     // Los profesores que llegan de Wallapop entran por «habilo.es» a secas desde el móvil.
     await page.setViewportSize({ width, height: 740 })

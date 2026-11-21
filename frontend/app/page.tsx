@@ -97,8 +97,8 @@ export default async function LandingPage({
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 w-full border-b border-border bg-card/80 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 max-[359px]:gap-2 max-[359px]:px-3">
-          <Link href="/" aria-label="Habilo, inicio" className="text-2xl max-[359px]:text-xl">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 max-[374px]:gap-2 max-[374px]:px-3">
+          <Link href="/" aria-label="Habilo, inicio" className="text-2xl max-[374px]:text-xl">
             <Logo />
           </Link>
 
@@ -116,10 +116,10 @@ export default async function LandingPage({
 
           {/* En móvil también: los profesores que llegan de Wallapop entran por la portada. */}
           <div className="flex items-center gap-1 sm:gap-2">
-            <Button asChild variant="ghost" className="px-2.5 sm:px-4 max-[359px]:px-2 max-[359px]:text-[13px]">
+            <Button asChild variant="ghost" className="px-2.5 sm:px-4 max-[374px]:px-2 max-[374px]:text-[13px]">
               <Link href="/da-clases">Soy profesor</Link>
             </Button>
-            <Button asChild className="px-3 sm:px-4 max-[359px]:px-2.5 max-[359px]:text-[13px]">
+            <Button asChild className="px-3 sm:px-4 max-[374px]:px-2.5 max-[374px]:text-[13px]">
               <Link href="/login">Iniciar sesión</Link>
             </Button>
           </div>
