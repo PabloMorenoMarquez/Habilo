@@ -1,4 +1,6 @@
-const CACHE_NAME = 'serviclick-shell-v1'
+// v1 servía todo desde caché primero, así que quien volvía veía la versión de su
+// visita anterior. Cambiar el nombre hace que `activate` borre esa caché.
+const CACHE_NAME = 'habilo-v2'
 const SHELL_ASSETS = ['/']
 
 self.addEventListener('install', (event) => {
@@ -18,11 +20,31 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event
   if (request.method !== 'GET') return
-  if (new URL(request.url).origin !== self.location.origin) return
+  const url = new URL(request.url)
+  if (url.origin !== self.location.origin) return
 
-  event.respondWith(
-    caches.match(request).then((cached) => {
-      const network = fetch(request)
+  // Ficheros con hash en el nombre: no cambian nunca, la caché vale siempre.
+  if (url.pathname.startsWith('/_next/static/')) {
+    event.respondWith(
+      caches.match(request).then(
+        (cached) =>
+          cached ||
+          fetch(request).then((response) => {
+            if (response.ok) {
+              const clone = response.clone()
+              caches.open(CACHE_NAME).then((cache) => cache.put(request, clone))
+            }
+            return response
+          })
+      )
+    )
+    return
+  }
+
+  // Páginas: siempre de la red; la copia guardada solo se usa sin conexión.
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
         .then((response) => {
           if (response.ok) {
             const clone = response.clone()
@@ -30,10 +52,15 @@ self.addEventListener('fetch', (event) => {
           }
           return response
         })
-        .catch(() => cached)
-      return cached || network
-    })
-  )
+        .catch(() =>
+          caches.match(request).then((cached) => cached || caches.match('/')).then(
+            (fallback) => fallback || Response.error()
+          )
+        )
+    )
+  }
+  // El resto (datos de navegación de Next `?_rsc=`, imágenes, manifest…) va directo
+  // a la red sin pasar por el service worker.
 })
 
 self.addEventListener('push', (event) => {
