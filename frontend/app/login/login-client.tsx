@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
-import { useEffect, useRef, useState, Suspense } from "react"
+import { useEffect, useState, Suspense } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Search, Star, Shield, Loader } from "lucide-react"
@@ -46,6 +46,13 @@ function extraerTokenYLimpiarUrl(): string | null {
   return token
 }
 
+// Token recibido de la vuelta de OAuth, pendiente de usar. Vive fuera del componente a
+// propósito: en producción React puede descartar el primer renderizado (hidratación del
+// Suspense de useSearchParams) y volver a montar con hooks nuevos. Un useRef se perdía con
+// ese renderizado descartado mientras la URL ya estaba limpia, y el usuario se quedaba en
+// el login sin error (2026-11-21).
+let tokenPendiente: string | null = null
+
 function LoginPageInner() {
   const { isAuthenticated, isLoading, role, loginWithToken } = useAuth()
   const router = useRouter()
@@ -53,17 +60,16 @@ function LoginPageInner() {
   const [isProcessingToken, setIsProcessingToken] = useState(false)
   const [loginError, setLoginError] = useState<string | null>(null)
 
-  // Se captura una sola vez. Bajo StrictMode el inicializador puede ejecutarse
-  // dos veces; la segunda encuentra la URL ya limpia y el ref evita perderlo.
-  const tokenRef = useRef<string | null>(null)
-  if (typeof window !== "undefined" && tokenRef.current === null) {
-    tokenRef.current = extraerTokenYLimpiarUrl()
+  // Se limpia la URL en el propio renderizado, antes de cualquier efecto de analítica.
+  if (typeof window !== "undefined") {
+    const token = extraerTokenYLimpiarUrl()
+    if (token) tokenPendiente = token
   }
 
   useEffect(() => {
-    const token = tokenRef.current
+    const token = tokenPendiente
     if (!token) return
-    tokenRef.current = null
+    tokenPendiente = null
 
     setIsProcessingToken(true)
     loginWithToken(token)
