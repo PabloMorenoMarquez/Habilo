@@ -57,7 +57,7 @@ export function InviteProviderDialog({ open, onOpenChange, codigoReferido }: Inv
           </div>
           <DialogTitle>¿Conoces a otro profesional?</DialogTitle>
           <DialogDescription>
-            Invítalo a Habilo. Si se registra y publica un servicio, consigues 15 días de destacado gratis.
+            Invítalo a Habilo. Si se registra y publica un anuncio, tus anuncios salen los primeros en el buscador durante 15 días, con la etiqueta «Destacado».
           </DialogDescription>
         </DialogHeader>
 
