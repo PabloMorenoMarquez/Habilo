@@ -22,7 +22,8 @@ export function InviteProviderDialog({ open, onOpenChange, codigoReferido }: Inv
 
   if (!codigoReferido) return null
 
-  const enlace = `${typeof window !== "undefined" ? window.location.origin : ""}/?ref=${codigoReferido}`
+  // A /da-clases: quien recibe la invitación es un profesional, no una familia.
+  const enlace = `${typeof window !== "undefined" ? window.location.origin : ""}/da-clases?ref=${codigoReferido}`
   const mensaje = `Estoy en Habilo, una nueva plataforma para encontrar profesionales en Talavera. Puedes crear tu perfil gratis aquí: ${enlace}`
 
   const handleCopiar = async () => {
