@@ -234,10 +234,16 @@ class ServicioRepository:
                 stmt = stmt.where(ciudad_publica.ilike(f"%{ciudad}%"))
             if usuario_id:
                 stmt = stmt.where(Usuario.id != usuario_id)
+            # Recompensa por invitar a otros profesionales (15 días de «Destacado»):
+            # sus anuncios van primero mientras dure; después, el orden de siempre.
+            destacado_vigente = case(
+                (Perfil_Proveedor.destacado_hasta > func.now(), 0),
+                else_=1,
+            )
             if punto is not None:
-                stmt = stmt.order_by(ST_Distance(Servicio.ubicacion, punto))
+                stmt = stmt.order_by(destacado_vigente, ST_Distance(Servicio.ubicacion, punto))
             else:
-                stmt = stmt.order_by(Servicio.fecha_creacion.desc())
+                stmt = stmt.order_by(destacado_vigente, Servicio.fecha_creacion.desc())
 
             stmt = stmt.limit(limit+1).offset(offset)
 

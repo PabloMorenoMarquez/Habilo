@@ -133,3 +133,33 @@ def test_detalle_publico_oculta_ubicacion_de_perfil_privado():
     assert resultado["zona"] is None
     assert resultado["latitud"] is None
     assert resultado["longitud"] is None
+
+
+def _orden_de_busqueda(lat, lng):
+    from unittest.mock import patch
+    from sqlalchemy.dialects import postgresql
+    import repositories.servicio_repository as modulo
+
+    sesion = MagicMock()
+    sesion.execute.return_value.all.return_value = []
+    with patch.object(modulo, "SessionLocal", return_value=sesion):
+        modulo.ServicioRepository().buscar_por_proximidad(lat, lng, 25)
+    sql = str(sesion.execute.call_args.args[0].compile(
+        dialect=postgresql.dialect(), compile_kwargs={"literal_binds": True}))
+    return sql.split("ORDER BY", 1)[1]
+
+
+def test_busqueda_pone_primero_los_destacados_vigentes():
+    """Recompensa por invitar: los anuncios de un perfil destacado salen primero."""
+    orden = _orden_de_busqueda(None, None)
+    primero, resto = orden.split(",", 1)
+    assert "perfiles_proveedor.destacado_hasta >" in primero
+    assert "now()" in primero
+    assert "servicios.fecha_creacion DESC" in resto
+
+
+def test_busqueda_por_proximidad_tambien_pone_primero_los_destacados():
+    orden = _orden_de_busqueda(39.96, -4.83)
+    primero, resto = orden.split(",", 1)
+    assert "perfiles_proveedor.destacado_hasta >" in primero
+    assert "ST_Distance" in resto
