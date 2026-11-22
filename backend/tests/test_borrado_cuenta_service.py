@@ -49,7 +49,7 @@ async def test_con_historial_anonimiza_y_cancela_solicitudes(storage):
 
     with patch("services.borrado_cuenta_service.SolicitudRepository") as repo_sol, \
          patch("services.borrado_cuenta_service.SolicitudService") as sol_svc:
-        repo_sol.return_value.listar_activas_de_usuario.return_value = activas
+        repo_sol.return_value.listar_activas_de_usuario.side_effect = [activas, []]
         sol_svc.return_value.cancelar_por_sistema = AsyncMock()
         assert await svc.borrar(d.usuario_id) == "anonimizada"
 
@@ -131,3 +131,69 @@ async def test_si_storage_falla_no_toca_la_bd(storage):
     assert e.value.status_code == 502
     svc.repo.borrar_todo.assert_not_called()
     svc.repo.anonimizar.assert_not_called()
+
+
+async def test_si_storage_falla_con_historial_no_cancela_solicitudes(storage):
+    # Lo que ven otras personas (cancelaciones) no debe pasar si el borrado no sigue adelante.
+    d = _datos()
+    svc = _svc(d, compartido=True)
+    storage.eliminar.side_effect = RuntimeError("caído")
+
+    with patch("services.borrado_cuenta_service.SolicitudRepository") as repo_sol, \
+         patch("services.borrado_cuenta_service.SolicitudService") as sol_svc:
+        repo_sol.return_value.listar_activas_de_usuario.return_value = [SimpleNamespace(id=uuid4())]
+        sol_svc.return_value.cancelar_por_sistema = AsyncMock()
+        with pytest.raises(HTTPException) as e:
+            await svc.borrar(d.usuario_id)
+
+    assert e.value.status_code == 502
+    sol_svc.return_value.cancelar_por_sistema.assert_not_called()
+    svc.repo.anonimizar.assert_not_called()
+
+
+async def test_cancela_tambien_solicitudes_llegadas_durante_la_anonimizacion(storage):
+    d = _datos()
+    svc = _svc(d, compartido=True)
+    antes, durante = SimpleNamespace(id=uuid4()), SimpleNamespace(id=uuid4())
+
+    with patch("services.borrado_cuenta_service.SolicitudRepository") as repo_sol, \
+         patch("services.borrado_cuenta_service.SolicitudService") as sol_svc:
+        repo_sol.return_value.listar_activas_de_usuario.side_effect = [[antes], [durante]]
+        sol_svc.return_value.cancelar_por_sistema = AsyncMock()
+        await svc.borrar(d.usuario_id)
+
+    canceladas = [c.args[0] for c in sol_svc.return_value.cancelar_por_sistema.call_args_list]
+    assert canceladas == [antes.id, durante.id]
+
+
+async def test_si_aparece_historial_al_borrar_pasa_a_anonimizar(storage):
+    # Entre la comprobación y el borrado una familia pide clase: no se puede borrar en cascada.
+    from repositories.borrado_cuenta_repository import HistorialCompartidoError
+    d = _datos()
+    svc = _svc(d, compartido=False)
+    svc.repo.borrar_todo.side_effect = HistorialCompartidoError()
+
+    with patch("services.borrado_cuenta_service.SolicitudRepository") as repo_sol, \
+         patch("services.borrado_cuenta_service.SolicitudService") as sol_svc:
+        repo_sol.return_value.listar_activas_de_usuario.return_value = []
+        sol_svc.return_value.cancelar_por_sistema = AsyncMock()
+        assert await svc.borrar(d.usuario_id) == "anonimizada"
+
+    svc.repo.anonimizar.assert_called_once()
+
+
+async def test_anonimiza_con_datos_releidos(storage):
+    # Un anuncio creado tras la primera lectura también se desactiva.
+    from repositories.borrado_cuenta_repository import DatosCuenta
+    d = _datos()
+    svc = _svc(d, compartido=True)
+    d2 = DatosCuenta(usuario_id=d.usuario_id, es_admin=False, perfil_id=d.perfil_id,
+                     servicio_ids=d.servicio_ids + [uuid4()])
+    svc.repo.datos.side_effect = [d, d2]
+
+    with patch("services.borrado_cuenta_service.SolicitudRepository") as repo_sol, \
+         patch("services.borrado_cuenta_service.SolicitudService"):
+        repo_sol.return_value.listar_activas_de_usuario.return_value = []
+        await svc.borrar(d.usuario_id)
+
+    svc.repo.anonimizar.assert_called_once_with(d2)

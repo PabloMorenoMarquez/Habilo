@@ -195,3 +195,56 @@ def test_anonimiza_con_historial(Session, repo):
     assert _contar(s, Suscripcion_Push, Suscripcion_Push.usuario_id == uid) == 0
     assert _contar(s, Solicitud, Solicitud.id == sol_id) == 1
     s.close()
+
+
+def test_borrar_todo_se_niega_si_aparece_historial_tras_comprobarlo(Session, repo):
+    # Carrera: se comprobó que no había historial, pero antes de borrar una familia pide clase.
+    from repositories.borrado_cuenta_repository import HistorialCompartidoError
+    s = Session()
+    u, p, sv = _profesor(s)
+    s.commit()
+    uid, sid = u.id, sv.id
+    s.close()
+
+    d = repo.datos(uid)
+    assert repo.tiene_historial_compartido(d) is False
+
+    s = Session()
+    familia = _usuario(s, "Familia")
+    s.add(Solicitud(servicio_id=sid, cliente_id=familia.id))
+    s.commit()
+    s.close()
+
+    with pytest.raises(HistorialCompartidoError):
+        repo.borrar_todo(d)
+
+    s = Session()
+    assert _contar(s, Usuario, Usuario.id == uid) == 1
+    assert _contar(s, Servicio, Servicio.id == sid) == 1
+    s.close()
+
+
+def test_borrar_todo_incluye_anuncios_creados_tras_leer_los_datos(Session, repo):
+    s = Session()
+    u, p, _ = _profesor(s)
+    s.commit()
+    uid, pid = u.id, p.id
+    s.close()
+
+    d = repo.datos(uid)
+
+    s = Session()
+    nuevo = Servicio(id=uuid.uuid4(), proveedor_id=pid, titulo="Otra", descripcion="d", precio=10, tipo_precio="hora")
+    s.add(nuevo)
+    s.flush()
+    s.add(Imagen_Servicio(servicio_id=nuevo.id, url="https://x/i2", orden=0))
+    s.commit()
+    nuevo_id = nuevo.id
+    s.close()
+
+    repo.borrar_todo(d)
+
+    s = Session()
+    assert _contar(s, Servicio, Servicio.id == nuevo_id) == 0
+    assert _contar(s, Usuario, Usuario.id == uid) == 0
+    s.close()

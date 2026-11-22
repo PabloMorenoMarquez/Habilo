@@ -38,6 +38,10 @@ class DatosCuenta:
     servicio_ids: list[UUID] = field(default_factory=list)
 
 
+class HistorialCompartidoError(Exception):
+    """Apareció historial compartido entre la comprobación y el borrado: hay que anonimizar."""
+
+
 def _alguna(*condiciones):
     """OR de las condiciones que existen (las de perfil o anuncios se omiten si no hay)."""
     presentes = [c for c in condiciones if c is not None]
@@ -64,6 +68,14 @@ class BorradoCuentaRepository:
             session.close()
 
     def tiene_historial_compartido(self, d: DatosCuenta) -> bool:
+        session = SessionLocal()
+        try:
+            return self._hay_historial(session, d)
+        finally:
+            session.close()
+
+    @staticmethod
+    def _hay_historial(session, d: DatosCuenta) -> bool:
         u, sids = d.usuario_id, d.servicio_ids
         consultas = [
             exists().where(_alguna(Solicitud.cliente_id == u,
@@ -74,11 +86,7 @@ class BorradoCuentaRepository:
             exists().where(or_(Reporte.autor_id == u, Reporte.usuario_reportado_id == u)),
             exists().where(or_(Pago.cliente_id == u, Pago.proveedor_id == u)),
         ]
-        session = SessionLocal()
-        try:
-            return any(session.scalar(select(c)) for c in consultas)
-        finally:
-            session.close()
+        return any(session.scalar(select(c)) for c in consultas)
 
     def _borrar_datos_ligados(self, session, d: DatosCuenta) -> None:
         """Lo que se borra en las dos ramas: favoritos, leads, reseñas, imágenes y push."""
@@ -99,9 +107,22 @@ class BorradoCuentaRepository:
         session.execute(delete(Suscripcion_Push).where(Suscripcion_Push.usuario_id == u))
 
     def borrar_todo(self, d: DatosCuenta) -> None:
-        u, pid, sids = d.usuario_id, d.perfil_id, d.servicio_ids
+        """Borra todo en una transacción. Bloquea usuario, perfil y anuncios y vuelve a
+        comprobar el historial dentro de ella: en producción `solicitudes` tiene ON DELETE
+        CASCADE, así que una solicitud llegada tras la primera comprobación se borraría sin
+        avisar. Si aparece historial, lanza HistorialCompartidoError sin tocar nada."""
         session = SessionLocal()
         try:
+            u, pid = d.usuario_id, d.perfil_id
+            session.execute(select(Usuario.id).where(Usuario.id == u).with_for_update())
+            sids = []
+            if pid:
+                session.execute(select(Perfil_Proveedor.id).where(Perfil_Proveedor.id == pid).with_for_update())
+                sids = list(session.scalars(
+                    select(Servicio.id).where(Servicio.proveedor_id == pid).with_for_update()))
+            d = DatosCuenta(usuario_id=u, es_admin=d.es_admin, perfil_id=pid, servicio_ids=sids)
+            if self._hay_historial(session, d):
+                raise HistorialCompartidoError()
             self._borrar_datos_ligados(session, d)
             if pid:
                 session.execute(delete(Referido).where(or_(
