@@ -102,3 +102,14 @@ export function limpiarHorario(h: Horario): Horario | null {
   if (dias.length === 0) return null
   return Object.fromEntries(dias.map((d) => [d, ordenar(h[d]!)])) as Horario
 }
+
+const aMinutos = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5))
+const aHora = (min: number) => `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`
+
+/** Tramo para «+ Añadir tramo»: empieza donde acaba el último (el más tardío) y dura 2 horas, sin pasar de 23:59. */
+export function siguienteTramo(tramos: Tramo[]): Tramo {
+  const ultimo = ordenar(tramos.filter((t) => t.inicio && t.fin)).pop()
+  if (!ultimo) return { ...TRAMO_POR_DEFECTO }
+  const fin = Math.min(aMinutos(ultimo.fin) + 120, 23 * 60 + 59)
+  return { inicio: ultimo.fin, fin: aHora(fin) }
+}

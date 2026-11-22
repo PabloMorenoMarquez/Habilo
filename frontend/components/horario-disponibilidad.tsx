@@ -8,7 +8,7 @@ import { actualizarPerfilProveedor, ApiError } from "@/lib/api"
 import {
   DIAS,
   MAX_TRAMOS,
-  TRAMO_POR_DEFECTO,
+  siguienteTramo,
   activarDia,
   copiarADemas,
   erroresHorario,
@@ -129,7 +129,7 @@ export default function HorarioDisponibilidad({
                       <button
                         type="button"
                         className="text-xs font-medium text-primary hover:underline"
-                        onClick={() => setTramos(dia, [...tramos, { ...TRAMO_POR_DEFECTO }])}
+                        onClick={() => setTramos(dia, [...tramos, siguienteTramo(tramos)])}
                       >
                         + Añadir tramo
                       </button>

@@ -5,6 +5,7 @@ import {
   erroresHorario,
   formatearHorario,
   limpiarHorario,
+  siguienteTramo,
   type Horario,
 } from "../lib/horario"
 
@@ -96,5 +97,29 @@ test.describe("edición", () => {
       "1": [t("09:00", "13:00"), t("15:00", "20:00")],
     })
     expect(limpiarHorario({})).toBeNull()
+  })
+})
+
+test.describe("siguienteTramo", () => {
+  test("empieza donde acaba el último y dura 2 horas", () => {
+    expect(siguienteTramo([t("09:00", "13:00")])).toEqual(t("13:00", "15:00"))
+  })
+
+  test("usa el último tramo aunque no estén ordenados", () => {
+    expect(siguienteTramo([t("15:00", "17:00"), t("09:00", "13:00")])).toEqual(t("17:00", "19:00"))
+  })
+
+  test("no pasa de 23:59", () => {
+    expect(siguienteTramo([t("20:00", "22:30")])).toEqual(t("22:30", "23:59"))
+  })
+
+  test("sin tramos, el de por defecto", () => {
+    expect(siguienteTramo([])).toEqual(t("17:00", "21:00"))
+  })
+
+  test("al activar un día y añadir un tramo no hay solape", () => {
+    const h = activarDia({}, "2")
+    const conDos: Horario = { "2": [...h["2"]!, siguienteTramo(h["2"]!)] }
+    expect(erroresHorario(conDos)).toEqual({})
   })
 })
