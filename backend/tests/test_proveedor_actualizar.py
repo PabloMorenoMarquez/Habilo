@@ -82,3 +82,17 @@ def test_actualizar_rechaza_hora_mal_escrita_sin_avisos():
     with warnings.catch_warnings():
         warnings.simplefilter("error")
         ActualizarPerfilProveedor(horario={"1": [_t("09:00", "13:00")]}).model_dump()
+
+
+def test_repositorio_permite_borrar_el_horario():
+    # Apagar todos los días envía {"horario": null}: tiene que vaciarse, no ignorarse.
+    import repositories.proveedor_repository as modulo
+
+    perfil = MagicMock()
+    perfil.horario = {"1": [_t("17:00", "21:00")]}
+    sesion = MagicMock()
+    sesion.scalar.return_value = perfil
+    with patch.object(modulo, "SessionLocal", return_value=sesion):
+        modulo.ProveedorRepository().actualizar(uuid4(), horario=None)
+
+    assert perfil.horario is None
