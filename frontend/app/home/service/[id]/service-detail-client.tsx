@@ -29,22 +29,11 @@ import { AuthRequiredDialog } from "@/components/auth-required-dialog"
 import { LeadContactDialog } from "@/components/lead-contact-dialog"
 import { formatCategoryName } from "@/lib/category"
 import { captureIfConsented } from "@/lib/analytics"
+import { formatearHorario } from "@/lib/horario"
 
 function formatPrice(price: number, type: string) {
   if (type === "hora") return `${price}€/hora`
   return `${price}€`
-}
-
-const DIAS_LABELS: Record<number, string> = { 1: "L", 2: "M", 3: "X", 4: "J", 5: "V", 6: "S", 7: "D" }
-
-function formatearDiasDisponibles(csv: string | null | undefined): string {
-  if (!csv) return ""
-  const dias = csv
-    .split(",")
-    .map((n) => parseInt(n.trim(), 10))
-    .filter((n) => !isNaN(n))
-    .sort((a, b) => a - b)
-  return dias.map((d) => DIAS_LABELS[d] || "").join(", ")
 }
 
 interface ServiceDetailClientProps {
@@ -325,6 +314,7 @@ export default function ServiceDetailClient({ initialServicio }: ServiceDetailCl
   // La API devuelve el perfil privado anonimizado; no lo usamos para completar
   // ciudad, materias ni niveles en la ficha pública del servicio.
   const perfilVisible = perfilProveedor?.perfil_publico === true
+  const horarioTexto = formatearHorario(perfilProveedor?.horario)
   const ciudad =
     perfilProveedor && !perfilVisible
       ? null
@@ -457,34 +447,14 @@ export default function ServiceDetailClient({ initialServicio }: ServiceDetailCl
                 </Button>
               </div>
 
-              {perfilVisible && (perfilProveedor?.dias_disponibles || (perfilProveedor?.hora_inicio && perfilProveedor?.hora_fin)) && (
+              {perfilVisible && horarioTexto && (
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-secondary/60">
                   <div className="p-2 rounded-lg bg-card text-primary shrink-0">
                     <Clock size={16} />
                   </div>
                   <div className="flex flex-col gap-1">
                     <span className="text-xs font-medium text-muted-foreground">Horario habitual</span>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {perfilProveedor.dias_disponibles && (
-                        <div className="flex gap-1">
-                          {formatearDiasDisponibles(perfilProveedor.dias_disponibles)
-                            .split(", ")
-                            .map((dia, i) => (
-                              <span
-                                key={i}
-                                className="w-6 h-6 flex items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-semibold"
-                              >
-                                {dia}
-                              </span>
-                            ))}
-                        </div>
-                      )}
-                      {perfilProveedor.hora_inicio && perfilProveedor.hora_fin && (
-                        <span className="text-sm font-medium text-foreground">
-                          {perfilProveedor.hora_inicio} – {perfilProveedor.hora_fin}
-                        </span>
-                      )}
-                    </div>
+                    <span className="text-sm font-medium text-foreground">{horarioTexto}</span>
                   </div>
                 </div>
               )}

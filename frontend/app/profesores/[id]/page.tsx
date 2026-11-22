@@ -11,10 +11,10 @@ import { fetchPublicResponse } from '@/lib/server-api'
 import { formatCategoryName } from '@/lib/category'
 import { fraseRevisionResenas } from '@/lib/resenas'
 import type { PerfilPublicoCompleto, ResenaPublica, ServicioResumen } from '@/lib/api'
+import { formatearHorario } from '@/lib/horario'
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://habilo.es').replace(/\/+$/, '')
 
-const DIAS_LABELS: Record<number, string> = { 1: 'L', 2: 'M', 3: 'X', 4: 'J', 5: 'V', 6: 'S', 7: 'D' }
 
 // Reseñas de alumnos por enlace: quién la escribe y desde cuándo da clase con el profesor.
 const RELACION_LABELS: Record<string, string> = {
@@ -47,16 +47,6 @@ type ProfesorPageProps = {
 async function getPerfil(id: string) {
   // Sin caché: un 404 o un 5xx transitorio no debe quedar cacheado por ISR.
   return fetchPublicResponse<PerfilPublicoCompleto>(`/proveedor/${id}`, 0)
-}
-
-function formatearDiasDisponibles(csv: string | null): string {
-  if (!csv) return ''
-  const dias = csv
-    .split(',')
-    .map((n) => parseInt(n.trim(), 10))
-    .filter((n) => !Number.isNaN(n))
-    .sort((a, b) => a - b)
-  return dias.map((d) => DIAS_LABELS[d] || '').filter(Boolean).join(', ')
 }
 
 function valoracionNumerica(perfil: PerfilPublicoCompleto): number | null {
@@ -143,8 +133,8 @@ export default async function ProfesorPage({ params }: ProfesorPageProps) {
   }
 
   const rating = valoracionNumerica(perfil)
-  const dias = formatearDiasDisponibles(perfil.dias_disponibles)
-  const tieneHorario = Boolean(dias || (perfil.hora_inicio && perfil.hora_fin))
+  const horario = formatearHorario(perfil.horario)
+  const tieneHorario = Boolean(horario)
   const experiencia =
     perfil.experiencia_años != null && perfil.experiencia_años > 0
       ? `${perfil.experiencia_años} ${perfil.experiencia_años === 1 ? 'año' : 'años'} de experiencia`
@@ -325,9 +315,7 @@ export default async function ProfesorPage({ params }: ProfesorPageProps) {
                       <div className="space-y-1">
                         <h2 className="text-sm font-semibold text-foreground">Horario habitual</h2>
                         <p className="text-sm text-muted-foreground">
-                          {[dias, perfil.hora_inicio && perfil.hora_fin ? `${perfil.hora_inicio} – ${perfil.hora_fin}` : null]
-                            .filter(Boolean)
-                            .join(' · ')}
+                          {horario}
                         </p>
                       </div>
                     </section>
