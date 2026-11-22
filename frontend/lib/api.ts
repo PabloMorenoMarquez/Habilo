@@ -584,7 +584,8 @@ export function eliminarCuentaAdmin(usuarioId: string) {
 
 /** Borra la cuenta del usuario con sesión (perfil, anuncios y archivos incluidos). */
 export function borrarMiCuenta() {
-  return apiFetch<ResultadoBorradoCuenta>("/usuarios/me", { method: "DELETE" })
+  // Más margen que el de 15 s: borra archivos de Storage y puede cancelar solicitudes.
+  return apiFetch<ResultadoBorradoCuenta>("/usuarios/me", { method: "DELETE" }, 60_000)
 }
 
 // --- Ofertas ---

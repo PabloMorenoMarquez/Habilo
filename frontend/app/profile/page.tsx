@@ -141,13 +141,22 @@ export default function ProfilePage() {
   const handleBorrarCuenta = async () => {
     setBorrando(true)
     setErrorBorrar(null)
-    try {
-      await borrarMiCuenta()
-      captureIfConsented("account_deleted")
+    const terminar = () => {
       cuentaBorrada.current = true
       logout()
       router.replace("/?cuenta=eliminada")
+    }
+    try {
+      await borrarMiCuenta()
+      captureIfConsented("account_deleted")
+      terminar()
     } catch (err) {
+      // 403: la cuenta ya no existe o ya está eliminada (p. ej. un primer intento que agotó
+      // el tiempo en el navegador pero terminó en el servidor). No dejar al usuario con una sesión muerta.
+      if (err instanceof ApiError && err.status === 403) {
+        terminar()
+        return
+      }
       setErrorBorrar(err instanceof ApiError ? err.message : "No se pudo eliminar la cuenta. Inténtalo de nuevo.")
       setBorrando(false)
     }

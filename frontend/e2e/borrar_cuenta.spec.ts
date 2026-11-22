@@ -80,3 +80,15 @@ test("si la API falla se muestra el error y no se cierra la sesión", async ({ p
   await expect(page).toHaveURL(/\/profile$/)
   expect(await page.evaluate(() => localStorage.getItem("token"))).toBe("jwt-de-prueba")
 })
+
+test("si la cuenta ya estaba borrada (403 al reintentar) se cierra la sesión igualmente", async ({ page }) => {
+  // Caso real: la primera petición agotó el tiempo en el navegador pero el servidor terminó de borrar.
+  await sesionSimulada(page, { status: 403, body: { detail: "Tu cuenta ha sido suspendida" } })
+
+  await page.goto("/profile")
+  await page.getByRole("button", { name: "Eliminar mi cuenta" }).click()
+  await page.getByRole("button", { name: "Sí, eliminar mi cuenta" }).click()
+
+  await expect(page).toHaveURL(/\/\?cuenta=eliminada/, { timeout: 15_000 })
+  expect(await page.evaluate(() => localStorage.getItem("token"))).toBeNull()
+})
