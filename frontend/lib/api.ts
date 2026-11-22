@@ -1,3 +1,5 @@
+import type { Horario } from "./horario"
+
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
 
 const TOKEN_KEY = "token"
@@ -752,9 +754,7 @@ export interface PerfilPublicoCompleto {
   valoracion_media: string | null
   num_valoraciones: number
   verificado: boolean | null
-  dias_disponibles: string | null
-  hora_inicio: string | null
-  hora_fin: string | null
+  horario: Horario | null
   perfil_publico: boolean
   servicios: ServicioResumen[]
   resenas: ResenaPublica[]
@@ -775,9 +775,7 @@ export interface MiPerfilProveedor {
   num_valoraciones: number
   verificado: boolean | null
   fecha_creacion: string | null
-  dias_disponibles: string | null
-  hora_inicio: string | null
-  hora_fin: string | null
+  horario: Horario | null
   destacado_hasta: string | null
   url_documento: string | null
   motivo_rechazo: string | null
@@ -794,9 +792,7 @@ export function actualizarPerfilProveedor(datos: {
   descripcion?: string
   experiencia_años?: number
   radio_km_disponible?: number
-  dias_disponibles?: string
-  hora_inicio?: string
-  hora_fin?: string
+  horario?: Horario | null
   ciudad?: string | null
   zona?: string | null
   materias?: string[]

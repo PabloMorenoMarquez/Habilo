@@ -2,71 +2,60 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Loader, Clock } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
+import { Loader, Clock, X } from "lucide-react"
 import { actualizarPerfilProveedor, ApiError } from "@/lib/api"
+import {
+  DIAS,
+  MAX_TRAMOS,
+  TRAMO_POR_DEFECTO,
+  activarDia,
+  copiarADemas,
+  erroresHorario,
+  limpiarHorario,
+  type Dia,
+  type Horario,
+  type Tramo,
+} from "@/lib/horario"
 
-const DIAS = [
-  { numero: 1, label: "L" },
-  { numero: 2, label: "M" },
-  { numero: 3, label: "X" },
-  { numero: 4, label: "J" },
-  { numero: 5, label: "V" },
-  { numero: 6, label: "S" },
-  { numero: 7, label: "D" },
-]
-
-function parseDias(csv: string | null): Set<number> {
-  if (!csv) return new Set()
-  return new Set(
-    csv
-      .split(",")
-      .map((n) => parseInt(n.trim(), 10))
-      .filter((n) => !isNaN(n))
-  )
-}
-
+// Horario semanal: por cada día, disponible o no, y de 1 a 3 tramos.
 export default function HorarioDisponibilidad({
-  diasIniciales,
-  horaInicioInicial,
-  horaFinInicial,
+  horarioInicial,
   onGuardado,
 }: {
-  diasIniciales: string | null
-  horaInicioInicial: string | null
-  horaFinInicial: string | null
-  onGuardado?: (datos: { dias_disponibles: string; hora_inicio: string; hora_fin: string }) => void
+  horarioInicial: Horario | null
+  onGuardado?: (horario: Horario | null) => void
 }) {
-  const [diasSeleccionados, setDiasSeleccionados] = useState<Set<number>>(parseDias(diasIniciales))
-  const [horaInicio, setHoraInicio] = useState(horaInicioInicial || "")
-  const [horaFin, setHoraFin] = useState(horaFinInicial || "")
+  const [horario, setHorario] = useState<Horario>(horarioInicial ?? {})
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [guardadoOk, setGuardadoOk] = useState(false)
 
-  const toggleDia = (numero: number) => {
+  const errores = erroresHorario(horario)
+  const hayErrores = Object.keys(errores).length > 0
+  const diasActivos = DIAS.filter(({ dia }) => (horario[dia]?.length ?? 0) > 0).length
+
+  const cambiar = (nuevo: Horario) => {
+    setHorario(nuevo)
     setGuardadoOk(false)
-    setDiasSeleccionados((prev) => {
-      const copia = new Set(prev)
-      if (copia.has(numero)) copia.delete(numero)
-      else copia.add(numero)
-      return copia
-    })
   }
+
+  const toggleDia = (dia: Dia, activo: boolean) => {
+    if (activo) return cambiar(activarDia(horario, dia))
+    const { [dia]: _quitado, ...resto } = horario
+    cambiar(resto)
+  }
+
+  const setTramos = (dia: Dia, tramos: Tramo[]) => cambiar({ ...horario, [dia]: tramos })
 
   const handleGuardar = async () => {
     setError(null)
     setGuardando(true)
     try {
-      const diasCsv = Array.from(diasSeleccionados)
-        .sort((a, b) => a - b)
-        .join(",")
-      await actualizarPerfilProveedor({
-        dias_disponibles: diasCsv,
-        hora_inicio: horaInicio,
-        hora_fin: horaFin,
-      })
+      const limpio = limpiarHorario(horario)
+      await actualizarPerfilProveedor({ horario: limpio })
       setGuardadoOk(true)
-      onGuardado?.({ dias_disponibles: diasCsv, hora_inicio: horaInicio, hora_fin: horaFin })
+      onGuardado?.(limpio)
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo guardar el horario")
     } finally {
@@ -84,52 +73,90 @@ export default function HorarioDisponibilidad({
         Esto es solo informativo para tus clientes — no bloquea ni reserva ningún hueco automáticamente.
       </p>
 
-      <div className="flex gap-1.5">
-        {DIAS.map((dia) => (
-          <button
-            key={dia.numero}
-            type="button"
-            onClick={() => toggleDia(dia.numero)}
-            className={`w-9 h-9 rounded-full text-sm font-medium transition-colors ${
-              diasSeleccionados.has(dia.numero)
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground hover:bg-muted/70"
-            }`}
-          >
-            {dia.label}
-          </button>
-        ))}
-      </div>
+      <div className="divide-y divide-border rounded-lg border border-border">
+        {DIAS.map(({ dia, nombre }) => {
+          const tramos = horario[dia] ?? []
+          const activo = tramos.length > 0
+          return (
+            <div key={dia} role="group" aria-label={nombre} className="flex flex-col gap-2 p-3 sm:flex-row sm:items-start">
+              <div className="flex items-center gap-3 sm:w-36 sm:pt-1.5">
+                <Switch checked={activo} onCheckedChange={(v) => toggleDia(dia, v)} aria-label={nombre} />
+                <span className={`text-sm ${activo ? "font-medium text-foreground" : "text-muted-foreground"}`}>
+                  {nombre}
+                </span>
+              </div>
 
-      <div className="flex items-center gap-4 flex-wrap">
-        <div className="flex items-center gap-2">
-          <label className="text-xs text-muted-foreground">De</label>
-          <input
-            type="time"
-            value={horaInicio}
-            onChange={(e) => {
-              setHoraInicio(e.target.value)
-              setGuardadoOk(false)
-            }}
-            className="h-9 rounded-md border border-border bg-background px-2 text-sm"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <label className="text-xs text-muted-foreground">a</label>
-          <input
-            type="time"
-            value={horaFin}
-            onChange={(e) => {
-              setHoraFin(e.target.value)
-              setGuardadoOk(false)
-            }}
-            className="h-9 rounded-md border border-border bg-background px-2 text-sm"
-          />
-        </div>
+              {activo ? (
+                <div className="flex-1 space-y-2">
+                  {tramos.map((tramo, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <input
+                        type="time"
+                        aria-label="Inicio"
+                        value={tramo.inicio}
+                        onChange={(e) =>
+                          setTramos(dia, tramos.map((t, j) => (j === i ? { ...t, inicio: e.target.value } : t)))
+                        }
+                        className="h-9 rounded-md border border-border bg-background px-2 text-sm"
+                      />
+                      <span className="text-xs text-muted-foreground">a</span>
+                      <input
+                        type="time"
+                        aria-label="Fin"
+                        value={tramo.fin}
+                        onChange={(e) =>
+                          setTramos(dia, tramos.map((t, j) => (j === i ? { ...t, fin: e.target.value } : t)))
+                        }
+                        className="h-9 rounded-md border border-border bg-background px-2 text-sm"
+                      />
+                      {tramos.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground"
+                          aria-label="Quitar tramo"
+                          onClick={() => setTramos(dia, tramos.filter((_, j) => j !== i))}
+                        >
+                          <X size={14} />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                    {tramos.length < MAX_TRAMOS && (
+                      <button
+                        type="button"
+                        className="text-xs font-medium text-primary hover:underline"
+                        onClick={() => setTramos(dia, [...tramos, { ...TRAMO_POR_DEFECTO }])}
+                      >
+                        + Añadir tramo
+                      </button>
+                    )}
+                    {diasActivos > 1 && (
+                      <button
+                        type="button"
+                        className="text-xs font-medium text-muted-foreground hover:text-foreground hover:underline"
+                        onClick={() => cambiar(copiarADemas(horario, dia))}
+                      >
+                        Copiar a los demás días
+                      </button>
+                    )}
+                  </div>
+
+                  {errores[dia] && <p className="text-xs text-destructive">{errores[dia]}</p>}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground sm:pt-1.5">No disponible</p>
+              )}
+            </div>
+          )
+        })}
       </div>
 
       <div className="flex items-center gap-3">
-        <Button size="sm" onClick={handleGuardar} disabled={guardando}>
+        <Button size="sm" onClick={handleGuardar} disabled={guardando || hayErrores}>
           {guardando && <Loader size={14} className="animate-spin mr-2" />}
           Guardar horario
         </Button>

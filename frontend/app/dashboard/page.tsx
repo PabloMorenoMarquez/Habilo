@@ -668,11 +668,9 @@ export default function DashboardPage() {
           <Card>
             <CardContent className="p-5">
               <HorarioDisponibilidad
-                diasIniciales={perfilProveedor.dias_disponibles}
-                horaInicioInicial={perfilProveedor.hora_inicio}
-                horaFinInicial={perfilProveedor.hora_fin}
-                onGuardado={(datos) =>
-                  setPerfilProveedor((prev) => (prev ? { ...prev, ...datos } : prev))
+                horarioInicial={perfilProveedor.horario}
+                onGuardado={(horario) =>
+                  setPerfilProveedor((prev) => (prev ? { ...prev, horario } : prev))
                 }
               />
             </CardContent>
