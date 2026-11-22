@@ -76,3 +76,33 @@ def extraer_path_desde_url_publica(bucket: str, url: str) -> str | None:
     if marcador not in url:
         return None
     return url.split(marcador, 1)[1]
+
+
+@_retry_storage
+async def listar_archivos(bucket: str, prefijo: str) -> list[str]:
+    """Rutas de todos los objetos bajo `prefijo/`, entrando en las subcarpetas.
+
+    Supabase devuelve las carpetas como elementos con `id` nulo.
+    """
+    client = get_supabase()
+    elementos = await run_in_threadpool(
+        client.storage.from_(bucket).list, prefijo, {"limit": 1000}
+    )
+    rutas: list[str] = []
+    for elemento in elementos or []:
+        ruta = f"{prefijo}/{elemento['name']}"
+        if elemento.get("id") is None:
+            rutas += await listar_archivos(bucket, ruta)
+        else:
+            rutas.append(ruta)
+    return rutas
+
+
+@_retry_storage
+async def eliminar_archivos(bucket: str, rutas: list[str]) -> None:
+    """Borra varias rutas de Storage. A diferencia de `eliminar_archivo`, si
+    falla relanza el error: el borrado de cuenta no debe seguir a medias."""
+    if not rutas:
+        return
+    client = get_supabase()
+    await run_in_threadpool(client.storage.from_(bucket).remove, rutas)
