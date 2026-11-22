@@ -424,9 +424,7 @@ def _perfil_publico_ficha():
     perfil.valoracion_media = 4.5
     perfil.num_valoraciones = 2
     perfil.verificado = False
-    perfil.dias_disponibles = None
-    perfil.hora_inicio = None
-    perfil.hora_fin = None
+    perfil.horario = None
     perfil.ciudad = "Talavera de la Reina"
     perfil.zona = None
     perfil.materias = []

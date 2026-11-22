@@ -1,4 +1,7 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, TypeAdapter, ValidationError, field_validator
+from schemas.horario_schema import HorarioEntrada, normalizar_horario
+
+_HORARIO = TypeAdapter(HorarioEntrada)
 from uuid import UUID
 from typing import Literal, Optional
 from decimal import Decimal
@@ -9,9 +12,6 @@ class CrearPerfilProveedor(BaseModel):
     descripcion: str = Field(max_length=1000)
     radio_km_disponible: int = Field(gt=0) 
     experiencia_años: Optional[int] = Field(default=None, ge=0) 
-    dias_disponibles: Optional[str] = Field(None, max_length=20)
-    hora_inicio: Optional[str] = Field(None, max_length=5)
-    hora_fin: Optional[str] = Field(None, max_length=5)
     codigo_referido: Optional[str] = Field(None, max_length=20)
     ciudad: Optional[str] = None
     zona: Optional[str] = None
@@ -31,9 +31,7 @@ class PerfilProveedorPublico(BaseModel):
     num_valoraciones: int
     verificado: Optional[bool] = None
     fecha_creacion: Optional[datetime] = None
-    dias_disponibles: Optional[str] = None
-    hora_inicio: Optional[str] = None
-    hora_fin: Optional[str] = None
+    horario: Optional[dict] = None
     destacado_hasta: Optional[datetime] = None
 
     class Config:
@@ -93,9 +91,7 @@ class PerfilProveedorPublicoOut(BaseModel):
     valoracion_media: Optional[Decimal] = None
     num_valoraciones: int
     verificado: Optional[bool] = None
-    dias_disponibles: Optional[str] = None
-    hora_inicio: Optional[str] = None
-    hora_fin: Optional[str] = None
+    horario: Optional[dict] = None
     perfil_publico: bool
     servicios: list[ServicioResumenOut] = Field(default_factory=list)
     resenas: list[ResenaPublicaOut] = Field(default_factory=list)
@@ -123,9 +119,19 @@ class ActualizarPerfilProveedor(BaseModel):
     descripcion: Optional[str] = Field(None, max_length=1000)
     experiencia_años: Optional[int] = None
     radio_km_disponible: Optional[int] = Field(default=None, gt=0) 
-    dias_disponibles: Optional[str] = Field(None, max_length=100)
-    hora_inicio: Optional[str] = Field(None, max_length=5)
-    hora_fin: Optional[str] = Field(None, max_length=5)
+    # Se guarda tal cual en JSONB; la forma y las reglas las comprueba el validador.
+    horario: Optional[dict] = None
+
+    @field_validator("horario", mode="before")
+    @classmethod
+    def _normalizar_horario(cls, v):
+        if v is None:
+            return None
+        try:
+            entrada = _HORARIO.validate_python(v)
+        except ValidationError as e:
+            raise ValueError(f"Horario no válido: {e.errors()[0]['msg']}") from None
+        return normalizar_horario(entrada)
     ciudad: Optional[str] = None
     zona: Optional[str] = None
     materias: Optional[list[str]] = None

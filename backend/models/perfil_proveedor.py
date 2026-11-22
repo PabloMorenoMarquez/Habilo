@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Text, Boolean, DateTime, ForeignKey, Integer, Numeric, text
-from sqlalchemy.dialects.postgresql import ARRAY, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 import uuid
 from datetime import datetime, timezone
 
@@ -26,6 +26,8 @@ class Perfil_Proveedor(base):
     dias_disponibles = Column(Text, nullable=True)
     hora_inicio = Column(Text, nullable=True)
     hora_fin = Column(Text, nullable=True)
+    # Sustituye a dias_disponibles/hora_inicio/hora_fin (que ya no se usan). Ver schemas/horario_schema.py.
+    horario = Column(JSONB, nullable=True)
     codigo_referido = Column(Text, unique=True, nullable=False)
     codigo_resenas = Column(Text, unique=True, nullable=True)
     destacado_hasta = Column(DateTime, nullable=True)

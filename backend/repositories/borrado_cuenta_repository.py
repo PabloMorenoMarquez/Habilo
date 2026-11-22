@@ -153,7 +153,7 @@ class BorradoCuentaRepository:
                 session.execute(update(Perfil_Proveedor).where(Perfil_Proveedor.id == pid).values(
                     perfil_publico=False, consentimiento_marketing=False,
                     descripcion=None, ciudad=None, zona=None, url_documento=None,
-                    dias_disponibles=None, hora_inicio=None, hora_fin=None, destacado_hasta=None,
+                    dias_disponibles=None, hora_inicio=None, hora_fin=None, horario=None, destacado_hasta=None,
                     materias=[], niveles=[], codigo_resenas=None,
                     # NOT NULL UNIQUE: se cambia por uno aleatorio para que el enlace viejo deje de valer.
                     codigo_referido="X" + secrets.token_hex(8).upper()))
