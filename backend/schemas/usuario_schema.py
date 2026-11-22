@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from uuid import UUID
-from typing import Optional
+from typing import Literal, Optional
 from datetime import datetime
 
 
@@ -42,3 +42,7 @@ class UsuarioAdminOut(BaseModel):
     es_admin: bool
     cuenta_eliminada: bool
     fecha_eliminacion: Optional[datetime] = None
+
+
+class BorradoCuentaOut(BaseModel):
+    resultado: Literal["borrada", "anonimizada"]

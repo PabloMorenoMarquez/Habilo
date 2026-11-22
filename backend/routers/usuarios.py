@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
 from utils.auth_middleware import get_current_user
-from schemas.usuario_schema import ActualizarUsuario, UsuarioOut
+from schemas.usuario_schema import ActualizarUsuario, UsuarioOut, BorradoCuentaOut
+from services.borrado_cuenta_service import BorradoCuentaService
 from services.user_service import UserService
 from schemas.bloqueo_schema import BloquearUsuario, UsuarioBloqueadoOut
 from services.bloqueo_service import BloqueoService
@@ -32,6 +33,13 @@ async def actualizar_perfil(request: Request, datos: ActualizarUsuario, current_
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     return usuario
+
+@router.delete("/me", response_model=BorradoCuentaOut)
+@limiter.limit("3/minute")
+async def borrar_mi_cuenta(request: Request, current_user=Depends(get_current_user)):
+    resultado = await BorradoCuentaService().borrar(current_user["user_id"])
+    return {"resultado": resultado}
+
 
 @router.post("/me/foto/signed-url")
 @limiter.limit("10/minute")

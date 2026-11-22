@@ -7,7 +7,8 @@ from schemas.reporte_schema import ReporteAdminOut, CambiarEstadoReporte
 from services.reporte_service import ReporteService
 from schemas.proveedor_schema import PerfilProveedorAdminOut, RechazarDocumento, PerfilProveedorOut
 from services.proveedor_service import ProveedorService
-from schemas.usuario_schema import BanearUsuario, UsuarioAdminOut
+from schemas.usuario_schema import BanearUsuario, UsuarioAdminOut, BorradoCuentaOut
+from services.borrado_cuenta_service import BorradoCuentaService
 from services.user_service import UserService
 from schemas.paginacion_schema import PaginatedResponse
 
@@ -87,8 +88,8 @@ async def desbanear(usuario_id:UUID, current_admin=Depends(get_current_admin)):
     service = UserService()
     return service.desbanear(usuario_id)
 
-@router.patch("/usuarios/{usuario_id}/eliminar", response_model=UsuarioAdminOut)
+@router.patch("/usuarios/{usuario_id}/eliminar", response_model=BorradoCuentaOut)
 async def eliminar(usuario_id:UUID, current_admin=Depends(get_current_admin)):
-    service = UserService()
-    return await service.eliminar_cuenta(usuario_id, current_admin["user_id"])
+    resultado = await BorradoCuentaService().borrar(usuario_id, admin_id=current_admin["user_id"])
+    return {"resultado": resultado}
     

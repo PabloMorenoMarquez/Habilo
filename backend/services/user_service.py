@@ -45,32 +45,3 @@ class UserService:
             raise HTTPException(status_code=404, detail="No existe este usuario")
         
         return self.user_repository.desbanear(usuario_id)
-    
-    async def eliminar_cuenta(self, usuario_id: UUID, admin_actual_id: UUID):
-        from repositories.solicitud_repository import SolicitudRepository
-        from services.solicitud_service import SolicitudService
-        from repositories.proveedor_repository import ProveedorRepository
-        from repositories.servicio_repository import ServicioRepository
-        usuario = self.user_repository.get_by_id(usuario_id)
-        if not usuario:
-            raise HTTPException(status_code=404, detail="No existe este usuario")
-        
-        if str(usuario_id) == str(admin_actual_id):
-            raise HTTPException(status_code=400, detail="No puedes eliminarte a ti mismo")
-        
-        if usuario.es_admin:
-                raise HTTPException(status_code=400, detail="No puedes eliminar a otro administrador")
-            
-        
-        solicitudes = SolicitudRepository().listar_activas_de_usuario(usuario_id)
-        for solicitud in solicitudes:
-            await SolicitudService().cancelar_por_sistema(solicitud.id, motivo="cuenta eliminada")
-        
-        proveedor = ProveedorRepository().get_by_usuario_id(usuario_id)
-        
-        if proveedor:
-            servicios = ServicioRepository().listar_por_proveedor(proveedor.id)
-            for servicio in servicios:
-                ServicioRepository().actualizar(servicio.id, activo=False)
-        
-        return self.user_repository.eliminar(usuario_id)
