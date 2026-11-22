@@ -81,7 +81,7 @@ export default function AdminUsuariosPage() {
 
   const handleEliminarCuenta = async (u: UsuarioAdmin) => {
     const confirmado = window.confirm(
-      `¿Seguro que quieres eliminar la cuenta de ${u.nombre} (${u.email})? Esta acción es irreversible: se cancelarán sus solicitudes activas (con reembolso si aplica), se desactivarán sus servicios publicados, y sus datos personales se anonimizarán.`
+      `¿Seguro que quieres eliminar la cuenta de ${u.nombre} (${u.email})? Es irreversible. Si no tiene historial con otros usuarios se borra por completo; si lo tiene, se anonimiza y se cancelan sus solicitudes activas.`
     )
     if (!confirmado) return
 

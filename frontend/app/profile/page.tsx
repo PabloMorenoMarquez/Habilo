@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Navbar from "@/components/navbar"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -11,8 +11,18 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { MapPin, Calendar, Star, Edit, Mail, Briefcase, UserCheck, Loader, Phone } from "lucide-react"
-import { getMiPerfilProveedor, getMisServicios, actualizarMe, ApiError, ServicioDetalle, getBloqueados, desbloquearUsuario, UsuarioBloqueado, getSignedUrlAvatar } from "@/lib/api"
+import { getMiPerfilProveedor, getMisServicios, actualizarMe, ApiError, ServicioDetalle, getBloqueados, desbloquearUsuario, UsuarioBloqueado, getSignedUrlAvatar, borrarMiCuenta } from "@/lib/api"
 import { suscribirseAPush } from "@/lib/push"
 import { subirAvatarUsuario } from "@/lib/storage"
 import { captureIfConsented } from "@/lib/analytics"
@@ -23,7 +33,7 @@ function formatFecha(fecha: string | null | undefined) {
 }
 
 export default function ProfilePage() {
-  const { isAuthenticated, isLoading, user, role, refreshUser } = useAuth()
+  const { isAuthenticated, isLoading, user, role, refreshUser, logout } = useAuth()
   const router = useRouter()
 
   const [misServicios, setMisServicios] = useState<ServicioDetalle[]>([])
@@ -43,6 +53,11 @@ export default function ProfilePage() {
   const [activandoPush, setActivandoPush] = useState(false)
 
   const [subiendoAvatar, setSubiendoAvatar] = useState(false)
+
+  const [borrarOpen, setBorrarOpen] = useState(false)
+  const [borrando, setBorrando] = useState(false)
+  const [errorBorrar, setErrorBorrar] = useState<string | null>(null)
+  const cuentaBorrada = useRef(false)
   const [errorAvatar, setErrorAvatar] = useState<string | null>(null)
 
   useEffect(() => {
@@ -69,7 +84,8 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (isLoading) return
-    if (!isAuthenticated) router.replace("/login")
+    // Tras borrar la cuenta vamos a la portada, no al login.
+    if (!isAuthenticated && !cuentaBorrada.current) router.replace("/login")
   }, [isAuthenticated, isLoading, router])
 
   useEffect(() => {
@@ -119,6 +135,21 @@ export default function ProfilePage() {
       setBloqueados((prev) => prev.filter((b) => b.usuario_id !== usuarioId))
     } catch (err) {
       setErrorBloqueados(err instanceof ApiError ? err.message : "No se pudo desbloquear al usuario")
+    }
+  }
+
+  const handleBorrarCuenta = async () => {
+    setBorrando(true)
+    setErrorBorrar(null)
+    try {
+      await borrarMiCuenta()
+      captureIfConsented("account_deleted")
+      cuentaBorrada.current = true
+      logout()
+      router.replace("/?cuenta=eliminada")
+    } catch (err) {
+      setErrorBorrar(err instanceof ApiError ? err.message : "No se pudo eliminar la cuenta. Inténtalo de nuevo.")
+      setBorrando(false)
     }
   }
 
@@ -393,6 +424,48 @@ export default function ProfilePage() {
                 </Button>
               </div>
             ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg">Eliminar mi cuenta</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-muted-foreground">
+              Borra tu cuenta, tu perfil y tus anuncios. No se puede deshacer.
+            </p>
+            <AlertDialog
+              open={borrarOpen}
+              onOpenChange={(open) => {
+                if (borrando) return
+                setBorrarOpen(open)
+                if (!open) setErrorBorrar(null)
+              }}
+            >
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm" className="shrink-0">
+                  Eliminar mi cuenta
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>¿Eliminar tu cuenta?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esto borra tu cuenta, tu perfil y tus anuncios. No se puede deshacer. Si vuelves a entrar con
+                    Google, se creará una cuenta nueva.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                {errorBorrar && <p className="text-sm text-destructive">{errorBorrar}</p>}
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={borrando}>Cancelar</AlertDialogCancel>
+                  {/* Botón normal y no AlertDialogAction: si la API falla, el diálogo sigue abierto con el error. */}
+                  <Button variant="destructive" onClick={handleBorrarCuenta} disabled={borrando}>
+                    {borrando ? "Eliminando…" : "Sí, eliminar mi cuenta"}
+                  </Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </CardContent>
         </Card>
       </main>

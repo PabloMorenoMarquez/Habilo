@@ -70,9 +70,9 @@ const PASOS = [
 export default async function LandingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ token?: string; ref?: string }>
+  searchParams: Promise<{ token?: string; ref?: string; cuenta?: string }>
 }) {
-  const { token, ref } = await searchParams
+  const { token, ref, cuenta } = await searchParams
 
   // Mantiene los callbacks OAuth antiguos o en caché que aún llegan a la portada.
   if (token) {
@@ -125,6 +125,12 @@ export default async function LandingPage({
           </div>
         </div>
       </header>
+
+      {cuenta === "eliminada" && (
+        <div role="status" className="border-b border-border bg-muted px-4 py-3 text-center text-sm text-foreground">
+          Tu cuenta se ha eliminado. Gracias por haber usado Habilo.
+        </div>
+      )}
 
       <main>
         <section className="bg-primary px-4 py-16 text-primary-foreground md:py-24">

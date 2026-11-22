@@ -576,8 +576,15 @@ export function desbanearUsuario(usuarioId: string) {
   return apiFetch<UsuarioAdmin>(`/admin/usuarios/${usuarioId}/desbanear`, { method: "PATCH" })
 }
 
+export type ResultadoBorradoCuenta = { resultado: "borrada" | "anonimizada" }
+
 export function eliminarCuentaAdmin(usuarioId: string) {
-  return apiFetch<UsuarioAdmin>(`/admin/usuarios/${usuarioId}/eliminar`, { method: "PATCH" })
+  return apiFetch<ResultadoBorradoCuenta>(`/admin/usuarios/${usuarioId}/eliminar`, { method: "PATCH" })
+}
+
+/** Borra la cuenta del usuario con sesión (perfil, anuncios y archivos incluidos). */
+export function borrarMiCuenta() {
+  return apiFetch<ResultadoBorradoCuenta>("/usuarios/me", { method: "DELETE" })
 }
 
 // --- Ofertas ---
