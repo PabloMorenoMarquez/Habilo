@@ -96,3 +96,27 @@ def test_repositorio_permite_borrar_el_horario():
         modulo.ProveedorRepository().actualizar(uuid4(), horario=None)
 
     assert perfil.horario is None
+
+
+def _mensaje_horario(horario):
+    import pytest
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError) as exc:
+        ActualizarPerfilProveedor(horario=horario)
+    return exc.value.errors()[0]["msg"]
+
+
+def test_horario_con_hora_mal_formada_da_mensaje_en_espanol():
+    msg = _mensaje_horario({"1": [{"inicio": "9:00", "fin": "10:00"}]})
+    assert msg == "Value error, Horario no válido: formato de hora no válido (HH:MM)"
+
+
+def test_horario_con_dia_inexistente_da_mensaje_en_espanol():
+    msg = _mensaje_horario({"9": [{"inicio": "09:00", "fin": "10:00"}]})
+    assert msg == "Value error, Horario no válido: día de la semana no válido"
+
+
+def test_horario_con_regla_propia_conserva_el_texto_en_espanol():
+    msg = _mensaje_horario({"1": [{"inicio": "11:00", "fin": "10:00"}]})
+    assert msg == "Value error, La hora de fin debe ser posterior a la de inicio"

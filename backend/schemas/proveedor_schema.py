@@ -2,6 +2,12 @@ from pydantic import BaseModel, Field, TypeAdapter, ValidationError, field_valid
 from schemas.horario_schema import HorarioEntrada, normalizar_horario
 
 _HORARIO = TypeAdapter(HorarioEntrada)
+
+# Los mensajes internos de Pydantic llegan en inglés: se traducen por tipo de error.
+_MENSAJES_HORARIO = {
+    "string_pattern_mismatch": "formato de hora no válido (HH:MM)",
+    "literal_error": "día de la semana no válido",
+}
 from uuid import UUID
 from typing import Literal, Optional
 from decimal import Decimal
@@ -130,7 +136,13 @@ class ActualizarPerfilProveedor(BaseModel):
         try:
             entrada = _HORARIO.validate_python(v)
         except ValidationError as e:
-            raise ValueError(f"Horario no válido: {e.errors()[0]['msg']}") from None
+            primero = e.errors()[0]
+            if primero["type"] == "value_error":
+                # Nuestros validadores ya escriben el texto en español.
+                motivo = primero["msg"].removeprefix("Value error, ")
+                raise ValueError(f"Horario no válido: {motivo}") from None
+            motivo = _MENSAJES_HORARIO.get(primero["type"])
+            raise ValueError(f"Horario no válido: {motivo}" if motivo else "Horario no válido") from None
         return normalizar_horario(entrada)
     ciudad: Optional[str] = None
     zona: Optional[str] = None
