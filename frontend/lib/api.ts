@@ -30,6 +30,31 @@ export class ApiError extends Error {
   }
 }
 
+type ErrorValidacion = { loc?: unknown[]; msg?: unknown; type?: unknown }
+
+// Un error de validación de FastAPI/Pydantic ({loc, msg, type}) en una frase en español.
+function fraseDeValidacion(e: ErrorValidacion): string | null {
+  const msg = typeof e?.msg === "string" ? e.msg : ""
+  // Los ValueError de nuestros validadores ya traen el texto en español.
+  if (msg.startsWith("Value error, ")) return msg.slice("Value error, ".length)
+  const loc = Array.isArray(e?.loc) ? e.loc.filter((p) => p !== "body" && typeof p === "string") : []
+  const campo = loc.at(-1) as string | undefined
+  if (!campo) return null
+  return e.type === "missing" ? `Falta el campo «${campo}»` : `El campo «${campo}» no es válido`
+}
+
+/** Convierte el cuerpo de un error de la API en un mensaje legible (nunca «[object Object]»). */
+export function mensajeDeError(data: unknown, status: number): string {
+  const detail = (data as { detail?: unknown } | null)?.detail
+  if (typeof detail === "string" && detail) return detail
+  if (Array.isArray(detail)) {
+    const frases = detail.map((e) => fraseDeValidacion(e as ErrorValidacion)).filter((f): f is string => !!f)
+    const unicas = [...new Set(frases)]
+    return unicas.length ? unicas.join(". ") : "Revisa los datos del formulario"
+  }
+  return `Error ${status}`
+}
+
 
 export async function apiFetch<T = any>(
   path: string,
@@ -69,8 +94,7 @@ export async function apiFetch<T = any>(
   const data = hasJson ? await response.json() : null
 
   if (!response.ok) {
-    const message = data?.detail || `Error ${response.status}`
-    throw new ApiError(message, response.status)
+    throw new ApiError(mensajeDeError(data, response.status), response.status)
   }
 
   return data as T
