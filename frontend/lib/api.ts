@@ -48,7 +48,7 @@ export function mensajeDeError(data: unknown, status: number): string {
   const detail = (data as { detail?: unknown } | null)?.detail
   if (typeof detail === "string" && detail) return detail
   if (Array.isArray(detail)) {
-    const frases = detail.map((e) => fraseDeValidacion(e as ErrorValidacion)).filter((f): f is string => !!f)
+    const frases = detail.map((e) => (typeof e === "string" ? e : fraseDeValidacion(e as ErrorValidacion))).filter((f): f is string => !!f)
     const unicas = [...new Set(frases)]
     return unicas.length ? unicas.join(". ") : "Revisa los datos del formulario"
   }

@@ -49,6 +49,12 @@ test.describe("mensajeDeError", () => {
     expect(msg).toBe("Falta el campo «nombre». El campo «precio» no es válido")
   })
 
+  test("detail como lista de textos: se conserva el texto", () => {
+    expect(mensajeDeError({ detail: ["Mensaje propio", { loc: ["body", "email"], type: "missing" }] }, 400)).toBe(
+      "Mensaje propio. Falta el campo «email»",
+    )
+  })
+
   test("nunca devuelve [object Object]", () => {
     expect(mensajeDeError({ detail: [{}] }, 422)).toBe("Revisa los datos del formulario")
     expect(mensajeDeError({ detail: { raro: true } }, 400)).toBe("Error 400")

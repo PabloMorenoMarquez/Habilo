@@ -63,6 +63,11 @@ export default function HorarioDisponibilidad({
     }
   }
 
+  const diasConError = DIAS.filter(({ dia }) => errores[dia]).map(({ nombre }) => nombre.toLowerCase())
+  const resumenErrores = diasConError.length
+    ? `Hay errores en ${diasConError.length > 1 ? `${diasConError.slice(0, -1).join(", ")} y ${diasConError.at(-1)}` : diasConError[0]}`
+    : ""
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
@@ -153,7 +158,7 @@ export default function HorarioDisponibilidad({
                   </div>
 
                   {errorDia && (
-                    <p id={idError} role="alert" className="text-xs text-destructive">
+                    <p id={idError} className="text-xs text-destructive">
                       {errorDia}
                     </p>
                   )}
@@ -165,6 +170,11 @@ export default function HorarioDisponibilidad({
           )
         })}
       </div>
+
+      {/* Un único aviso educado para todo el editor: no interrumpe al teclear ni se repite por día. */}
+      <p data-testid="horario-resumen-errores" aria-live="polite" className="sr-only">
+        {resumenErrores}
+      </p>
 
       <div className="flex items-center gap-3">
         <Button size="sm" onClick={handleGuardar} disabled={guardando || hayErrores}>

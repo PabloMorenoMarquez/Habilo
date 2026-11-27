@@ -159,14 +159,42 @@ test("accesibilidad: tramos numerados, errores anunciados y botón de quitar de 
   const fin = lunes.getByLabel("Lunes, tramo 1, fin", { exact: true })
   await expect(inicio).not.toHaveAttribute("aria-invalid", "true")
   await expect(lunes.getByRole("alert")).toHaveCount(0)
+  const resumen = page.getByTestId("horario-resumen-errores")
+  await expect(resumen).toHaveAttribute("aria-live", "polite")
+  await expect(resumen).toHaveText("")
 
   // Tramo al revés: se anuncia y los campos quedan marcados y descritos por el error.
   await inicio.fill("14:00")
   await fin.fill("10:00")
-  const alerta = lunes.getByRole("alert")
-  await expect(alerta).toHaveText("La hora de fin debe ser posterior a la de inicio")
+  // Sin role="alert" por día (interrumpiría al teclear); un único resumen educado.
+  await expect(lunes.getByRole("alert")).toHaveCount(0)
+  await expect(resumen).toHaveText("Hay errores en lunes")
   await expect(inicio).toHaveAttribute("aria-invalid", "true")
   await expect(fin).toHaveAttribute("aria-invalid", "true")
   await expect(inicio).toHaveAccessibleDescription("La hora de fin debe ser posterior a la de inicio")
   await expect(fin).toHaveAccessibleDescription("La hora de fin debe ser posterior a la de inicio")
+})
+
+test("un 422 del backend al guardar muestra su mensaje en español", async ({ page }) => {
+  await panelSimulado(page)
+  // Se registra después, así que tiene prioridad sobre el PATCH del panel simulado.
+  await page.route("http://localhost:8000/proveedor/", (route) =>
+    route.request().method() === "PATCH"
+      ? route.fulfill({
+          status: 422,
+          contentType: "application/json",
+          body: JSON.stringify({
+            detail: [{ type: "value_error", loc: ["body", "horario"], msg: "Value error, Los tramos se solapan" }],
+          }),
+        })
+      : route.fallback(),
+  )
+  await abrirPanel(page)
+
+  const lunes = fila(page, "Lunes")
+  await lunes.getByRole("switch", { name: "Lunes" }).click({ timeout: 15_000 })
+  await page.getByRole("button", { name: "Guardar horario" }).click()
+
+  await expect(page.getByRole("alert").filter({ hasText: "Los tramos se solapan" })).toHaveText("Los tramos se solapan")
+  await expect(page.getByText("[object Object]")).toHaveCount(0)
 })
