@@ -50,6 +50,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from decimal import Decimal
 import uuid
+import secrets
 
 
 @pytest.fixture(scope="session")
@@ -124,8 +125,16 @@ def seed_data(Session):
         session.flush()
 
         # Perfiles de proveedor
-        p_a = Perfil_Proveedor(id=uuid.uuid4(), usuario_id=u_a.id, radio_km_disponible=50)
-        p_b = Perfil_Proveedor(id=uuid.uuid4(), usuario_id=u_b.id, radio_km_disponible=50)
+        # codigo_referido es NOT NULL y único; codigo_resenas es único (nullable),
+        # así que se generan aleatorios como en el resto de tests de integración.
+        # perfil_publico=True: la búsqueda por proximidad excluye los perfiles
+        # privados (y el modelo los crea privados por defecto).
+        p_a = Perfil_Proveedor(id=uuid.uuid4(), usuario_id=u_a.id, radio_km_disponible=50,
+                               codigo_referido=secrets.token_hex(4).upper(),
+                               codigo_resenas=secrets.token_hex(4), perfil_publico=True)
+        p_b = Perfil_Proveedor(id=uuid.uuid4(), usuario_id=u_b.id, radio_km_disponible=50,
+                               codigo_referido=secrets.token_hex(4).upper(),
+                               codigo_resenas=secrets.token_hex(4), perfil_publico=True)
         session.add_all([p_a, p_b])
         session.flush()
 
@@ -168,9 +177,11 @@ def seed_data(Session):
         )
 
         session.add_all([s_madrid_centro, s_madrid_periferia, s_barcelona])
-        session.commit()
-
-        yield {
+        # Los ids se leen ANTES del commit: tras él los objetos quedan expirados
+        # y leerlos abriría una transacción nueva que, en un fixture de sesión,
+        # retiene locks hasta el final y bloquea los ALTER TABLE de otros tests
+        # (p. ej. la migración de horario).
+        datos = {
             "cat_fontaneria_id": cat_fontaneria.id,
             "cat_pintura_id": cat_pintura.id,
             "proveedor_a_id": p_a.id,
@@ -179,8 +190,11 @@ def seed_data(Session):
             "s_madrid_periferia_id": s_madrid_periferia.id,
             "s_barcelona_id": s_barcelona.id,
         }
+        session.commit()
     except Exception:
         session.rollback()
         raise
     finally:
         session.close()
+
+    yield datos
