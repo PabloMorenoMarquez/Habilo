@@ -284,6 +284,8 @@ class ServicioRepository:
             session.close()
 
     def resumen(self):
+        from models.perfil_proveedor import Perfil_Proveedor
+        from models.resena_alumno import ResenaAlumno
         session = SessionLocal()
         try:
             stmt = (
@@ -295,7 +297,14 @@ class ServicioRepository:
                 .where(Servicio.activo.isnot(False))
             )
             row = session.execute(stmt).one()
-            resenas = session.scalar(select(func.count(Valoracion.id))) or 0
+            valoraciones = session.scalar(select(func.count(Valoracion.id))) or 0
+            # Reseñas por enlace: solo las que se ven en una ficha pública.
+            resenas_alumnos = session.scalar(
+                select(func.count(ResenaAlumno.id))
+                .join(Perfil_Proveedor, Perfil_Proveedor.id == ResenaAlumno.perfil_id)
+                .where(ResenaAlumno.estado == "aprobada", Perfil_Proveedor.perfil_publico.is_(True))
+            ) or 0
+            resenas = valoraciones + resenas_alumnos
             return {
                 "servicios_activos": row.servicios_activos,
                 "profesores_activos": row.profesores_activos,
