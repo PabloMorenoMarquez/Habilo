@@ -132,3 +132,41 @@ test("un tramo al revés no deja guardar", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Guardar horario" })).toBeDisabled()
   expect(patches).toHaveLength(0)
 })
+
+test("accesibilidad: tramos numerados, errores anunciados y botón de quitar de 44 px", async ({ page }) => {
+  await panelSimulado(page)
+  await abrirPanel(page)
+
+  const lunes = fila(page, "Lunes")
+  await lunes.getByRole("switch", { name: "Lunes" }).click({ timeout: 15_000 })
+  await lunes.getByRole("button", { name: "+ Añadir tramo" }).click()
+
+  // Cada campo dice día y número de tramo.
+  await expect(lunes.getByLabel("Lunes, tramo 1, inicio", { exact: true })).toBeVisible()
+  await expect(lunes.getByLabel("Lunes, tramo 1, fin", { exact: true })).toBeVisible()
+  await expect(lunes.getByLabel("Lunes, tramo 2, inicio", { exact: true })).toBeVisible()
+  await expect(lunes.getByLabel("Lunes, tramo 2, fin", { exact: true })).toBeVisible()
+  const quitar = lunes.getByRole("button", { name: "Quitar tramo 2 del lunes", exact: true })
+  await expect(quitar).toBeVisible()
+
+  // Zona táctil de al menos 44x44 px.
+  const caja = await quitar.boundingBox()
+  expect(caja?.width).toBeGreaterThanOrEqual(44)
+  expect(caja?.height).toBeGreaterThanOrEqual(44)
+
+  // Sin error: campos válidos y sin alerta.
+  const inicio = lunes.getByLabel("Lunes, tramo 1, inicio", { exact: true })
+  const fin = lunes.getByLabel("Lunes, tramo 1, fin", { exact: true })
+  await expect(inicio).not.toHaveAttribute("aria-invalid", "true")
+  await expect(lunes.getByRole("alert")).toHaveCount(0)
+
+  // Tramo al revés: se anuncia y los campos quedan marcados y descritos por el error.
+  await inicio.fill("14:00")
+  await fin.fill("10:00")
+  const alerta = lunes.getByRole("alert")
+  await expect(alerta).toHaveText("La hora de fin debe ser posterior a la de inicio")
+  await expect(inicio).toHaveAttribute("aria-invalid", "true")
+  await expect(fin).toHaveAttribute("aria-invalid", "true")
+  await expect(inicio).toHaveAccessibleDescription("La hora de fin debe ser posterior a la de inicio")
+  await expect(fin).toHaveAccessibleDescription("La hora de fin debe ser posterior a la de inicio")
+})

@@ -77,6 +77,13 @@ export default function HorarioDisponibilidad({
         {DIAS.map(({ dia, nombre }) => {
           const tramos = horario[dia] ?? []
           const activo = tramos.length > 0
+          const errorDia = errores[dia]
+          const idError = `horario-error-${dia}`
+          const aria = (etiqueta: string) => ({
+            "aria-label": etiqueta,
+            "aria-invalid": errorDia ? true : undefined,
+            "aria-describedby": errorDia ? idError : undefined,
+          })
           return (
             <div key={dia} role="group" aria-label={nombre} className="flex flex-col gap-2 p-3 sm:flex-row sm:items-start">
               <div className="flex items-center gap-3 sm:w-36 sm:pt-1.5">
@@ -92,30 +99,30 @@ export default function HorarioDisponibilidad({
                     <div key={i} className="flex items-center gap-2">
                       <input
                         type="time"
-                        aria-label="Inicio"
+                        {...aria(`${nombre}, tramo ${i + 1}, inicio`)}
                         value={tramo.inicio}
                         onChange={(e) =>
                           setTramos(dia, tramos.map((t, j) => (j === i ? { ...t, inicio: e.target.value } : t)))
                         }
-                        className="h-9 rounded-md border border-border bg-background px-2 text-sm"
+                        className="h-9 rounded-md border border-border bg-background px-2 text-sm aria-invalid:border-destructive"
                       />
                       <span className="text-xs text-muted-foreground">a</span>
                       <input
                         type="time"
-                        aria-label="Fin"
+                        {...aria(`${nombre}, tramo ${i + 1}, fin`)}
                         value={tramo.fin}
                         onChange={(e) =>
                           setTramos(dia, tramos.map((t, j) => (j === i ? { ...t, fin: e.target.value } : t)))
                         }
-                        className="h-9 rounded-md border border-border bg-background px-2 text-sm"
+                        className="h-9 rounded-md border border-border bg-background px-2 text-sm aria-invalid:border-destructive"
                       />
                       {tramos.length > 1 && (
                         <Button
                           type="button"
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-muted-foreground"
-                          aria-label="Quitar tramo"
+                          className="-my-1 size-11 text-muted-foreground"
+                          aria-label={`Quitar tramo ${i + 1} del ${nombre.toLowerCase()}`}
                           onClick={() => setTramos(dia, tramos.filter((_, j) => j !== i))}
                         >
                           <X size={14} />
@@ -145,7 +152,11 @@ export default function HorarioDisponibilidad({
                     )}
                   </div>
 
-                  {errores[dia] && <p className="text-xs text-destructive">{errores[dia]}</p>}
+                  {errorDia && (
+                    <p id={idError} role="alert" className="text-xs text-destructive">
+                      {errorDia}
+                    </p>
+                  )}
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground sm:pt-1.5">No disponible</p>
@@ -163,7 +174,11 @@ export default function HorarioDisponibilidad({
         {guardadoOk && <span className="text-xs text-emerald-600">Guardado</span>}
       </div>
 
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && (
+        <p role="alert" className="text-xs text-destructive">
+          {error}
+        </p>
+      )}
     </div>
   )
 }
