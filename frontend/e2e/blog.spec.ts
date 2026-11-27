@@ -15,6 +15,7 @@ test("el índice lista los posts y es indexable", async ({ page }) => {
     "/blog/como-elegir-profesor-particular-talavera",
     "/blog/conseguir-alumnos-clases-particulares-talavera",
     "/blog/precio-clases-particulares-talavera",
+    "/blog/que-hacer-tras-suspender-primera-evaluacion",
   ])
   await expect(page.getByText("Cómo elegir profesor particular en Talavera de la Reina sin perder dinero ni tiempo")).toBeVisible()
   await expect(page.getByText("Cuánto cuesta un profesor particular en Talavera de la Reina: precios reales y cómo comparar")).toBeVisible()
