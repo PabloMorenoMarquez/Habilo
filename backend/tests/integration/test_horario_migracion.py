@@ -3,10 +3,13 @@ import secrets
 import uuid
 from pathlib import Path
 
+import pytest
 from sqlalchemy import text
 
 from models.usuario import Usuario
 from models.perfil_proveedor import Perfil_Proveedor
+
+pytestmark = pytest.mark.integration
 
 SQL = (Path(__file__).resolve().parents[2] / "migrations" / "2026-11-22_horario_por_dias.sql").read_text(encoding="utf-8")
 

@@ -26,6 +26,8 @@ from models.reporte import Reporte  # noqa: F401
 from models.pago import Pago  # noqa: F401
 from models.categoria import Categoria  # noqa: F401
 
+pytestmark = pytest.mark.integration
+
 
 @pytest.fixture
 def repo(pg_engine):

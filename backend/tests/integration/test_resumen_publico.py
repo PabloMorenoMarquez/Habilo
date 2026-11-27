@@ -9,6 +9,8 @@ from models.usuario import Usuario
 from models.perfil_proveedor import Perfil_Proveedor
 from models.resena_alumno import ResenaAlumno
 
+pytestmark = pytest.mark.integration
+
 
 @pytest.fixture
 def repo(pg_engine):
