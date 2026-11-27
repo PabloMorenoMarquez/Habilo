@@ -107,7 +107,18 @@ test("cuenta los emojis como un carácter, igual que el servidor", async ({ page
 test("si el servidor rechaza los datos, dice qué revisar", async ({ page }) => {
   await prepararApi(page, {
     postStatus: 422,
-    postBody: { detail: [{ loc: ["body", "comentario"], msg: "String should have at least 20 characters" }] },
+    // Forma real de un 422 de FastAPI/Pydantic v2.
+    postBody: {
+      detail: [
+        {
+          type: "string_too_short",
+          loc: ["body", "comentario"],
+          msg: "String should have at least 20 characters",
+          input: "Corto",
+          ctx: { min_length: 20 },
+        },
+      ],
+    },
   })
   await abrir(page)
   await rellenar(page)
@@ -214,6 +225,7 @@ async function prepararPanel(page: Page, { codigoStatus = 200 } = {}) {
         telefono_verificado: null,
         ciudad: null,
         fecha_registro: null,
+        es_admin: false,
       })
     )
   )
@@ -229,9 +241,8 @@ async function prepararPanel(page: Page, { codigoStatus = 200 } = {}) {
         num_valoraciones: 0,
         verificado: false,
         fecha_creacion: null,
-        dias_disponibles: null,
-        hora_inicio: null,
-        hora_fin: null,
+        // Horario por días (formato actual del backend): "1" = lunes … "7" = domingo.
+        horario: { "1": [{ inicio: "17:00", fin: "20:00" }], "3": [{ inicio: "17:00", fin: "20:00" }] },
         destacado_hasta: null,
         url_documento: null,
         motivo_rechazo: null,
@@ -252,7 +263,7 @@ async function prepararPanel(page: Page, { codigoStatus = 200 } = {}) {
   )
   await page.route("**/categorias/", (route) => route.fulfill(json([])))
   await page.route("**/solicitudes/conversaciones**", (route) =>
-    route.fulfill(json({ items: [], total: 0 }))
+    route.fulfill(json({ items: [], has_more: false, limit: 20, offset: 0 }))
   )
   // Con un servicio publicado el panel no abre el diálogo de «crear servicio».
   await page.route("**/servicio/mios", (route) =>
@@ -270,19 +281,17 @@ async function prepararPanel(page: Page, { codigoStatus = 200 } = {}) {
             activo: true,
             fecha_creacion: "2026-11-01T10:00:00Z",
             imagen_url: null,
+            ciudad: "Talavera de la Reina",
+            zona: null,
+            materias: ["Matemáticas"],
+            niveles: ["ESO"],
             latitud: null,
             longitud: null,
-            distancia_km: null,
-            proveedor_nombre: null,
-            proveedor_avatar: null,
-            proveedor_valoracion_media: null,
-            proveedor_num_valoraciones: null,
-            categoria_nombre: null,
-            es_favorito: false,
-            proveedor_destacado_hasta: null,
           },
         ],
-        total: 1,
+        has_more: false,
+        limit: 20,
+        offset: 0,
       })
     )
   )
@@ -318,8 +327,10 @@ test("el botón de WhatsApp lleva el mensaje con el enlace", async ({ page }) =>
 test("copiar deja el enlace en el portapapeles", async ({ page, context }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"])
   await prepararPanel(page)
-  await page.getByRole("button", { name: "Copiar" }).click()
-  await expect(page.getByRole("button", { name: "Copiado" })).toBeVisible()
+  // Con horario, el panel también tiene «Copiar a los demás días»: se busca dentro de la tarjeta.
+  const tarjeta = page.getByRole("region", { name: "Pide opiniones a tus alumnos" })
+  await tarjeta.getByRole("button", { name: "Copiar", exact: true }).click()
+  await expect(tarjeta.getByRole("button", { name: "Copiado", exact: true })).toBeVisible()
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(ENLACE)
 })
 
