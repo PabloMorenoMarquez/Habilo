@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { RedesSociales } from "@/components/redes-sociales"
 import { Button } from "@/components/ui/button"
 import "./blog.css"
 import { Logo } from "@/components/brand/logo"
@@ -52,6 +53,7 @@ export default function BlogLayout({ children }: { children: React.ReactNode }) 
             </Link>
           </nav>
         </div>
+        <RedesSociales className="mx-auto mt-6 max-w-5xl" />
       </footer>
     </div>
   )

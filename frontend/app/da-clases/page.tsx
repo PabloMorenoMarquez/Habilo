@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import { RedesSociales } from "@/components/redes-sociales"
 import { BadgeEuro, MessageCircle, Search, UserRound } from "lucide-react"
 import LandingTeacherCta from "@/components/landing/landing-teacher-cta"
 import { Button } from "@/components/ui/button"
@@ -195,6 +196,7 @@ export default async function DaClasesPage() {
             </Link>
           </nav>
         </div>
+        <RedesSociales className="mx-auto mt-6 max-w-5xl" />
       </footer>
     </div>
   )

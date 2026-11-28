@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import { RedesSociales } from "@/components/redes-sociales"
 import { redirect } from "next/navigation"
 import {
   BookOpen,
@@ -341,7 +342,8 @@ export default async function LandingPage({
               </Link>
             </nav>
           </div>
-          <p className="mt-6 text-xs text-muted-foreground">
+          <RedesSociales className="mt-6" />
+          <p className="mt-4 text-xs text-muted-foreground">
             © {new Date().getFullYear()} Habilo. Todos los derechos reservados.
           </p>
         </div>
