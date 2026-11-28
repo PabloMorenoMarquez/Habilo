@@ -12,6 +12,7 @@ import {
   activarDia,
   copiarADemas,
   erroresHorario,
+  tramosConError,
   limpiarHorario,
   type Dia,
   type Horario,
@@ -84,11 +85,16 @@ export default function HorarioDisponibilidad({
           const activo = tramos.length > 0
           const errorDia = errores[dia]
           const idError = `horario-error-${dia}`
-          const aria = (etiqueta: string) => ({
-            "aria-label": etiqueta,
-            "aria-invalid": errorDia ? true : undefined,
-            "aria-describedby": errorDia ? idError : undefined,
-          })
+          // Solo el tramo que causa el error se marca (borde rojo y descripción).
+          const conError = errorDia ? tramosConError(tramos) : []
+          const aria = (etiqueta: string, i: number) => {
+            const invalido = conError.includes(i)
+            return {
+              "aria-label": etiqueta,
+              "aria-invalid": invalido ? true : undefined,
+              "aria-describedby": invalido ? idError : undefined,
+            }
+          }
           return (
             <div key={dia} role="group" aria-label={nombre} className="flex flex-col gap-2 p-3 sm:flex-row sm:items-start">
               <div className="flex items-center gap-3 sm:w-36 sm:pt-1.5">
@@ -104,7 +110,7 @@ export default function HorarioDisponibilidad({
                     <div key={i} className="flex items-center gap-2">
                       <input
                         type="time"
-                        {...aria(`${nombre}, tramo ${i + 1}, inicio`)}
+                        {...aria(`${nombre}, tramo ${i + 1}, inicio`, i)}
                         value={tramo.inicio}
                         onChange={(e) =>
                           setTramos(dia, tramos.map((t, j) => (j === i ? { ...t, inicio: e.target.value } : t)))
@@ -114,7 +120,7 @@ export default function HorarioDisponibilidad({
                       <span className="text-xs text-muted-foreground">a</span>
                       <input
                         type="time"
-                        {...aria(`${nombre}, tramo ${i + 1}, fin`)}
+                        {...aria(`${nombre}, tramo ${i + 1}, fin`, i)}
                         value={tramo.fin}
                         onChange={(e) =>
                           setTramos(dia, tramos.map((t, j) => (j === i ? { ...t, fin: e.target.value } : t)))

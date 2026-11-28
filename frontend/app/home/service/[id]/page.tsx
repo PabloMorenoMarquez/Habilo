@@ -68,7 +68,6 @@ export default async function ServiceDetailPage({ params }: ServiceDetailPagePro
   // su estado de error y puede reintentar la carga.
   const servicio = status >= 200 && status < 300 ? data : null
 
-  const ratingCount = servicio?.proveedor_num_valoraciones ?? 0
   const structuredData = servicio
     ? {
         '@context': 'https://schema.org',
@@ -105,15 +104,8 @@ export default async function ServiceDetailPage({ params }: ServiceDetailPagePro
               },
             }
           : {}),
-        ...(ratingCount > 0 && servicio.proveedor_valoracion_media != null
-          ? {
-              aggregateRating: {
-                '@type': 'AggregateRating',
-                ratingValue: servicio.proveedor_valoracion_media,
-                reviewCount: ratingCount,
-              },
-            }
-          : {}),
+        // Sin aggregateRating: Google no lo admite en Service (solo en tipos como
+        // Product, Course o LocalBusiness) y Search Console lo marca como crítico.
       }
     : null
 

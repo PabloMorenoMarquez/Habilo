@@ -153,15 +153,8 @@ export default async function ProfesorPage({ params }: ProfesorPageProps) {
               ...(perfil.ciudad
                 ? { address: { '@type': 'PostalAddress', addressLocality: perfil.ciudad } }
                 : {}),
-              ...(rating != null
-                ? {
-                    aggregateRating: {
-                      '@type': 'AggregateRating',
-                      ratingValue: rating,
-                      reviewCount: perfil.num_valoraciones,
-                    },
-                  }
-                : {}),
+              // Sin aggregateRating: Google no lo admite en Person y Search Console
+              // lo marca como problema crítico. Las reseñas se siguen viendo en la página.
             },
             ...perfil.servicios.map((servicio) => {
               const precio = formatearPrecio(servicio)

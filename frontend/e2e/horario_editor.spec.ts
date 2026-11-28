@@ -173,6 +173,12 @@ test("accesibilidad: tramos numerados, errores anunciados y botón de quitar de 
   await expect(fin).toHaveAttribute("aria-invalid", "true")
   await expect(inicio).toHaveAccessibleDescription("La hora de fin debe ser posterior a la de inicio")
   await expect(fin).toHaveAccessibleDescription("La hora de fin debe ser posterior a la de inicio")
+
+  // Solo se marca el tramo que falla: el tramo 2 sigue válido y sin borde rojo.
+  const inicio2 = lunes.getByLabel("Lunes, tramo 2, inicio", { exact: true })
+  await expect(inicio2).not.toHaveAttribute("aria-invalid", "true")
+  const borde = (l: typeof inicio) => l.evaluate((el) => getComputedStyle(el).borderTopColor)
+  expect(await borde(inicio)).not.toBe(await borde(inicio2))
 })
 
 test("un 422 del backend al guardar muestra su mensaje en español", async ({ page }) => {

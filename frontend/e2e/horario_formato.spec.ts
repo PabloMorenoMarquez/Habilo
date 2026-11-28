@@ -3,6 +3,7 @@ import {
   activarDia,
   copiarADemas,
   erroresHorario,
+  tramosConError,
   formatearHorario,
   limpiarHorario,
   siguienteTramo,
@@ -66,6 +67,30 @@ test.describe("erroresHorario", () => {
 
   test("contiguos son válidos", () => {
     expect(erroresHorario({ "1": [t("09:00", "13:00"), t("13:00", "15:00")] })).toEqual({})
+  })
+})
+
+// Qué tramos se marcan en rojo: solo los que causan el error que se muestra,
+// con su posición en pantalla (sin ordenar).
+test.describe("tramosConError", () => {
+  test("sin errores, ninguno", () => {
+    expect(tramosConError([t("09:00", "13:00"), t("13:00", "15:00")])).toEqual([])
+  })
+
+  test("hora vacía: solo ese tramo", () => {
+    expect(tramosConError([t("09:00", "13:00"), t("", "18:00")])).toEqual([1])
+  })
+
+  test("fin antes que inicio: solo ese tramo", () => {
+    expect(tramosConError([t("14:00", "10:00"), t("16:00", "18:00")])).toEqual([0])
+  })
+
+  test("solapados: los dos, en su posición de pantalla", () => {
+    expect(tramosConError([t("16:00", "18:00"), t("12:00", "15:00"), t("09:00", "13:00")])).toEqual([1, 2])
+  })
+
+  test("si falta una hora no marca solapes (mismo orden que el mensaje)", () => {
+    expect(tramosConError([t("09:00", "13:00"), t("10:00", "12:00"), t("", "")])).toEqual([2])
   })
 })
 

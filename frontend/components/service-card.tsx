@@ -10,6 +10,7 @@ import { useAuth } from "@/context/auth-context"
 import { marcarServicioFavorito, desmarcarServicioFavorito } from "@/lib/api"
 import { AuthRequiredDialog } from "@/components/auth-required-dialog"
 import { captureIfConsented } from "@/lib/analytics"
+import { valoracionVisible } from "@/lib/valoracion"
 
 interface ServiceCardProps {
   service: {
@@ -50,6 +51,7 @@ export default function ServiceCard({ service, onFavoritoChange }: ServiceCardPr
   const [favorito, setFavorito] = useState(!!service.favorito)
   const [cargandoFavorito, setCargandoFavorito] = useState(false)
   const [authDialogOpen, setAuthDialogOpen] = useState(false)
+  const valoracion = valoracionVisible(service.rating, service.reviewCount)
 
   // El catálogo puede refrescarse en segundo plano (p. ej. al restaurar la
   // sesión). Sincronizamos el estado local cuando llega el dato del servidor.
@@ -138,15 +140,18 @@ export default function ServiceCard({ service, onFavoritoChange }: ServiceCardPr
               <span className="text-xs text-muted-foreground">{service.professional.location}</span>
             </div>
 
+            {(valoracion || service.deliveryDays) && (
             <div className="flex items-center gap-3 text-sm">
-              <div className="flex items-center gap-1">
-                <Star size={14} className="fill-amber-400 text-amber-400" />
-                <span className="font-semibold text-foreground">{service.rating}</span>
-                <span className="text-muted-foreground">({service.reviewCount})</span>
-              </div>
+              {valoracion && (
+                <div className="flex items-center gap-1">
+                  <Star size={14} className="fill-amber-400 text-amber-400" />
+                  <span className="font-semibold text-foreground">{valoracion.media}</span>
+                  <span className="text-muted-foreground">({valoracion.total})</span>
+                </div>
+              )}
               {service.deliveryDays && (
                 <>
-                  <span className="text-muted-foreground/40">·</span>
+                  {valoracion && <span className="text-muted-foreground/40">·</span>}
                   <div className="flex items-center gap-1 text-muted-foreground">
                     <Clock size={12} />
                     <span>{service.deliveryDays} días</span>
@@ -154,6 +159,7 @@ export default function ServiceCard({ service, onFavoritoChange }: ServiceCardPr
                 </>
               )}
             </div>
+            )}
 
             <div className="mt-auto pt-3 border-t border-border flex items-center justify-between">
               <span className="text-xs text-muted-foreground">Desde</span>

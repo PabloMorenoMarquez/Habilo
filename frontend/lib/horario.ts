@@ -76,6 +76,27 @@ export function erroresHorario(h: Horario): Partial<Record<Dia, string>> {
   return errores
 }
 
+/**
+ * Posiciones (en el orden de pantalla) de los tramos que causan el error que
+ * muestra `erroresHorario` para ese día, con la misma prioridad: hora vacía,
+ * fin no posterior al inicio y, por último, solapes.
+ */
+export function tramosConError(tramos: Tramo[]): number[] {
+  const vacias = tramos.flatMap((t, i) => (!t.inicio || !t.fin ? [i] : []))
+  if (vacias.length) return vacias
+  const invertidos = tramos.flatMap((t, i) => (t.fin <= t.inicio ? [i] : []))
+  if (invertidos.length) return invertidos
+  const orden = tramos.map((_, i) => i).sort((a, b) => tramos[a].inicio.localeCompare(tramos[b].inicio))
+  const solapados = new Set<number>()
+  for (let k = 1; k < orden.length; k++) {
+    if (tramos[orden[k]].inicio < tramos[orden[k - 1]].fin) {
+      solapados.add(orden[k - 1])
+      solapados.add(orden[k])
+    }
+  }
+  return [...solapados].sort((a, b) => a - b)
+}
+
 const copia = (tramos: Tramo[]) => tramos.map((t) => ({ ...t }))
 
 /** Marca el día como disponible con los tramos del último día disponible anterior, o 17:00–21:00. */
