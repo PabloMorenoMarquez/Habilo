@@ -8,7 +8,7 @@ export default function LegalNoticePage() {
       <section>
         <h2>1. Datos identificativos</h2>
         <p>En cumplimiento del artículo 10 de la Ley 34/2002, de Servicios de la Sociedad de la Información y de Comercio Electrónico (LSSI-CE), el titular de Habilo es:</p>
-        <p><strong>Pablo Moreno Márquez</strong><br />NIF: 02333804V<br />Dirección de contacto (en defecto de domicilio de actividad, conforme al art. 10.1.a LSSI-CE): <a href="mailto:pablomorenomarquez@gmail.com" className="text-primary hover:underline">pablomorenomarquez@gmail.com</a></p>
+        <p><strong>Pablo Moreno Márquez</strong><br />NIF: 02333804V<br />Dirección de contacto (en defecto de domicilio de actividad, conforme al art. 10.1.a LSSI-CE): <a href="mailto:soporte@habilo.es" className="text-primary hover:underline">soporte@habilo.es</a></p>
         <p>A la fecha de esta versión, Pablo Moreno Márquez opera Habilo como persona física, sin que exista todavía alta como autónomo ni constitución de sociedad. Esta situación es transitoria y corresponde a una fase de validación de la plataforma sin cobro de comisiones ni ingresos asociados a la actividad.</p>
       </section>
 
@@ -44,7 +44,7 @@ export default function LegalNoticePage() {
 
       <section>
         <h2>8. Contacto</h2>
-        <p>Para cualquier consulta: <a href="mailto:pablomorenomarquez@gmail.com" className="text-primary hover:underline">pablomorenomarquez@gmail.com</a></p>
+        <p>Para cualquier consulta: <a href="mailto:soporte@habilo.es" className="text-primary hover:underline">soporte@habilo.es</a></p>
       </section>
     </LegalDocument>
   )

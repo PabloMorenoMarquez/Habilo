@@ -9,7 +9,7 @@ export default function PrivacyPage() {
       <section>
         <h2>1. Responsable del tratamiento</h2>
         <p>Los datos personales recogidos a través de Habilo son tratados por:</p>
-        <p><strong>Pablo Moreno Márquez</strong><br />NIF: 02333804V<br />Dirección de contacto (en defecto de domicilio de actividad, conforme al art. 10.1.a LSSI-CE): <a href="mailto:pablomorenomarquez@gmail.com" className="text-primary hover:underline">pablomorenomarquez@gmail.com</a></p>
+        <p><strong>Pablo Moreno Márquez</strong><br />NIF: 02333804V<br />Dirección de contacto (en defecto de domicilio de actividad, conforme al art. 10.1.a LSSI-CE): <a href="mailto:soporte@habilo.es" className="text-primary hover:underline">soporte@habilo.es</a></p>
       </section>
 
       <section>
@@ -83,10 +83,12 @@ export default function PrivacyPage() {
       <section>
         <h2>7. Tus derechos</h2>
         <p>Puedes ejercer en cualquier momento los derechos de acceso, rectificación, supresión, limitación del tratamiento, portabilidad y oposición a tratamientos basados en el interés legítimo.</p>
-        <p>Puedes ejercerlos escribiendo a <a href="mailto:pablomorenomarquez@gmail.com" className="text-primary hover:underline">pablomorenomarquez@gmail.com</a>. También puedes reclamar ante la Agencia Española de Protección de Datos (<a href="https://www.aepd.es" target="_blank" rel="noreferrer" className="text-primary hover:underline">www.aepd.es</a>).</p>
+        <p>Puedes ejercerlos escribiendo a <a href="mailto:soporte@habilo.es" className="text-primary hover:underline">soporte@habilo.es</a>. También puedes reclamar ante la Agencia Española de Protección de Datos (<a href="https://www.aepd.es" target="_blank" rel="noreferrer" className="text-primary hover:underline">www.aepd.es</a>).</p>
         <div id="borrar-datos" className="scroll-mt-24">
           <h3>Cómo borrar tu cuenta y tus datos</h3>
-          <p>Da igual si entraste con Google o con Facebook: para borrar tu cuenta y todos tus datos, escribe a <a href="mailto:pablomorenomarquez@gmail.com" className="text-primary hover:underline">pablomorenomarquez@gmail.com</a> desde el correo de tu cuenta con el asunto «Borrar mi cuenta». La borramos, junto con tu perfil y tus anuncios, en un plazo máximo de 30 días y te confirmamos por correo cuando esté hecho.</p>
+          <p>Da igual si entraste con Google o con Facebook: entra en Habilo, abre «Mi perfil» y pulsa «Eliminar mi cuenta». Se borran al momento tu cuenta, tu perfil, tus anuncios y sus fotos. Si tienes historial compartido con otras personas (solicitudes, mensajes o valoraciones), esas conversaciones se conservan, pero sin tu nombre ni tus datos. Los datos de pagos que la ley obligue a guardar se conservan durante el plazo legal.</p>
+          <p>Si no puedes entrar en tu cuenta, escribe a <a href="mailto:soporte@habilo.es" className="text-primary hover:underline">soporte@habilo.es</a> desde el correo de tu cuenta con el asunto «Borrar mi cuenta». La borramos en un plazo máximo de 30 días y te confirmamos por correo cuando esté hecho.</p>
+          <p>Ten en cuenta que, si después vuelves a entrar con Google o con Facebook, se crea una cuenta nueva.</p>
           <p>Además, puedes quitar el acceso de Habilo a tu cuenta de Facebook en Facebook → Configuración y privacidad → Configuración → Apps y sitios web, o a tu cuenta de Google en myaccount.google.com → Seguridad → Aplicaciones de terceros con acceso a la cuenta.</p>
         </div>
       </section>
@@ -117,7 +119,7 @@ export default function PrivacyPage() {
 
       <section>
         <h2>12. Contacto</h2>
-        <p>Para cualquier consulta: <a href="mailto:pablomorenomarquez@gmail.com" className="text-primary hover:underline">pablomorenomarquez@gmail.com</a></p>
+        <p>Para cualquier consulta: <a href="mailto:soporte@habilo.es" className="text-primary hover:underline">soporte@habilo.es</a></p>
       </section>
     </LegalDocument>
   )

@@ -8,7 +8,7 @@ export default function TermsPage() {
       <section>
         <h2>1. Objeto y aceptación</h2>
         <p><strong>1.1.</strong> Los presentes Términos y Condiciones (en adelante, los "Términos") regulan el acceso y uso de la plataforma Habilo (en adelante, la "Plataforma" o "Habilo"), un espacio digital que pone en contacto a personas que buscan contratar servicios de proximidad (en adelante, "Clientes") con personas físicas o jurídicas que ofrecen dichos servicios de forma profesional o particular (en adelante, "Profesionales").</p>
-        <p><strong>1.2.</strong> Habilo es operada por Pablo Moreno Márquez — NIF 02333804V — Dirección de contacto (en defecto de domicilio de actividad, conforme al art. 10.1.a LSSI-CE): pablomorenomarquez@gmail.com</p>
+        <p><strong>1.2.</strong> Habilo es operada por Pablo Moreno Márquez — NIF 02333804V — Dirección de contacto (en defecto de domicilio de actividad, conforme al art. 10.1.a LSSI-CE): soporte@habilo.es</p>
         <p><strong>1.3.</strong> El acceso y uso de la Plataforma atribuye la condición de "Usuario" e implica la aceptación plena y sin reservas de estos Términos, así como de la Política de Privacidad, en su versión publicada en cada momento en que el Usuario acceda a la Plataforma.</p>
         <p><strong>1.4.</strong> El uso de la Plataforma requiere ser mayor de edad (18 años) y tener capacidad legal para contratar.</p>
       </section>
@@ -121,7 +121,7 @@ export default function TermsPage() {
 
       <section>
         <h2>18. Contacto</h2>
-        <p>Para cualquier consulta: <a href="mailto:pablomorenomarquez@gmail.com" className="text-primary hover:underline">pablomorenomarquez@gmail.com</a></p>
+        <p>Para cualquier consulta: <a href="mailto:soporte@habilo.es" className="text-primary hover:underline">soporte@habilo.es</a></p>
       </section>
     </LegalDocument>
   )
